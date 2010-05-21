@@ -1,0 +1,933 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Firing Solution Collision Tester</title>
+	<script src="ooputil.js"></script>
+	<script src="mathutil.js"></script>
+	<script src="htmlutil.js"></script>
+	<script type="text/javascript">
+
+var MAX_DIAMETER = 25;
+
+var fieldWidth = 0;
+var fieldHeight = 0;
+var ballCount = 0;
+
+var ballArray = [];
+
+var lowestBoundX = null;
+
+///////////////////
+// PairwiseBall //
+/////////////////
+
+function PairwiseBall(x, y, dX, dY, radius) {
+	this.x = x;
+	this.y = y;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+}
+
+PairwiseBall.prototype.setPosition = function (x, y) {
+	this.x = x;
+	this.y = y;
+};
+
+PairwiseBall.prototype.collides = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (ball != this && Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2))
+				< ball.radius + this.radius) {
+			return ball;
+		}
+	}
+	return null;
+};
+
+PairwiseBall.tick = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ball.x += ball.dX;
+		ball.y += ball.dY;
+	}
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (ball.collides()) {
+			ball.dX *= -1;
+			ball.dY *= -1;
+		} else {
+			if (ball.x < 0) {
+				if (ball.dX < 0) {
+					ball.dX *= -1;
+				}
+			} else if (ball.x > fieldWidth) {
+				if (ball.dX > 0) {
+					ball.dX *= -1;
+				}
+			}
+			if (ball.y < 0) {
+				if (ball.dY < 0) {
+					ball.dY *= -1;
+				}
+			} else if (ball.y > fieldHeight) {
+				if (ball.dY > 0) {
+					ball.dY *= -1;
+				}
+			}
+		}
+	}
+};
+
+////////////////
+// SweepBall //
+//////////////
+
+function SweepBall(x, y, dX, dY, radius) {
+	this.x = 0;
+	this.y = 0;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+	this.nextX = null;
+	this.prevX = null;
+	// Set up the initial position
+	if (ballArray.length > 0) {
+		var ball = ballArray[0];
+		this.nextX = ball;
+		this.prevX = ball.prevX;
+		ball.prevX = this;
+	}
+	this.setPosition(x, y);
+}
+
+SweepBall.prototype.setPosition = function (x, y) {
+	this.x = x;
+	this.y = y;
+	while (this.prevX && this.x < this.prevX.x) {
+		var prev = this.prevX;
+		if (this.nextX) {
+			this.nextX.prevX = prev; 
+		}
+		if (prev.prevX) {
+			prev.prevX.nextX = this;
+		}
+		prev.nextX = this.nextX;
+		this.prevX = prev.prevX;
+		prev.prevX = this;
+		this.nextX = prev;
+	}
+	while (this.nextX && this.x > this.nextX.x) {
+		var next = this.nextX;
+		if (this.prevX) {
+			this.prevX.nextX = next; 
+		}
+		if (next.nextX) {
+			next.nextX.prevX = this;
+		}
+		next.prevX = this.prevX;
+		this.nextX = next.nextX;
+		next.nextX = this;
+		this.prevX = next;
+	}
+};
+
+SweepBall.prototype.collides = function () {
+	var ball = this.prevX;
+	while (ball && this.x - ball.x < MAX_DIAMETER) {
+		if (Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2)) < ball.radius + this.radius) {
+			return ball;
+		}
+		ball = ball.prevX;
+	}
+	ball = this.nextX;
+	while (ball && ball.x - this.x < MAX_DIAMETER) {
+		if (Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2)) < ball.radius + this.radius) {
+			return ball;
+		}
+		ball = ball.nextX;
+	}
+	return null;
+};
+
+SweepBall.tick = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ball.setPosition(ball.x + ball.dX, ball.y + ball.dY);
+	}
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (ball.collides()) {
+			ball.dX *= -1;
+			ball.dY *= -1;
+		} else {
+			if (ball.x < 0) {
+				if (ball.dX < 0) {
+					ball.dX *= -1;
+				}
+			} else if (ball.x > fieldWidth) {
+				if (ball.dX > 0) {
+					ball.dX *= -1;
+				}
+			}
+			if (ball.y < 0) {
+				if (ball.dY < 0) {
+					ball.dY *= -1;
+				}
+			} else if (ball.y > fieldHeight) {
+				if (ball.dY > 0) {
+					ball.dY *= -1;
+				}
+			}
+		}
+	}
+};
+
+/////////////////
+// SweepBall2 //
+///////////////
+
+function SweepBall2(x, y, dX, dY, radius) {
+	SweepBall.apply(this, arguments);
+}
+
+SweepBall2.prototype.setPosition = function (x, y) {
+	this.x = x;
+	this.y = y;
+	while (this.prevX && this.x < this.prevX.x) {
+		var prev = this.prevX;
+		if (this.nextX) {
+			this.nextX.prevX = prev; 
+		}
+		if (prev.prevX) {
+			prev.prevX.nextX = this;
+		}
+		prev.nextX = this.nextX;
+		this.prevX = prev.prevX;
+		prev.prevX = this;
+		this.nextX = prev;
+	}
+	while (this.nextX && this.x > this.nextX.x) {
+		var next = this.nextX;
+		if (this.prevX) {
+			this.prevX.nextX = next; 
+		}
+		if (next.nextX) {
+			next.nextX.prevX = this;
+		}
+		next.prevX = this.prevX;
+		this.nextX = next.nextX;
+		next.nextX = this;
+		this.prevX = next;
+	}
+	while (this.prevY && this.y < this.prevY.y) {
+		var prev = this.prevY;
+		if (this.nextY) {
+			this.nextY.prevY = prev; 
+		}
+		if (prev.prevY) {
+			prev.prevY.nextY = this;
+		}
+		prev.nextY = this.nextY;
+		this.prevY = prev.prevY;
+		prev.prevY = this;
+		this.nextY = prev;
+	}
+	while (this.nextY && this.y > this.nextY.y) {
+		var next = this.nextY;
+		if (this.prevY) {
+			this.prevY.nextY = next; 
+		}
+		if (next.nextY) {
+			next.nextY.prevY = this;
+		}
+		next.prevY = this.prevY;
+		this.nextY = next.nextY;
+		next.nextY = this;
+		this.prevY = next;
+	}
+};
+
+SweepBall2.prototype.collides = function () {
+	var ball = this.prevX;
+	while (ball && this.x - ball.x < MAX_DIAMETER) {
+		var ball2 = this.prevY;
+		while (ball2 && this.y - ball2.y < MAX_DIAMETER) {
+			if (ball == ball2 && Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2)) < ball.radius + this.radius) {
+				return ball;
+			}
+			ball2 = ball2.prevY;
+		}
+		ball2 = this.nextY;
+		while (ball2 && ball2.y - this.y < MAX_DIAMETER) {
+			if (ball == ball2 && Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2)) < ball.radius + this.radius) {
+				return ball;
+			}
+			ball2 = ball2.nextY;
+		}
+		ball = ball.prevX;
+	}
+	ball = this.nextX;
+	while (ball && ball.x - this.x < MAX_DIAMETER) {
+		var ball2 = this.prevY;
+		while (ball2 && this.y - ball2.y < MAX_DIAMETER) {
+			if (ball == ball2 && Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2)) < ball.radius + this.radius) {
+				return ball;
+			}
+			ball2 = ball2.prevY;
+		}
+		ball2 = this.nextY;
+		while (ball2 && ball2.y - this.y < MAX_DIAMETER) {
+			if (ball == ball2 && Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2)) < ball.radius + this.radius) {
+				return ball;
+			}
+			ball2 = ball2.nextY;
+		}
+		ball = ball.nextX;
+	}
+	return null;
+};
+
+SweepBall2.tick = SweepBall.tick;
+
+////////////
+// Bound //
+//////////
+
+function Bound(value, isLow, actor) {
+	this.value = value;
+	this.isLow = isLow;
+	this.actor = actor;
+	this.next = null;
+	this.prev = null;
+}
+
+Bound.prototype.addBefore = function (bound) {
+	if (bound.prev) {
+		bound.prev.next = this;
+	}
+	this.prev = bound.prev;
+	this.next = bound;
+	bound.prev = this;
+};
+
+Bound.prototype.addAfter = function (bound) {
+	if (bound.next) {
+		bound.next.prev = this;
+	}
+	this.next = bound.next;
+	this.prev = bound;
+	bound.next = this;
+};
+
+Bound.prototype.remove = function () {
+	if (this.next) {
+		this.next.prev = this.prev;
+	}
+	if (this.prev) {
+		this.prev.next = this.next;
+	}
+	this.next = null;
+	this.prev = null;
+};
+
+Bound.prototype.setValue = function (value) {
+	this.value = value;
+	while (this.prev && value < this.prev.value) {
+		var prev = this.prev;
+		if (this.next) {
+			this.next.prev = prev; 
+		}
+		if (prev.prev) {
+			prev.prev.next = this;
+		}
+		prev.next = this.next;
+		this.prev = prev.prev;
+		prev.prev = this;
+		this.next = prev;
+	}
+	while (this.next && value > this.next.value) {
+		var next = this.next;
+		if (this.prev) {
+			this.prev.next = next; 
+		}
+		if (next.next) {
+			next.next.prev = this;
+		}
+		next.prev = this.prev;
+		this.next = next.next;
+		next.next = this;
+		this.prev = next;
+	}
+};
+
+/////////////////
+// SweepBall3 //
+///////////////
+
+function SweepBall3(x, y, dX, dY, radius) {
+	this.x = 0;
+	this.y = 0;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+	this.lowBoundX = new Bound(0, true, this);
+	this.highBoundX = new Bound(0, false, this);
+	// Set up the initial position
+	if (ballArray.length > 0) {
+		this.lowBoundX.addBefore(ballArray[0].lowBoundX);
+	}
+	this.highBoundX.addBefore(this.lowBoundX);
+	this.lowBoundX.setValue(this.x - this.radius);
+	this.highBoundX.setValue(this.x + this.radius);
+}
+
+SweepBall3.prototype.setPosition = function (x, y) {
+	this.x = x;
+	this.y = y;
+	this.lowBoundX.setValue(this.x - this.radius);
+	this.highBoundX.setValue(this.x + this.radius);
+};
+
+SweepBall3.prototype.collides = function () {
+	var bound = this.lowBoundX.next;
+	while (bound && bound != this.highBoundX) {
+		var ball = bound.actor;
+		if (Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2)) < ball.radius + this.radius) {
+			return ball;
+		}
+		bound = bound.next;
+	}
+	return null;
+};
+
+SweepBall3.tick = SweepBall.tick;
+
+/////////////////
+// SweepBall4 //
+///////////////
+
+function SweepBall4(x, y, dX, dY, radius, idx) {
+	this.x = 0;
+	this.y = 0;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+	this.idx = idx;
+	this.lowBoundX = new Bound(0, true, this);
+	this.highBoundX = new Bound(0, false, this);
+	// Set up the initial position
+	if (ballArray.length > 0) {
+		this.lowBoundX.addBefore(ballArray[0].lowBoundX);
+	}
+	this.highBoundX.addBefore(this.lowBoundX);
+	this.lowBoundX.setValue(this.x - this.radius);
+	this.highBoundX.setValue(this.x + this.radius);
+}
+
+SweepBall4.prototype.setPosition = function (x, y) {
+	this.x = x;
+	this.y = y;
+	this.lowBoundX.setValue(this.x - this.radius);
+	this.highBoundX.setValue(this.x + this.radius);
+	if (!this.lowBoundX.prev) {
+		lowestBoundX = this.lowBoundX;
+	}
+};
+
+SweepBall4.prototype.collides = PairwiseBall.prototype.collides;
+
+SweepBall4.tick = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ball.setPosition(ball.x + ball.dX, ball.y + ball.dY);
+	}
+	var collided = {};
+	var bound = lowestBoundX;
+	while (bound) {
+		var bound2 = bound.next;
+		while (bound2.actor != bound.actor) {
+			if (Math.pow(bound.actor.x - bound2.actor.x, 2) + Math.pow(bound.actor.y - bound2.actor.y, 2) < Math.pow(bound.actor.radius + bound2.actor.radius, 2)) {
+				collided[bound.actor.idx] = true;
+				collided[bound2.actor.idx] = true;
+			}
+			bound2 = bound2.next;
+		}
+		do {
+			bound = bound.next;
+		} while (bound && !bound.isLow);
+	}
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (collided[ball.idx]) {
+			ball.dX *= -1;
+			ball.dY *= -1;
+		} else {
+			if (ball.x < 0) {
+				if (ball.dX < 0) {
+					ball.dX *= -1;
+				}
+			} else if (ball.x > fieldWidth) {
+				if (ball.dX > 0) {
+					ball.dX *= -1;
+				}
+			}
+			if (ball.y < 0) {
+				if (ball.dY < 0) {
+					ball.dY *= -1;
+				}
+			} else if (ball.y > fieldHeight) {
+				if (ball.dY > 0) {
+					ball.dY *= -1;
+				}
+			}
+		}
+	}
+};
+
+/////////////////
+// SweepBall5 //
+///////////////
+
+function SweepBall5(x, y, dX, dY, radius, idx) {
+	this.x = 0;
+	this.y = 0;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+	this.idx = idx;
+	this.lowBoundX = new Bound(0, true, this);
+	this.highBoundX = new Bound(0, false, this);
+	// Set up the initial position
+	if (ballArray.length > 0) {
+		this.lowBoundX.addBefore(ballArray[0].lowBoundX);
+	}
+	this.highBoundX.addBefore(this.lowBoundX);
+	this.lowBoundX.setValue(this.x - this.radius);
+	this.highBoundX.setValue(this.x + this.radius);
+	// Cached values
+	this.lowBoundX.cachedY = this.y;
+	this.lowBoundX.cachedRadius = this.radius;
+	this.highBoundX.cachedY = this.y;
+	this.highBoundX.cachedRadius = this.radius;
+}
+
+SweepBall5.prototype.setPosition = function (x, y) {
+	this.x = x;
+	this.y = y;
+	this.lowBoundX.setValue(x - this.radius);
+	this.highBoundX.setValue(x + this.radius);
+	this.lowBoundX.cachedY = y;
+	this.highBoundX.cachedY = y;
+	if (!this.lowBoundX.prev) {
+		lowestBoundX = this.lowBoundX;
+	}
+};
+
+SweepBall5.prototype.collides = PairwiseBall.prototype.collides;
+
+SweepBall5.tick = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ball.setPosition(ball.x + ball.dX, ball.y + ball.dY);
+	}
+	var collided = {};
+	var bound = lowestBoundX;
+	while (bound) {
+		var bound2 = bound.next;
+		while (bound2.actor != bound.actor) {
+			var dist = bound.cachedY - bound2.cachedY;
+			if ((dist > 0 ? dist : -dist) < bound.cachedRadius + bound2.cachedRadius) {
+				if (Math.pow(bound.actor.x - bound2.actor.x, 2) + Math.pow(bound.actor.y - bound2.actor.y, 2) < Math.pow(bound.actor.radius + bound2.actor.radius, 2)) {
+					collided[bound.actor.idx] = true;
+					collided[bound2.actor.idx] = true;
+				}
+			}
+			bound2 = bound2.next;
+		}
+		do {
+			bound = bound.next;
+		} while (bound && !bound.isLow);
+	}
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (collided[ball.idx]) {
+			ball.dX *= -1;
+			ball.dY *= -1;
+		} else {
+			if (ball.x < 0) {
+				if (ball.dX < 0) {
+					ball.dX *= -1;
+				}
+			} else if (ball.x > fieldWidth) {
+				if (ball.dX > 0) {
+					ball.dX *= -1;
+				}
+			}
+			if (ball.y < 0) {
+				if (ball.dY < 0) {
+					ball.dY *= -1;
+				}
+			} else if (ball.y > fieldHeight) {
+				if (ball.dY > 0) {
+					ball.dY *= -1;
+				}
+			}
+		}
+	}
+};
+
+/////////////////
+// SweepBall6 //
+///////////////
+
+var lowSentinels = [];
+var highSentinels = [];
+
+(function () {
+	for (var i = 0; i < 4; ++i) {
+		var lowSentinel = new Bound(-Infinity, true, null);
+		var highSentinel = new Bound(Infinity, false, null);
+		lowSentinels.push(lowSentinel);
+		highSentinels.push(highSentinel);
+		highSentinel.addAfter(lowSentinel);
+	}
+})();
+
+function SweepBall6(x, y, dX, dY, radius, idx) {
+	this.x = 0;
+	this.y = 0;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+	this.idx = idx;
+	this.lowBounds = [];
+	this.highBounds = [];
+	for (var i = 0; i < lowSentinels.length; ++i) {
+		this.lowBounds.push(null);
+		this.highBounds.push(null);
+	}
+	this.setPosition(x, y);
+}
+
+SweepBall6.prototype.setPosition = function (x, y) {
+	var stripeHeight = fieldHeight / lowSentinels.length;
+	this.x = x;
+	this.y = y;
+	for (var i = 0; i < lowSentinels.length; ++i) {
+		if (y + this.radius >= i * stripeHeight && y - this.radius <= (i + 1) * stripeHeight) {
+			if (!this.lowBounds[i]) {
+				this.lowBounds[i] = new Bound(0, true, this);
+				this.lowBounds[i].cachedRadius = this.radius;
+				this.highBounds[i] = new Bound(0, false, this);
+				this.highBounds[i].cachedRadius = this.radius;
+				if (y < (i + 0.5) * stripeHeight) {
+					this.lowBounds[i].addAfter(lowSentinels[i]);
+					this.highBounds[i].addAfter(lowSentinels[i]);
+				} else {
+					this.lowBounds[i].addBefore(highSentinels[i]);
+					this.highBounds[i].addBefore(highSentinels[i]);
+				}
+			}
+			this.lowBounds[i].setValue(x - this.radius);
+			this.highBounds[i].setValue(x + this.radius);
+			this.lowBounds[i].cachedY = y;
+			this.highBounds[i].cachedY = y;
+		} else if (this.lowBounds[i]) {
+			this.lowBounds[i].remove();
+			this.lowBounds[i] = null;
+			this.highBounds[i].remove();
+			this.highBounds[i] = null;
+		}
+	}
+};
+
+SweepBall6.prototype.collides = PairwiseBall.prototype.collides;
+
+SweepBall6.tick = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ball.setPosition(ball.x + ball.dX, ball.y + ball.dY);
+	}
+	var collided = {};
+	for (var i = 0; i < lowSentinels.length; ++i) {
+		var bound = lowSentinels[i].next;
+		while (bound) {
+			var bound2 = bound.next;
+			while (bound2.actor != bound.actor) {
+				if (bound.isLow) {
+					var dist = bound.cachedY - bound2.cachedY;
+					if ((dist > 0 ? dist : -dist) < bound.cachedRadius + bound2.cachedRadius) {
+						if (Math.pow(bound.actor.x - bound2.actor.x, 2) + Math.pow(bound.actor.y - bound2.actor.y, 2) < Math.pow(bound.actor.radius + bound2.actor.radius, 2)) {
+							collided[bound.actor.idx] = true;
+							collided[bound2.actor.idx] = true;
+						}
+					}
+				}
+				bound2 = bound2.next;
+			}
+			do {
+				bound = bound.next;
+			} while (bound && !bound.isLow);
+		}
+	}
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (collided[ball.idx]) {
+			ball.dX *= -1;
+			ball.dY *= -1;
+		} else {
+			if (ball.x < 0) {
+				if (ball.dX < 0) {
+					ball.dX *= -1;
+				}
+			} else if (ball.x > fieldWidth) {
+				if (ball.dX > 0) {
+					ball.dX *= -1;
+				}
+			}
+			if (ball.y < 0) {
+				if (ball.dY < 0) {
+					ball.dY *= -1;
+				}
+			} else if (ball.y > fieldHeight) {
+				if (ball.dY > 0) {
+					ball.dY *= -1;
+				}
+			}
+		}
+	}
+};
+
+/////////////////
+// SweepBall7 //
+///////////////
+
+var lowSentinel = new Bound(-Infinity, true, null);
+var highSentinel = new Bound(Infinity, false, null);
+highSentinel.addAfter(lowSentinel);
+
+function SweepBall7(x, y, dX, dY, radius, idx) {
+	this.x = 0;
+	this.y = 0;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+	this.idx = idx;
+	this.lowBoundX = new Bound(0, true, this);
+	this.highBoundX = new Bound(0, false, this);
+	this.lowBoundX.addAfter(lowSentinel);
+	this.highBoundX.addAfter(this.lowBoundX);
+	this.lowBoundX.setValue(this.x - this.radius);
+	this.highBoundX.setValue(this.x + this.radius);
+	// Cached values
+	this.lowBoundX.cachedY = this.y;
+	this.lowBoundX.cachedRadius = this.radius;
+	this.highBoundX.cachedY = this.y;
+	this.highBoundX.cachedRadius = this.radius;
+}
+
+SweepBall7.prototype.setPosition = function (x, y) {
+	this.x = x;
+	this.y = y;
+	this.lowBoundX.setValue(x - this.radius);
+	this.highBoundX.setValue(x + this.radius);
+	this.lowBoundX.cachedY = y;
+	this.highBoundX.cachedY = y;
+};
+
+SweepBall7.prototype.collides = PairwiseBall.prototype.collides;
+
+SweepBall7.tick = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ball.setPosition(ball.x + ball.dX, ball.y + ball.dY);
+	}
+	var collided = {};
+	var bound = lowSentinel.next;
+	while (bound) {
+		var bound2 = bound.next;
+		while (bound2.actor != bound.actor) {
+			if (bound2.isLow) {
+				var dist = bound.cachedY - bound2.cachedY;
+				if ((dist > 0 ? dist : -dist) < bound.cachedRadius + bound2.cachedRadius) {
+					if (Math.pow(bound.actor.x - bound2.actor.x, 2) + Math.pow(bound.actor.y - bound2.actor.y, 2) < Math.pow(bound.actor.radius + bound2.actor.radius, 2)) {
+						collided[bound.actor.idx] = true;
+						collided[bound2.actor.idx] = true;
+					}
+				}
+			}
+			bound2 = bound2.next;
+		}
+		do {
+			bound = bound.next;
+		} while (bound && !bound.isLow);
+	}
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (collided[ball.idx]) {
+			ball.dX *= -1;
+			ball.dY *= -1;
+		} else {
+			if (ball.x < 0) {
+				if (ball.dX < 0) {
+					ball.dX *= -1;
+				}
+			} else if (ball.x > fieldWidth) {
+				if (ball.dX > 0) {
+					ball.dX *= -1;
+				}
+			}
+			if (ball.y < 0) {
+				if (ball.dY < 0) {
+					ball.dY *= -1;
+				}
+			} else if (ball.y > fieldHeight) {
+				if (ball.dY > 0) {
+					ball.dY *= -1;
+				}
+			}
+		}
+	}
+};
+
+///////////////
+// The rest //
+/////////////
+
+function initBalls(type) {
+	var canvas = document.getElementById('screen');
+	ballCount = parseInt(document.getElementById('count').value);
+	fieldWidth = canvas.width;
+	fieldHeight = canvas.height;
+	for (var i = 0; i < ballCount; ++i) {
+		var ball = new type(
+			Math.random() * fieldWidth,
+			Math.random() * fieldHeight,
+			Math.random() * 3,
+			Math.random() * 3,
+			5 + Math.random() * (MAX_DIAMETER / 2 - 5),
+			i
+		);
+		while (ball.collides()) {
+			ball.setPosition(Math.random() * fieldWidth, Math.random() * fieldHeight);
+		}
+		ballArray.push(ball);
+	}
+}
+
+function drawBalls(ctx) {
+	var balls = ballArray;
+	ctx.clearRect(0, 0, fieldWidth, fieldHeight);
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ctx.beginPath();
+		ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2, false);
+		ctx.fill();
+	}
+}
+
+function setupLoop(ctx, type, tickFunc) {
+	var timeNode = document.getElementById('time').firstChild;
+	var doDraw = document.getElementById('draw').checked;
+	initBalls(type);
+	window.setInterval(function () {
+		if (doDraw) {
+			drawBalls(ctx);
+		}
+		var atStart = new Date();
+		tickFunc();
+		var atEnd = new Date();
+		timeNode.nodeValue = 'Time : ' + (atEnd - atStart) + ' ms';
+	}, 10);
+}
+
+function pairwise(ctx) {
+	setupLoop(ctx, PairwiseBall, PairwiseBall.tick);
+}
+
+function sweepprune(ctx) {
+	setupLoop(ctx, SweepBall, SweepBall.tick);
+}
+
+function sweepprune2(ctx) {
+	setupLoop(ctx, SweepBall2, SweepBall2.tick);
+}
+
+function sweepprune3(ctx) {
+	setupLoop(ctx, SweepBall3, SweepBall3.tick);
+}
+
+function sweepprune4(ctx) {
+	setupLoop(ctx, SweepBall4, SweepBall4.tick);
+}
+
+function sweepprune5(ctx) {
+	setupLoop(ctx, SweepBall5, SweepBall5.tick);
+}
+
+function sweepprune6(ctx) {
+	setupLoop(ctx, SweepBall6, SweepBall6.tick);
+}
+
+function sweepprune7(ctx) {
+	setupLoop(ctx, SweepBall7, SweepBall7.tick);
+}
+
+function init() {
+	var canvas = document.getElementById('screen');
+	var ctx = canvas.getContext('2d');
+	
+	var elms = document.getElementsByTagName('button');
+	for (var i = 0; i < elms.length; ++i) {
+		elms[i].addEventListener('click', function () {
+			window[this.value](ctx);
+		}, false);
+	}
+}
+
+window.addEventListener('load', init, false);
+
+	</script>
+</head>
+<body>
+
+<canvas id="screen" width="900" height="450"></canvas>
+
+<div style="position : absolute; top : 20px; left : 920px;">
+
+<p><button value="pairwise">Pairwise</button></p>
+
+<p><button value="sweepprune">Sweep&amp;Prune</button></p>
+
+<p><button value="sweepprune2">S&amp;P 2</button></p>
+
+<p><button value="sweepprune3">S&amp;P 3</button></p>
+
+<p><button value="sweepprune4">S&amp;P 4</button></p>
+
+<p><button value="sweepprune5">S&amp;P 5</button></p>
+
+<p><button value="sweepprune6">S&amp;P 6</button></p>
+
+<p><button value="sweepprune7">S&amp;P 7</button></p>
+
+<p><label>Count:<br><input type="text" size="5" value="100" id="count"></label></p>
+
+<p><label><input type="checkbox" id="debug">Debug</label></p>
+
+<p><label><input type="checkbox" id="draw" checked>Draw</label></p>
+
+<p id="time">Time: ? ms</p>
+
+</div>
+
+</body>
+</html>
