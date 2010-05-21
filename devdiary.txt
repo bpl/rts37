@@ -1,0 +1,12 @@
+2010-05-21
+----------
+
+Started a local GIT repository for the project. Almost nothing works right
+now, because I organized the files to subdirectories. I'm at loss on what the
+directory layout should look like for a project like this. Here's why:
+
+- Can't split by file type, because both the server and client are built in JS
+- Can't split (cleanly) by client/server, because they share a lot of code
+- And finally, there might be multiple games that will share an engine
+
+Oh well, I guess I'll figure it out eventually.
