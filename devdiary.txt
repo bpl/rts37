@@ -1,3 +1,4 @@
+----------
 2010-05-21
 ----------
 
@@ -10,3 +11,31 @@ directory layout should look like for a project like this. Here's why:
 - And finally, there might be multiple games that will share an engine
 
 Oh well, I guess I'll figure it out eventually.
+
+----------
+2010-05-22
+----------
+
+The next thing I should is probably to start writing the server. The first
+step to do that is to add node-websocket-server to my project. I looked into
+using git submodules for that, but I'm not sure if I can choose to include
+only the files I want to include. I don't want to waste too much time here, so
+I'll just copy the required files over and be done with it. I can replace the
+files with a submodule later on if I want to.
+
+As a sidenote, installing node.js was very with brew, as was installing Git.
+The only problem with brew is that the installing is slightly more involved
+than that of MacPorts. Surprisingly, mednafen was also already available in
+brew and the formula had been updated for the most recent version. Looks like
+I won't need to bother to install MacPorts.
+
+While laying out the foundation for the server, it occurred to me that a
+generic helper for serving static files with Node.js doesn't seem to exist. I
+have been envisioning something like this:
+
+var webroot = require('./lib/webroot');
+var images = webroot.createWebRoot('/images', '/path/to/files/images');
+server.addListener('request', images.serve);
+
+I will probably end up creating something very similar as a side product of
+this project. Someone might beat me to it, though.
