@@ -39,3 +39,22 @@ server.addListener('request', images.serve);
 
 I will probably end up creating something very similar as a side product of
 this project. Someone might beat me to it, though.
+
+----------
+2010-05-23
+----------
+
+After perusing the Node.js GitHub site, I found the following page in the
+support Wiki:
+
+http://wiki.github.com/ry/node/modules
+
+It seems that there is already a static file serving extension that works a
+lot like what I envisioned. The project is called node-paperboy and it is
+available at:
+
+http://github.com/felixge/node-paperboy
+
+I might start using it at some point. However, writing my own crude
+implementation turned out to be useful, because I learned quite a bit about
+the Node.js file system API.
