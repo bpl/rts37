@@ -21,17 +21,42 @@ var options = {
 		'js': 'text/javascript'
 	}
 };
-	
-var server = ws.createServer();
+
+function Game(id) {
+	this.id = id;
+	this.players = {};
+	this.currentTick = 0;
+}
+
+Game.prototype.getOrCreatePlayer = function (id) {
+	if (this.players.hasOwnProperty(id)) {
+		return this.players[id];
+	}
+	var player = new Player(id);
+	this.players[id] = player;
+	return player;
+};
+
+function Player(id) {
+	this.id = id;
+	this.connection = null;
+}
+
+Player.prototype.setConnection = function (connection) {
+	this.connection = connection;
+};
+
+var server = ws.createServer(),
+	games = {};
 
 server.addListener('error', function (exception) {
-	sys.log('Server error ' + exception);
+	sys.log('Server error ' + sys.inspect(exception));
 });
 
 // This gets called for example when the request listener throws an exception.
 // It is shared by WebSocket and HTTP listeners.
 server.addListener('clientError', function (exception) {
-	sys.log('Server client error ' + exception);
+	sys.log('Server client error ' + exception.stack);
 });
 
 server.addListener('listening', function () {
@@ -41,13 +66,38 @@ server.addListener('listening', function () {
 // WebSocket request handling
 server.addListener('connection', function (conn) {
 	sys.log('<' + conn._id + '> connected');
+	// FIXME: Access to a private member, not good but currently required to gain
+	// access to the query string.
+	var requestUrl = url.parse(conn._req.url, true),
+		gameId = (requestUrl.query || [])['game'] || '',
+		playerId = (requestUrl.query || [])['player'] || '',
+		requestUrl = null;
+		
+	// FIXME: Fire a request to validate gameId and playerId. For now we'll just
+	// create them if they don't exist.
+	var game = games.hasOwnProperty(gameId) ? games[gameId] : new Game(gameId),
+		player = game.getOrCreatePlayer(playerId);
+		
+	player.setConnection(conn);
+		
+	sys.log('<' + conn._id + '> logged in to game ' + game.id + ' as player ' + player.id);
 	
 	conn.addListener('close', function () {
 		sys.log('<' + conn._id + '> disconnected');
+		if (player.connection == conn) {
+			player.setConnection(null);
+		}
 	});
 	
 	conn.addListener('message', function (msg) {
 		sys.log('<' + conn._id + '> says ' + msg);
+		for (var id in game.players) {
+			var player = game.players[id];
+			// FIXME: Better check for the vitality of the connection
+			if (player.connection) {
+				player.connection.write(msg);
+			}
+		}
 	});
 });
 
