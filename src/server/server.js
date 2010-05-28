@@ -51,6 +51,7 @@ function Game(id) {
 	this.players = {};
 	this.currentTick = 0;
 	this.initialStateQueue = [];
+	this.wakeAt = new Date(0);
 }
 
 Game.prototype.getOrCreatePlayer = function (id) {
@@ -74,6 +75,13 @@ Game.prototype.deliverAll = function (msg) {
 Game.prototype.deliverInitialState = function (msg) {
 	this.initialStateQueue.push(msg);
 	this.deliverAll(msg);
+};
+
+// Called by the server when requested
+Game.prototype.wake = function (now) {
+	this.deliverAll('A,' + JSON.stringify({'$': 'TC', 'tick': this.currentTick++}));
+	// TODO: Is it necessary to try to prevent bunching here
+	this.wakeAt.setTime(now.getTime() + 1000);
 };
 
 /////////////
@@ -163,7 +171,8 @@ Player.prototype.handleMessage = function (msg) {
 // The WebSocket server code
 
 var server = ws.createServer(),
-	games = {};
+	games = {},
+	lastIntervalAt = new Date();
 
 server.addListener('error', function (exception) {
 	sys.log('Server error ' + sys.inspect(exception));
@@ -191,9 +200,14 @@ server.addListener('connection', function (conn) {
 		
 	// FIXME: Fire a request to validate gameId and playerId. For now we'll just
 	// create them if they don't exist.
-	var game = games.hasOwnProperty(gameId) ? games[gameId] : new Game(gameId),
-		player = game.getOrCreatePlayer(playerId);
-		
+	if (games.hasOwnProperty(gameId)) {
+		var game = games[gameId];
+	} else {
+		var game = new Game(gameId);
+		games[gameId] = game;
+	}
+	
+	var player = game.getOrCreatePlayer(playerId);	
 	player.setConnection(conn);
 		
 	sys.log('<' + conn._id + '> logged in to game ' + game.id + ' as player ' + player.id);
@@ -210,6 +224,16 @@ server.addListener('connection', function (conn) {
 		player.handleMessage(msg);
 	});
 });
+
+// Send the notifications for ticks having ended etc.
+setInterval(function () {
+	var now = new Date();
+	for (var id in games) {
+		if (games[id].wakeAt <= now) {
+			games[id].wake(now);
+		}
+	}
+}, 100);
 
 // HTTP request handling
 //
