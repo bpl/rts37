@@ -22,29 +22,145 @@ var options = {
 	}
 };
 
+// Current plan for tick (turn) handling
+//
+// If we had a perfectly reliable network, the server would:
+// 1. Start with currentTick at 0
+// 2. Receive client commands and broadcast server commands
+// 3. When an interval fires, send TICK_ADVANCE(currentTick) message to all players
+// 4. Increment the value of currentTick
+// 5. Repeat from step 2
+//
+// And the client would:
+// 1. Start with currentTick at 0
+// 2. Handle user interface events and send client commands
+// 3. Receive server commands and process them
+// 4. When TICK_ADVANCE(currentTick) message is received, perform the tick actions
+// 5. Increment the value of currentTick
+// 6. Repeat from step 2
+//
+// This is just straight lock-step evaluation, so it will appear very jumpy when
+// played on the Internet. However, it is probably best to start simple.
+
+///////////
+// Game //
+/////////
+
 function Game(id) {
 	this.id = id;
 	this.players = {};
 	this.currentTick = 0;
+	this.initialStateQueue = [];
 }
 
 Game.prototype.getOrCreatePlayer = function (id) {
 	if (this.players.hasOwnProperty(id)) {
 		return this.players[id];
 	}
-	var player = new Player(id);
+	var player = new Player(this, id);
 	this.players[id] = player;
 	return player;
 };
 
-function Player(id) {
+// Guaranteed delivery of message to all players
+Game.prototype.deliverAll = function (msg) {
+	for (var id in this.players) {
+		this.players[id].deliver(msg);
+	}
+};
+
+// Guaranteed delivery of message to all players, including players who have not
+// joined yet.
+Game.prototype.deliverInitialState = function (msg) {
+	this.initialStateQueue.push(msg);
+	this.deliverAll(msg);
+};
+
+/////////////
+// Player //
+///////////
+
+function Player(game, id) {
+	this.game = game;
 	this.id = id;
 	this.connection = null;
+	this.currentDeliveryTag = 0;
+	this.deliveryQueue = [];
 }
 
 Player.prototype.setConnection = function (connection) {
 	this.connection = connection;
 };
+
+// Guaranteed delivery of message to this player. Each message gets a delivery tag,
+// a monotonically incrementing integer. The client will periodically echo the most
+// recent tag received back to the server, so that the server knows which messages
+// are safe to discard from the queue.
+Player.prototype.deliver = function (msg) {
+	var deliveryTag = this.currentDeliveryTag++;
+	this.deliveryQueue.push([deliveryTag, msg]);
+	// FIXME: Better check for the vitality of the connection
+	if (this.connection) {
+		this.connection.write(deliveryTag + ',' + msg);
+	}
+};
+
+// Let the player know that there is a problem
+Player.prototype.deliverError = function (text) {
+	this.deliver('A,' + JSON.stringify({'$': 'SE', 'msg': text}));
+};
+
+// Handle a message received from the player
+Player.prototype.handleMessage = function (msg) {
+	if (msg.length <= 0) {
+		this.deliverError('Empty message');
+		return;
+	}
+	switch (msg[0]) {
+		case 'A':
+			// Player to server communication
+			// The server should parse the rest of the message as JSON and act
+			// upon it.
+			var payload = JSON.parse(msg.substr(1));
+			switch (payload['$'] || null) {
+				case 'bail':
+					// FIXME: Gracefully exit the game
+					break;
+				case 'stateReady':
+					// FIXME: Game state has been received successfully
+					break;
+				case 'tickReady':
+					// FIXME: Tick has been processed successfully
+					break;
+				case 'ack':
+					// Message delivery acknowledgement. Parameters:
+					// tag: Delivery tag of the last message received
+					if (typeof payload['tag'] != 'number') {
+						this.deliverError('Invalid acknowledgement tag ' + (payload['tag'] || '!MISSING'));
+						break;
+					}
+					while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload['tag']) {
+						this.deliveryQueue.shift();
+					}
+					break;
+				default:
+					this.deliverError('Unknown message type ' + (payload['$'] || '!MISSING'));
+					break;
+			}
+			break;
+		case 'B':
+			// Player to player broadcast
+			// The server should forward the rest of the message to all players
+			this.game.deliverAll('B,' + this.id + ',' + msg);
+			break;
+		default:
+			// Unknown message format
+			this.deliverError('Unknown message format ' + msg[0]);
+			break;
+	}
+};
+
+// The WebSocket server code
 
 var server = ws.createServer(),
 	games = {};
@@ -91,13 +207,7 @@ server.addListener('connection', function (conn) {
 	
 	conn.addListener('message', function (msg) {
 		sys.log('<' + conn._id + '> says ' + msg);
-		for (var id in game.players) {
-			var player = game.players[id];
-			// FIXME: Better check for the vitality of the connection
-			if (player.connection) {
-				player.connection.write(msg);
-			}
-		}
+		player.handleMessage(msg);
 	});
 });
 
