@@ -314,18 +314,21 @@ Game.prototype.issueActor = function (type, opt) {
 
 Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 	var timeLast = new Date(),
+		remainderMsecs = 0,
 		self = this;
 	return function () {
 		var timeNow = new Date(),
 			elapsedMsecs = timeNow.getTime() - timeLast.getTime();
 		self.msecsSinceDrawn = elapsedMsecs;
+		elapsedMsecs += remainderMsecs;
 		while (elapsedMsecs >= self.msecsPerTick) {
 			self.tick();
 			tickFunc();
 			elapsedMsecs -= self.msecsPerTick;
 		}
 		self.factor = 1 - elapsedMsecs / self.msecsPerTick;
-		timeLast.setTime(timeNow.getTime() - elapsedMsecs);
+		remainderMsecs = elapsedMsecs;
+		timeLast = timeNow;
 		drawFunc();
 	};
 };

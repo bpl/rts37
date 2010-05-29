@@ -640,7 +640,7 @@ function UIContext(game) {
 }
 
 UIContext.prototype.update = function () {
-	this.spinnerAngle = MathUtil.normalizeAngle(this.spinnerAngle + Math.PI * this.game.msecsSinceDrawn / 4000);
+	this.spinnerAngle = MathUtil.normalizeAngle(this.spinnerAngle + Math.PI * this.game.msecsSinceDrawn / 1000);
 };
 
 UIContext.prototype.setSelection = function (arr) {
