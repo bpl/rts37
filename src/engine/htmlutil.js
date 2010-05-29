@@ -3,7 +3,14 @@
 
 register('Color', Color);
 function Color(opt /* red */, green, blue, alpha) {
-	if (typeof opt == 'object') {
+	if (typeof opt == 'string') {
+		var values = opt.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+		assert(values, 'Color: opt was a string but not a valid color');
+		var red = parseInt(values[1], 16);
+		green = parseInt(values[2], 16);
+		blue = parseInt(values[3], 16);
+		alpha = 1;
+	} else if (typeof opt == 'object') {
 		var red = opt.red;
 		green = opt.green;
 		blue = opt.blue;
@@ -21,6 +28,14 @@ function Color(opt /* red */, green, blue, alpha) {
 		this.asString = 'rgb(' + this.red + ', ' + this.green + ', ' + this.blue + ')';
 	}
 }
+
+Color.require = function (color) {
+	if (typeof color == 'string') {
+		return new Color(color);
+	}
+	assert(instanceOf(color, Color), 'Color.require: color is not a Color');
+	return color;
+};
 
 Color.prototype.toString = function () {
 	return this.asString;

@@ -8,9 +8,8 @@
 register('Commander', Commander);
 inherits(Commander, Player);
 function Commander(opt /* id, color */) {
-	assert(instanceOf(opt.color, Color), 'Commander: color must be a Color');
 	Player.call(this, opt.id);
-	this.color = opt.color;
+	this.color = Color.require(opt.color);
 }
 
 //////////////

@@ -73,8 +73,19 @@ Game.prototype.deliverAll = function (msg) {
 // Guaranteed delivery of message to all players, including players who have not
 // joined yet.
 Game.prototype.deliverInitialState = function (msg) {
+	if (typeof msg == 'object') {
+		if (msg instanceof Array) {
+			for (var i = 0; i < msg.length; ++i) {
+				this.deliverInitialState(msg[i]);
+			}
+		} else {
+			msg = 'A,' + JSON.stringify(msg);
+		}
+	}
 	this.initialStateQueue.push(msg);
-	this.deliverAll(msg);
+	// FIXME: If the initial state has already been sent to some players, new initial
+	// state messages should be sent to them.
+	// FIXME: The initial state queue should be cleared when the game starts
 };
 
 // Called by the server when requested
@@ -135,7 +146,10 @@ Player.prototype.handleMessage = function (msg) {
 					// FIXME: Gracefully exit the game
 					break;
 				case 'stateReady':
-					// FIXME: Game state has been received successfully
+					// Ready to receive game state information
+					for (var i = 0; i < this.game.initialStateQueue.length; ++i) {
+						this.deliver(this.game.initialStateQueue[i]);
+					}
 					break;
 				case 'tickReady':
 					// FIXME: Tick has been processed successfully
@@ -205,6 +219,14 @@ server.addListener('connection', function (conn) {
 	} else {
 		var game = new Game(gameId);
 		games[gameId] = game;
+		// FIXME: Hard-coded initial game state
+		game.deliverInitialState([
+			{'$': 'AC', '$type': 'Commander', 'id': 1, 'color': '#ff0000'},
+			{'$': 'AC', '$type': 'Commander', 'id': 2, 'color': '#0000ff'},
+			{'$': 'AC', '$type': 'Ship', 'id': 3, 'player': 1, 'x': 100 << 10, 'y': 100 << 10},
+			{'$': 'AC', '$type': 'Ship', 'id': 4, 'player': 1, 'x': 200 << 10, 'y': 100 << 10},
+			{'$': 'AC', '$type': 'AIShip', 'id': 5, 'player': 1, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
+		]);
 	}
 	
 	var player = game.getOrCreatePlayer(playerId);	

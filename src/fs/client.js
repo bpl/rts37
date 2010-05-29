@@ -259,12 +259,12 @@ function initGame() {
 	// Set up a test enviroment
 	var humanPlayer = game.issueActor(Commander, {
 		'id': game.nextId(),
-		'color': new Color(255, 0, 0, 1)
+		'color': '#ff0000'
 	});
 	game.issueMessage(humanPlayer, {'$': 'LP', 'player': humanPlayer});
 	var dummyPlayer = game.issueActor(Commander, {
 		'id': game.nextId(),
-		'color': new Color(0, 0, 255, 1)
+		'color': '#0000ff'
 	});
 	game.issueActor(Ship, {
 		'id': game.nextId(),

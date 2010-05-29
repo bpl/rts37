@@ -359,9 +359,15 @@ MessageLoop.prototype.handleMessage = function (msg) {
 	// the type of the message.
 	switch (msg['$']) {
 		case 'AA':
-			// Add actor to game
+			// Add actor to game (from encoded JSON)
 			// ['a'] is the actor to add
 			this.game.addActor(msg['a']);
+			break;
+		case 'AC':
+			// Add actor to game (from parameters)
+			// ['$type'] is the type of the actor to add
+			// ['opt'] is the parameters passed to the constructor
+			this.game.addActor(new Activator.getType(msg['$type'])(msg));
 			break;
 		case 'LP':
 			// Set the local player

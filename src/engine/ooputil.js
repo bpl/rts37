@@ -44,8 +44,7 @@ function Activator(resolver, data) {
 	assert(typeof resolver.resolveId == 'function', 'Activator: invalid resolver');
 	assert(typeof data == 'object', 'Activator: invalid data');
 	assert(typeof data.type == 'string', 'Activator: missing or invalid type');
-	assert(typeof this.types[data.type] == 'function', 'Activator: object type "' + data.type + '" not registered');
-	return new this.types[data.type](data);
+	return new this.getType(data.type)(data);
 }
 
 Activator.types = {};
@@ -58,6 +57,12 @@ function register(typeName, type) {
 	type.prototype.stringify = Activator._stringify;
 	type.prototype.defaults = Activator._defaults;
 }
+
+Activator.getType = function (typeName) {
+	var result = this.types[typeName];
+	assert(typeof result == 'function', 'Activator.getType: object type "' + data.type + '" not registered');
+	return result;
+};
 
 Activator.getDecoder = function (resolver) {
 	// FIXME: reso = resolver? Is it needed?
