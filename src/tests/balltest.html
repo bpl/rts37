@@ -798,6 +798,116 @@ SweepBall7.tick = function () {
 	}
 };
 
+//////////////
+// TileBall //
+//////////////
+
+var tileShift = 6; /* was: 6 */
+var tileYShift = 16;
+var tiles = {};
+
+function TileBall(x, y, dX, dY, radius, idx) {
+	this.x = 4000000;
+	this.y = 4000000;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+	this.idx = idx;
+	this.setPosition(x, y);
+}
+
+TileBall.prototype.setPosition = function (x, y) {
+	var oldIdx = (this.x >> tileShift) + ((this.y >> tileShift) << tileYShift),
+		newIdx = (x >> tileShift) + ((y >> tileShift) << tileYShift);
+	if (oldIdx != newIdx) {
+		var tile = tiles[oldIdx];
+		if (tile) {
+			var idx = tile.indexOf(this);
+			if (idx >= 0) {
+				tile.splice(idx, 1);
+			}
+		}
+		tile = tiles[newIdx];
+		if (!tile) {
+			tile = [];
+			tiles[newIdx] = tile;
+		}
+		tile.push(this);
+	}
+	this.x = x;
+	this.y = y;
+};
+
+TileBall.prototype.collides = PairwiseBall.prototype.collides;
+
+TileBall.tick = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ball.setPosition(ball.x + ball.dX, ball.y + ball.dY);
+	}
+	var collided = {};
+	for (var tileIdx in tiles) {
+		var tile = tiles[tileIdx];
+		for (var i = 0; i < tile.length; ++i) {
+			var actor1 = tile[i];
+			for (var j = 0; j < tile.length; ++j) {
+				var actor2 = tile[j];
+				if (i != j && Math.pow(actor1.x - actor2.x, 2) + Math.pow(actor1.y - actor2.y, 2) < Math.pow(actor1.radius + actor2.radius, 2)) {
+					collided[actor1.idx] = true;
+					collided[actor2.idx] = true;
+				}
+			}
+			var tile2 = tiles[tileIdx - 1];
+			if (tile2) {
+				for (var j = 0; j < tile2.length; ++j) {
+					var actor2 = tile2[j];
+					if (Math.pow(actor1.x - actor2.x, 2) + Math.pow(actor1.y - actor2.y, 2) < Math.pow(actor1.radius + actor2.radius, 2)) {
+						collided[actor1.idx] = true;
+						collided[actor2.idx] = true;
+					}
+				}
+			}
+			var tile2 = tiles[tileIdx - (1 << tileYShift)];
+			if (tile2) {
+				for (var j = 0; j < tile2.length; ++j) {
+					var actor2 = tile2[j];
+					if (Math.pow(actor1.x - actor2.x, 2) + Math.pow(actor1.y - actor2.y, 2) < Math.pow(actor1.radius + actor2.radius, 2)) {
+						collided[actor1.idx] = true;
+						collided[actor2.idx] = true;
+					}
+				}
+			}
+		}
+	}	
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (collided[ball.idx]) {
+			ball.dX *= -1;
+			ball.dY *= -1;
+		} else {
+			if (ball.x < 0) {
+				if (ball.dX < 0) {
+					ball.dX *= -1;
+				}
+			} else if (ball.x > fieldWidth) {
+				if (ball.dX > 0) {
+					ball.dX *= -1;
+				}
+			}
+			if (ball.y < 0) {
+				if (ball.dY < 0) {
+					ball.dY *= -1;
+				}
+			} else if (ball.y > fieldHeight) {
+				if (ball.dY > 0) {
+					ball.dY *= -1;
+				}
+			}
+		}
+	}
+};
+
 ///////////////
 // The rest //
 /////////////
@@ -881,6 +991,10 @@ function sweepprune7(ctx) {
 	setupLoop(ctx, SweepBall7, SweepBall7.tick);
 }
 
+function tile(ctx) {
+	setupLoop(ctx, TileBall, TileBall.tick);
+}
+
 function init() {
 	var canvas = document.getElementById('screen');
 	var ctx = canvas.getContext('2d');
@@ -899,7 +1013,7 @@ window.addEventListener('load', init, false);
 </head>
 <body>
 
-<canvas id="screen" width="900" height="450"></canvas>
+<canvas id="screen" width="3000" height="3000"></canvas>
 
 <div style="position : absolute; top : 20px; left : 920px;">
 
@@ -918,6 +1032,8 @@ window.addEventListener('load', init, false);
 <p><button value="sweepprune6">S&amp;P 6</button></p>
 
 <p><button value="sweepprune7">S&amp;P 7</button></p>
+
+<p><button value="tile">Tile</button></p>
 
 <p><label>Count:<br><input type="text" size="5" value="100" id="count"></label></p>
 
