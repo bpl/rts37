@@ -51,6 +51,7 @@ function Game(id) {
 	this.players = {};
 	this.currentTick = 0;
 	this.initialStateQueue = [];
+	this.running = false;
 	this.wakeAt = new Date(0);
 }
 
@@ -60,6 +61,9 @@ Game.prototype.getOrCreatePlayer = function (id) {
 	}
 	var player = new Player(this, id);
 	this.players[id] = player;
+	for (var i = 0; i < this.initialStateQueue.length; ++i) {
+		player.deliver(this.initialStateQueue[i]);
+	}
 	return player;
 };
 
@@ -78,19 +82,28 @@ Game.prototype.deliverInitialState = function (msg) {
 			for (var i = 0; i < msg.length; ++i) {
 				this.deliverInitialState(msg[i]);
 			}
+			return;
 		} else {
 			msg = 'A,' + JSON.stringify(msg);
 		}
+	} else if (typeof msg == 'string') {
+		this.initialStateQueue.push(msg);
+	} else {
+		throw new Error('Game.deliverInitialState: msg is of unexpected type');
 	}
 	this.initialStateQueue.push(msg);
-	// FIXME: If the initial state has already been sent to some players, new initial
-	// state messages should be sent to them.
+	// Queue to send to all players who have already connected
+	for (var id in this.players) {
+		this.players[id].deliver(msg);
+	}
 	// FIXME: The initial state queue should be cleared when the game starts
 };
 
 // Called by the server when requested
 Game.prototype.wake = function (now) {
-	this.deliverAll('A,' + JSON.stringify({'$': 'TC', 'tick': this.currentTick++}));
+	if (this.running) {
+		this.deliverAll('A,' + JSON.stringify({'$': 'TC', 'tick': this.currentTick++}));
+	}
 	// TODO: Is it necessary to try to prevent bunching here
 	this.wakeAt.setTime(now.getTime() + 1000);
 };
@@ -103,12 +116,30 @@ function Player(game, id) {
 	this.game = game;
 	this.id = id;
 	this.connection = null;
-	this.currentDeliveryTag = 0;
+	this.currentDeliveryTag = 1;
 	this.deliveryQueue = [];
+	this.connectionState = Player.CONNECTION_STATE.INITIAL;
 }
+
+Player.CONNECTION_STATE = {
+	// Initial state, connection has not yet been established
+	INITIAL: 0,
+	// Connection established, server hello sent
+	HELLO_SENT: 1,
+	// The client has replied with the initial acknowledgement
+	CONNECTED: 2
+};
 
 Player.prototype.setConnection = function (connection) {
 	this.connection = connection;
+};
+
+// Non-guaranteed delivery of message to this player
+Player.prototype.notify = function (msg) {
+	// FIXME: Better check for the vitality of the connection
+	if (this.connection) {
+		this.connection.write('0,' + msg);
+	}
 };
 
 // Guaranteed delivery of message to this player. Each message gets a delivery tag,
@@ -125,8 +156,19 @@ Player.prototype.deliver = function (msg) {
 };
 
 // Let the player know that there is a problem
+Player.prototype.notifyError = function (text) {
+	this.notify('A,' + JSON.stringify({'$': 'SE', 'msg': text}));
+};
+
+// Let the player know that there is a problem (with guaranteed delivery)
 Player.prototype.deliverError = function (text) {
 	this.deliver('A,' + JSON.stringify({'$': 'SE', 'msg': text}));
+};
+
+// Send the server hello to the player
+Player.prototype.serverHello = function () {
+	this.connectionState = Player.CONNECTION_STATE.HELLO_SENT;
+	this.notify('A,' + JSON.stringify({'$': 'hello'}));
 };
 
 // Handle a message received from the player
@@ -134,6 +176,45 @@ Player.prototype.handleMessage = function (msg) {
 	if (msg.length <= 0) {
 		this.deliverError('Empty message');
 		return;
+	}
+	switch (this.connectionState) {
+		case Player.CONNECTION_STATE.CONNECTED:
+			// Fall through to the next switch statement
+			break;
+		case Player.CONNECTION_STATE.INITIAL:
+			this.notifyError('The client must wait for server hello');
+			// FIXME: Disconnect
+			return;
+		case Player.CONNECTION_STATE.HELLO_SENT:
+			// We should get an acknowledgement from the client
+			if (msg[0] != 'A') {
+				this.notifyError('The client must start with acknowledgement');
+				return;
+			}
+			var payload = JSON.parse(msg.substr(1));
+			if (!payload || payload['$'] != 'ack') {
+				this.notifyError('The client must start with acknowledgement');
+				return;
+			}
+			if (typeof payload['tag'] != 'number') {
+				this.notifyError('Invalid acknowledgement tag ' + (payload['tag'] || '!MISSING'));
+				return;
+			}
+			this.connectionState = Player.CONNECTION_STATE.CONNECTED;
+			// Remove the messages that have been sent correctly
+			while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload['tag']) {
+				this.deliveryQueue.shift();
+			}
+			// Recap messages that were not sent correctly
+			// FIXME: Do not overstuff the socket
+			for (var i = 0; i < this.deliveryQueue.length; ++i) {
+				var recap = this.deliveryQueue[i];
+				this.connection.write(recap[0] + ',' + recap[1]);
+			}
+			return;
+		default:
+			this.notifyError('Internal Server Error: Unknown connection state');
+			return;
 	}
 	switch (msg[0]) {
 		case 'A':
@@ -158,7 +239,7 @@ Player.prototype.handleMessage = function (msg) {
 					// Message delivery acknowledgement. Parameters:
 					// tag: Delivery tag of the last message received
 					if (typeof payload['tag'] != 'number') {
-						this.deliverError('Invalid acknowledgement tag ' + (payload['tag'] || '!MISSING'));
+						this.notifyError('Invalid acknowledgement tag ' + (payload['tag'] || '!MISSING'));
 						break;
 					}
 					while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload['tag']) {
@@ -166,7 +247,7 @@ Player.prototype.handleMessage = function (msg) {
 					}
 					break;
 				default:
-					this.deliverError('Unknown message type ' + (payload['$'] || '!MISSING'));
+					this.notifyError('Unknown message type ' + (payload['$'] || '!MISSING'));
 					break;
 			}
 			break;
@@ -177,7 +258,7 @@ Player.prototype.handleMessage = function (msg) {
 			break;
 		default:
 			// Unknown message format
-			this.deliverError('Unknown message format ' + msg[0]);
+			this.notifyError('Unknown message format ' + msg[0]);
 			break;
 	}
 };
@@ -231,6 +312,7 @@ server.addListener('connection', function (conn) {
 	
 	var player = game.getOrCreatePlayer(playerId);	
 	player.setConnection(conn);
+	player.serverHello();
 		
 	sys.log('<' + conn._id + '> logged in to game ' + game.id + ' as player ' + player.id);
 	
