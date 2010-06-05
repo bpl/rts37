@@ -1,0 +1,117 @@
+===============
+ENGINE PLANNING
+===============
+
+This document contains the current plan regarding how the engine should work.
+
+----------
+Game setup
+----------
+
+Sample communication of how the game should start:
+
+# The client establishes a WebSocket connection to the game server with the
+# following parameters:
+# - player: The identification code of the player
+# - game: The identification code of the game
+# - random: A random string to make the data unguessable (not implemented yet)
+# - mac: Message authentication code that proves who the user is (not implemented yet)
+
+# The server responds with a server hello (not implemented yet)
+
+SERVER> A{"$": "hello"}
+
+# The client tells the server the last message tag it has successfully received.
+
+CLIENT> A{"$": "ack", "tag": 0}
+
+# The client tells the server that the client is ready to receive the initial game
+# state.
+
+CLIENT> A{"$": "stateReady"}
+
+# The server tells the client which map to use (not implemented yet)
+
+SERVER> A{"$": "loadMap", "src": "http://localhost:8000/fs/maps/map.js"}
+
+# The server tells the client who the players are (partially implemented)
+
+SERVER> A{"$": "AC", "$type": "Commander", "id": 1, "playerId": "tim", "color": "#ff0000"}
+SERVER> A{"$": "AC", "$type": "Commander", "id": 2, "playerId": "tom", "color": "#0000ff"}
+SERVER> A{"$": "youAre", "id": 1}
+
+# The client tells the server that it has loaded the map (not implemented yet)
+
+CLIENT> A{"$": "mapDone"}
+
+# The server starts the game (not implemented yet)
+
+SERVER> A{"$": "gameStart"}
+
+# The server notifies that a tick has completed from its point of view
+
+SERVER> A{"$": "TC", "tick": 0}
+
+# The client notifies that it wishes to send a command
+
+CLIENT> B{"$": "construct", "what": "PowerPlant"}
+
+# The server echoes the command back to all clients
+
+SERVER> B,tim,{"$": "construct", "what": "PowerPlant"}
+
+# The server notifies again that a tick has completed
+
+SERVER> A{"$": "TC", "tick": 1}
+
+-----------------
+Message type list
+-----------------
+
+SERVER>
+
+hello{}
+Notifies the client that the connection has been established.
+
+loadMap{src: string}
+Tells the client to load a map from the specified source URL.
+
+AC{$type: string, id: integer, ...}
+Tells the client to create an actor with the specified parameters and add it to the
+game.
+
+gameStart{}
+Notifies the client that the game has started.
+
+TC{tick: integer}
+Notifies the client that a tick has completed.
+
+CLIENT>
+
+ack{tag: integer}
+Acknowledges the receipt of message(s). Parameter tag is the message tag of the last
+server message received, or 0 when no messages have been received yet. The client
+MUST send an "ack" message as the first message after having received the server
+hello.
+
+stateReady{}
+FIXME
+
+mapReady{}
+Notifies the server that the client has successfully loaded the map as instructed by
+the server.
+
+TC{tick: integer}
+Notifies the client that a tick has been successfully processed.
+
+--------------------
+Alternative syntaxes
+--------------------
+
+A,mapDone
+A,AC,Commander,{...}
+A,TC,0
+
+0,"mapDone"
+0,"AC","Commander",{...}
+0,"TC",0
