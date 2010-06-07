@@ -7,7 +7,8 @@ var sys = require('sys'),
 	url = require('url'),
 	http = require('http'),
 	ws = require('./lib/ws'),
-	util = require('./serverutil');
+	util = require('./serverutil'),
+	assert = require('../engine/util').assert;
 
 var options = {
 	// The TCP port this server will listen to
@@ -46,25 +47,28 @@ var options = {
 // Game //
 /////////
 
-function Game(id) {
-	this.id = id;
-	this.players = {};
+function Game(opt /* id, playerIds */) {
+	// Properties with static default values
 	this.currentTick = 0;
-	this.initialStateQueue = [];
 	this.running = false;
 	this.wakeAt = new Date(0);
+	// Properties that depend on game options
+	assert(typeof opt.id == 'string', 'Game: id is not a string');
+	assert(opt.playerIds instanceof Array, 'Game: playerIds is not an array');
+	assert(opt.playerIds.length > 0, 'Game: playerIds is empty');
+	this.id = opt.id;
+	this.players = {};
+	for (var i = 0; i < opt.playerIds.length; ++i) {
+		var player = new Player(opt.playerIds[i], this);
+		this.players[player.id] = player;
+	}
 }
 
-Game.prototype.getOrCreatePlayer = function (id) {
+Game.prototype.getPlayer = function (id) {
 	if (this.players.hasOwnProperty(id)) {
 		return this.players[id];
 	}
-	var player = new Player(this, id);
-	this.players[id] = player;
-	for (var i = 0; i < this.initialStateQueue.length; ++i) {
-		player.deliver(this.initialStateQueue[i]);
-	}
-	return player;
+	return null;
 };
 
 // Guaranteed delivery of message to all players
@@ -86,26 +90,38 @@ Game.prototype.deliverInitialState = function (msg) {
 		} else {
 			msg = 'A,' + JSON.stringify(msg);
 		}
-	} else if (typeof msg == 'string') {
-		this.initialStateQueue.push(msg);
-	} else {
+	} else if (typeof msg != 'string') {
 		throw new Error('Game.deliverInitialState: msg is of unexpected type');
 	}
-	this.initialStateQueue.push(msg);
-	// Queue to send to all players who have already connected
 	for (var id in this.players) {
 		this.players[id].deliver(msg);
 	}
-	// FIXME: The initial state queue should be cleared when the game starts
+};
+
+// Indicates that all initial game state has been queued for sending
+Game.prototype.endInitialState = function () {
+	for (var id in this.players) {
+		this.players[id].endInitialState();
+	}
 };
 
 // Called by the server when requested
 Game.prototype.wake = function (now) {
-	if (this.running) {
-		this.deliverAll('A,' + JSON.stringify({'$': 'TC', 'tick': this.currentTick++}));
-	}
 	// TODO: Is it necessary to try to prevent bunching here
 	this.wakeAt.setTime(now.getTime() + 1000);
+	if (this.running) {
+		this.deliverAll('A,' + JSON.stringify({'$': 'TC', 'tick': this.currentTick++}));
+		return;
+	}
+	// Start the game when all players have received the initial state
+	// FIXME: Should also wait until all assets have been loaded
+	for (var id in this.players) {
+		if (!this.players[id].initialStateAcknowledged()) {
+			return;
+		}
+	}
+	// FIXME: Do this also if one of the players has failed to appear
+	this.running = true;
 };
 
 /////////////
@@ -116,7 +132,8 @@ function Player(game, id) {
 	this.game = game;
 	this.id = id;
 	this.connection = null;
-	this.currentDeliveryTag = 1;
+	this.lastDeliveryTag = 0;
+	this.initialStateLastTag = -1;
 	this.deliveryQueue = [];
 	this.connectionState = Player.CONNECTION_STATE.INITIAL;
 }
@@ -134,12 +151,29 @@ Player.prototype.setConnection = function (connection) {
 	this.connection = connection;
 };
 
-// Non-guaranteed delivery of message to this player
-Player.prototype.notify = function (msg) {
-	// FIXME: Better check for the vitality of the connection
-	if (this.connection) {
-		this.connection.write('0,' + msg);
+// Indicates that all initial game state has been queued for sending
+Player.prototype.endInitialState = function () {
+	this.initialStateLastTag = this.lastDeliveryTag;
+};
+
+// Has the initial state been sent and acknowledged
+Player.prototype.initialStateAcknowledged = function () {
+	return this.initialStateLastTag >= 0 && (this.deliveryQueue.length <= 0 ||
+			this.deliveryQueue[0][0] > this.initialStateLastTag);
+};
+
+// Non-guaranteed delivery of message to the player
+Player.notify = function (connection, msg) {
+	// FIXME: Better check for the vitality of the connection (if possible)
+	if (connection) {
+		connection.write('0,' + msg);
 	}
+};
+
+// Non-guaranteed delivery of message to the player
+Player.prototype.notify = function (msg) {
+	// FIXME: Better check for the vitality of the connection (if possible)
+	Player.notify(this.connection, msg);
 };
 
 // Guaranteed delivery of message to this player. Each message gets a delivery tag,
@@ -147,17 +181,22 @@ Player.prototype.notify = function (msg) {
 // recent tag received back to the server, so that the server knows which messages
 // are safe to discard from the queue.
 Player.prototype.deliver = function (msg) {
-	var deliveryTag = this.currentDeliveryTag++;
+	var deliveryTag = ++this.lastDeliveryTag;
 	this.deliveryQueue.push([deliveryTag, msg]);
-	// FIXME: Better check for the vitality of the connection
+	// FIXME: Better check for the vitality of the connection (if possible)
 	if (this.connection) {
 		this.connection.write(deliveryTag + ',' + msg);
 	}
 };
 
 // Let the player know that there is a problem
+Player.notifyError = function (connection, text) {
+	this.notify(connection, 'A,' + JSON.stringify({'$': 'SE', 'msg': text}));
+};
+
+// Let the player know that there is a problem
 Player.prototype.notifyError = function (text) {
-	this.notify('A,' + JSON.stringify({'$': 'SE', 'msg': text}));
+	Player.notifyError(this.connection, text);
 };
 
 // Let the player know that there is a problem (with guaranteed delivery)
@@ -205,7 +244,8 @@ Player.prototype.handleMessage = function (msg) {
 			while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload['tag']) {
 				this.deliveryQueue.shift();
 			}
-			// Recap messages that were not sent correctly
+			// Recap messages that were not sent correctly and/or initial game state
+			// when connecting for the first time.
 			// FIXME: Do not overstuff the socket
 			for (var i = 0; i < this.deliveryQueue.length; ++i) {
 				var recap = this.deliveryQueue[i];
@@ -225,12 +265,6 @@ Player.prototype.handleMessage = function (msg) {
 			switch (payload['$'] || null) {
 				case 'bail':
 					// FIXME: Gracefully exit the game
-					break;
-				case 'stateReady':
-					// Ready to receive game state information
-					for (var i = 0; i < this.game.initialStateQueue.length; ++i) {
-						this.deliver(this.game.initialStateQueue[i]);
-					}
 					break;
 				case 'tickReady':
 					// FIXME: Tick has been processed successfully
@@ -276,7 +310,7 @@ server.addListener('error', function (exception) {
 // This gets called for example when the request listener throws an exception.
 // It is shared by WebSocket and HTTP listeners.
 server.addListener('clientError', function (exception) {
-	sys.log('Server client error ' + exception.stack);
+	sys.log('Server client error ' + (exception.stack || exception));
 });
 
 server.addListener('listening', function () {
@@ -298,7 +332,11 @@ server.addListener('connection', function (conn) {
 	if (games.hasOwnProperty(gameId)) {
 		var game = games[gameId];
 	} else {
-		var game = new Game(gameId);
+		// FIXME: Hard-coded game options
+		var game = new Game({
+			'id': gameId,
+			'playerIds': ['p1', 'p2']
+		});
 		games[gameId] = game;
 		// FIXME: Hard-coded initial game state
 		game.deliverInitialState([
@@ -310,7 +348,15 @@ server.addListener('connection', function (conn) {
 		]);
 	}
 	
-	var player = game.getOrCreatePlayer(playerId);	
+	var player = game.getPlayer(playerId);
+	if (!player) {
+		// The doesn't appear to exist a player with this player id, so we just send
+		// an error message and sever the connection.
+		Player.notifyError(conn, 'Unknown player id');
+		conn.close();
+		return;
+	}
+	
 	player.setConnection(conn);
 	player.serverHello();
 		
