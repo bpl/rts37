@@ -1,12 +1,6 @@
 // Firing Solution                                         //
 // Utilities for object-oriented programming in JavaScript //
 
-function assert(condition, error) {
-	if (!condition) {
-		throw new AssertionFailure(error);
-	}
-}
-
 function inherits(child, parent) {
 	for (var property in parent.prototype) {
 		if (typeof child.prototype[property] == 'undefined') {
@@ -22,19 +16,6 @@ function instanceOf(obj, parent) {
 	return (obj instanceof parent || (obj && typeof obj.__parentTypes == 'object'
 			&& obj.__parentTypes.indexOf(parent) >= 0));
 }
-
-///////////////////////
-// AssertionFailure //
-/////////////////////
-
-function AssertionFailure(message) {
-	this.message = message;
-	this.name = 'AssertionFailure';
-}
-
-AssertionFailure.prototype.toString = function () {
-	return this.name + ': ' + this.message;
-};
 
 /////////////////////////////////
 // Object activator singleton //
