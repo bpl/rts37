@@ -59,7 +59,7 @@ function Game(opt /* id, playerIds */) {
 	this.id = opt.id;
 	this.players = {};
 	for (var i = 0; i < opt.playerIds.length; ++i) {
-		var player = new Player(opt.playerIds[i], this);
+		var player = new Player(this, opt.playerIds[i]);
 		this.players[player.id] = player;
 	}
 }
@@ -335,7 +335,7 @@ server.addListener('connection', function (conn) {
 		// FIXME: Hard-coded game options
 		var game = new Game({
 			'id': gameId,
-			'playerIds': ['p1', 'p2']
+			'playerIds': ['p1']
 		});
 		games[gameId] = game;
 		// FIXME: Hard-coded initial game state
@@ -346,13 +346,14 @@ server.addListener('connection', function (conn) {
 			{'$': 'AC', '$type': 'Ship', 'id': 4, 'player': 1, 'x': 200 << 10, 'y': 100 << 10},
 			{'$': 'AC', '$type': 'AIShip', 'id': 5, 'player': 1, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
 		]);
+		game.endInitialState();
 	}
 	
 	var player = game.getPlayer(playerId);
 	if (!player) {
 		// The doesn't appear to exist a player with this player id, so we just send
 		// an error message and sever the connection.
-		Player.notifyError(conn, 'Unknown player id');
+		Player.notifyError(conn, 'Unknown player id "' + playerId + '"');
 		conn.close();
 		return;
 	}
