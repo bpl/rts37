@@ -24,7 +24,7 @@ AssertionFailure.prototype.toString = function () {
 // Exports //
 ////////////
 
-if (exports) {
+if (typeof exports != 'undefined') {
 	exports.assert = assert;
 	exports.AssertionFailure = AssertionFailure;
 }
