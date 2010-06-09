@@ -127,59 +127,57 @@ Ship.prototype.tick = function () {
 		this.currentRadarAngle = MathUtil.normalizeAngle(this.currentRadarAngle + radarWedge);
 	}
 	// If we are in an active mode (server or local-only game)
-	if (this.game.isActive) {
-		// Do something with the radar
-		if (this.game.radarMode == this.game.RADAR_MODE_SPINNING) {
-			// Show blips when radar hits the target if we are the human player,
-			// fire at target if we are a computer player.
-			for (var idx in this.game.actors) {
-				var actor = this.game.actors[idx];
-				if (instanceOf(actor, Ship)) {
-					if (actor.player != this.player
-						&& MathUtil.distance(actor.x, actor.y, this.x, this.y) <= this.radarRadius
-						&& MathUtil.isInsideArc(this.currentRadarAngle, radarWedge, MathUtil.angle(this.x, this.y, actor.x, actor.y)))
-					{
-						if (actor.player != this.game.localPlayer) {
-							if (!actor.isInVisualRadiusOf(this.player)) {
-								// FIXME: Add uncertainty
-								this.game.issueMessage(this.player, {
-									'$': 'BL',
-									'x': actor.x, 'y': actor.y,
-									'radius': 20
-								});
-							}
-						} else if (instanceOf(this, AIShip)) {
-							this.fireAtActor(actor);
+	// Do something with the radar
+	if (this.game.radarMode == this.game.RADAR_MODE_SPINNING) {
+		// Show blips when radar hits the target if we are the human player,
+		// fire at target if we are a computer player.
+		for (var idx in this.game.actors) {
+			var actor = this.game.actors[idx];
+			if (instanceOf(actor, Ship)) {
+				if (actor.player != this.player
+					&& MathUtil.distance(actor.x, actor.y, this.x, this.y) <= this.radarRadius
+					&& MathUtil.isInsideArc(this.currentRadarAngle, radarWedge, MathUtil.angle(this.x, this.y, actor.x, actor.y)))
+				{
+					if (actor.player != this.game.localPlayer) {
+						if (!actor.isInVisualRadiusOf(this.player)) {
+							// FIXME: Add uncertainty
+							this.game.issueMessage(this.player, {
+								'$': 'BL',
+								'x': actor.x, 'y': actor.y,
+								'radius': 20
+							});
 						}
-					}
-				} else if (instanceOf(actor, Projectile)) {
-					if (actor.player != this.player
-						&& actor.player != this.game.localPlayer
-						&& MathUtil.distance(actor.x, actor.y, this.x, this.y) <= this.radarRadius
-						&& MathUtil.isInsideArc(this.currentRadarAngle, radarWedge, MathUtil.angle(this.x, this.y, actor.x, actor.y))
-						&& !actor.isInVisualRadiusOf(this.player))
-					{
-						// FIXME: Add uncertainty
-						this.game.issueMessage(this.player, {
-							'$': 'BL',
-							'x': actor.x, 'y': actor.y,
-							'radius': 4
-						});
+					} else if (instanceOf(this, AIShip)) {
+						this.fireAtActor(actor);
 					}
 				}
+			} else if (instanceOf(actor, Projectile)) {
+				if (actor.player != this.player
+					&& actor.player != this.game.localPlayer
+					&& MathUtil.distance(actor.x, actor.y, this.x, this.y) <= this.radarRadius
+					&& MathUtil.isInsideArc(this.currentRadarAngle, radarWedge, MathUtil.angle(this.x, this.y, actor.x, actor.y))
+					&& !actor.isInVisualRadiusOf(this.player))
+				{
+					// FIXME: Add uncertainty
+					this.game.issueMessage(this.player, {
+						'$': 'BL',
+						'x': actor.x, 'y': actor.y,
+						'radius': 4
+					});
+				}
 			}
-		} else {
-			// Look for targets and fire at them
-			if (this.reloadingCount < this.currentReloadMsecs.length) {
-				for (var idx in this.game.actors) {
-					var actor = this.game.actors[idx];
-					if (actor.player != this.player
-							&& instanceOf(actor, Ship)
-							&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
-							&& actor.isInRadarRadiusOf(this.player)) {
-						this.fireAtActor(actor);
-						break;
-					}
+		}
+	} else {
+		// Look for targets and fire at them
+		if (this.reloadingCount < this.currentReloadMsecs.length) {
+			for (var idx in this.game.actors) {
+				var actor = this.game.actors[idx];
+				if (actor.player != this.player
+						&& instanceOf(actor, Ship)
+						&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
+						&& actor.isInRadarRadiusOf(this.player)) {
+					this.fireAtActor(actor);
+					break;
 				}
 			}
 		}
@@ -553,8 +551,8 @@ HitMarker.prototype.draw = function (ctx, uiCtx, factor) {
 ///////////
 
 inherits(MyGame, Game);
-function MyGame(isActive, isLocal) {
-	Game.prototype.constructor.call(this, isActive, isLocal);
+function MyGame(isLocal) {
+	Game.prototype.constructor.call(this, isLocal);
 	this.fieldWidth = 800;
 	this.fieldHeight = 600;
 	this.surfaceContext = new CollisionContext(this);

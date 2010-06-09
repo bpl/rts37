@@ -2,6 +2,7 @@
 <html>
 <head>
 	<title>Firing Solution</title>
+	<link href="game.css" rel="stylesheet">
 	<script src="../engine/util.js"></script>
 	<script src="../engine/ooputil.js"></script>
 	<script src="../engine/mathutil.js"></script>
@@ -13,6 +14,8 @@
 <body>
 
 <canvas id="screen" width="800" height="600"></canvas>
+
+<div id="splash"><button onclick="initGame(true);">Start local game</button><button onclick="initGame(false);">Start remote game</button></div>
 
 </body>
 </html>

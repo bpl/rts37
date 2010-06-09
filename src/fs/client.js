@@ -216,11 +216,36 @@ Viewport.prototype.fireWithSelected = function () {
 	}
 };
 
+/////////////////////////
+// WebSocket handling //
+///////////////////////
+
+function Connection(game, url) {
+	var self = this;
+	this.game = game;
+	this.socket = new WebSocket(url);
+	this.socket.onopen = function () {
+		self.handleOpen();
+	};
+	this.socket.onmessage = function (msg) {
+		self.handleMessage();
+	};
+}
+
+Connection.prototype.handleOpen = function () {
+};
+
+Connection.prototype.handleMessage = function (msg) {
+	this.game.handleMessageString(msg);
+};
+
 ////////////////
 // Bootstrap //
 //////////////
 
-function initGame() {
+function initGame(isLocal) {
+	var splash = document.getElementById('splash');
+	splash.parentNode.removeChild(splash);
 	var canvas = document.getElementById('screen');
 	assert(canvas, 'initGame: canvas not found');
 	var game = new MyGame(true, true);
@@ -254,34 +279,38 @@ function initGame() {
 			viewport.handleKeyPress(String.fromCharCode(code));
 		}
 	}, false);
-	// Set up a test enviroment
-	var humanPlayer = game.issueActor(Commander, {
-		'id': game.nextId(),
-		'playerId': 'p1',
-		'color': '#ff0000'
-	});
-	game.issueMessage(humanPlayer, {'$': 'LP', 'player': humanPlayer});
-	var dummyPlayer = game.issueActor(Commander, {
-		'id': game.nextId(),
-		'playerId': 'p2',
-		'color': '#0000ff'
-	});
-	game.issueActor(Ship, {
-		'id': game.nextId(),
-		'player': humanPlayer,
-		'x': 100 << 10, 'y': 100 << 10
-	});
-	game.issueActor(Ship, {
-		'id': game.nextId(),
-		'player': humanPlayer,
-		'x': 200 << 10, 'y': 100 << 10
-	});
-	game.issueActor(AIShip, {
-		'id': game.nextId(),
-		'player': dummyPlayer,
-		'x': 200 << 10, 'y': 200 << 10,
-		'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]
-	});
+	if (isLocal) {
+		// Set up a test enviroment
+		var humanPlayer = game.issueActor(Commander, {
+			'id': game.nextId(),
+			'playerId': 'p1',
+			'color': '#ff0000'
+		});
+		game.issueMessage(humanPlayer, {'$': 'LP', 'player': humanPlayer});
+		var dummyPlayer = game.issueActor(Commander, {
+			'id': game.nextId(),
+			'playerId': 'p2',
+			'color': '#0000ff'
+		});
+		game.issueActor(Ship, {
+			'id': game.nextId(),
+			'player': humanPlayer,
+			'x': 100 << 10, 'y': 100 << 10
+		});
+		game.issueActor(Ship, {
+			'id': game.nextId(),
+			'player': humanPlayer,
+			'x': 200 << 10, 'y': 100 << 10
+		});
+		game.issueActor(AIShip, {
+			'id': game.nextId(),
+			'player': dummyPlayer,
+			'x': 200 << 10, 'y': 200 << 10,
+			'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]
+		});
+	} else {
+		// Connect to server
+		var connection = new Connection(game, '/?game=A&player=p1');
+		// FIXME: Load initial game state from the server
+	}
 }
-
-window.addEventListener('load', initGame, false);

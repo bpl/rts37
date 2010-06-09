@@ -1,0 +1,40 @@
+html, body {
+	margin : 0;
+	padding : 0;
+}
+
+#splash {
+	position : absolute;
+	left : 50%;
+	top : 50%;
+	width : 500px;
+	height : 250px;
+	margin-left : -290px;
+	margin-top : -165px;
+	padding : 20px;
+	background : rgba(0, 0, 0, 0.8);
+	-webkit-border-radius : 20px;
+	-webkit-box-shadow : rgba(0, 0, 0, 0.7) 0 10px 45px;
+}
+
+button {
+	background : -webkit-gradient(linear, left top, left bottom, from(#999), to(#555));
+	border : 1px solid #777;
+	color : #eee;
+	font-size : 14px;
+	text-shadow : #444 0 -1px 0;
+	padding : 6px 10px 6px 10px;
+	-webkit-border-radius : 2px;
+}
+
+button:hover {
+	background : -webkit-gradient(linear, left top, left bottom, from(#9cf), to(#036));
+	border : 1px solid #69c;
+	text-shadow : #9cf 0 0 3px;
+}
+
+button:active {
+	background : -webkit-gradient(linear, left top, left bottom, from(#036), to(#9cf));
+	border : 1px solid #69c;
+	text-shadow : #9cf 0 0 3px;
+}

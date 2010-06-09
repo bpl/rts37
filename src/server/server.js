@@ -80,15 +80,15 @@ Game.prototype.deliverAll = function (msg) {
 
 // Guaranteed delivery of message to all players, including players who have not
 // joined yet.
-Game.prototype.deliverInitialState = function (msg) {
+Game.prototype.deliverInitialState = function (kind, msg) {
 	if (typeof msg == 'object') {
 		if (msg instanceof Array) {
 			for (var i = 0; i < msg.length; ++i) {
-				this.deliverInitialState(msg[i]);
+				this.deliverInitialState(kind, msg[i]);
 			}
 			return;
 		} else {
-			msg = 'A,' + JSON.stringify(msg);
+			msg = '-1,"' + kind + '",' + JSON.stringify(msg);
 		}
 	} else if (typeof msg != 'string') {
 		throw new Error('Game.deliverInitialState: msg is of unexpected type');
@@ -110,7 +110,7 @@ Game.prototype.wake = function (now) {
 	// TODO: Is it necessary to try to prevent bunching here
 	this.wakeAt.setTime(now.getTime() + 1000);
 	if (this.running) {
-		this.deliverAll('A,' + JSON.stringify({'$': 'TC', 'tick': this.currentTick++}));
+		this.deliverAll('-1,"TC",' + this.currentTick++);
 		return;
 	}
 	// Start the game when all players have received the initial state
@@ -191,7 +191,7 @@ Player.prototype.deliver = function (msg) {
 
 // Let the player know that there is a problem
 Player.notifyError = function (connection, text) {
-	this.notify(connection, 'A,' + JSON.stringify({'$': 'SE', 'msg': text}));
+	this.notify(connection, '-1,"error",' + JSON.stringify({'msg': text}));
 };
 
 // Let the player know that there is a problem
@@ -201,13 +201,13 @@ Player.prototype.notifyError = function (text) {
 
 // Let the player know that there is a problem (with guaranteed delivery)
 Player.prototype.deliverError = function (text) {
-	this.deliver('A,' + JSON.stringify({'$': 'SE', 'msg': text}));
+	this.deliver('-1,"error",' + JSON.stringify({'msg': text}));
 };
 
 // Send the server hello to the player
 Player.prototype.serverHello = function () {
 	this.connectionState = Player.CONNECTION_STATE.HELLO_SENT;
-	this.notify('A,' + JSON.stringify({'$': 'hello'}));
+	this.notify('-1,"hello"');
 };
 
 // Handle a message received from the player
@@ -226,22 +226,22 @@ Player.prototype.handleMessage = function (msg) {
 			return;
 		case Player.CONNECTION_STATE.HELLO_SENT:
 			// We should get an acknowledgement from the client
-			if (msg[0] != 'A') {
+			if (msg[0] != '1') {
 				this.notifyError('The client must start with acknowledgement');
 				return;
 			}
-			var payload = JSON.parse(msg.substr(1));
-			if (!payload || payload['$'] != 'ack') {
+			var payload = JSON.parse('{"d":[' + msg + ']}')['d'];
+			if (!payload || payload[1] != 'ack') {
 				this.notifyError('The client must start with acknowledgement');
 				return;
 			}
-			if (typeof payload['tag'] != 'number') {
-				this.notifyError('Invalid acknowledgement tag ' + (payload['tag'] || '!MISSING'));
+			if (typeof payload[2] != 'number') {
+				this.notifyError('Invalid acknowledgement tag ' + (payload[2] || '!MISSING'));
 				return;
 			}
 			this.connectionState = Player.CONNECTION_STATE.CONNECTED;
 			// Remove the messages that have been sent correctly
-			while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload['tag']) {
+			while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload[2]) {
 				this.deliveryQueue.shift();
 			}
 			// Recap messages that were not sent correctly and/or initial game state
@@ -257,12 +257,12 @@ Player.prototype.handleMessage = function (msg) {
 			return;
 	}
 	switch (msg[0]) {
-		case 'A':
+		case '1':
 			// Player to server communication
 			// The server should parse the rest of the message as JSON and act
 			// upon it.
-			var payload = JSON.parse(msg.substr(1));
-			switch (payload['$'] || null) {
+			var payload = JSON.parse('{"d":[' + msg + ']}')['d'];
+			switch (payload[1] || null) {
 				case 'bail':
 					// FIXME: Gracefully exit the game
 					break;
@@ -272,23 +272,24 @@ Player.prototype.handleMessage = function (msg) {
 				case 'ack':
 					// Message delivery acknowledgement. Parameters:
 					// tag: Delivery tag of the last message received
-					if (typeof payload['tag'] != 'number') {
-						this.notifyError('Invalid acknowledgement tag ' + (payload['tag'] || '!MISSING'));
+					if (typeof payload[2] != 'number') {
+						this.notifyError('Invalid acknowledgement tag ' + (payload[2] || '!MISSING'));
 						break;
 					}
-					while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload['tag']) {
+					while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload[2]) {
 						this.deliveryQueue.shift();
 					}
 					break;
 				default:
-					this.notifyError('Unknown message type ' + (payload['$'] || '!MISSING'));
+					this.notifyError('Unknown message type ' + (payload[1] || '!MISSING'));
 					break;
 			}
 			break;
 		case 'B':
 			// Player to player broadcast
 			// The server should forward the rest of the message to all players
-			this.game.deliverAll('B,' + this.id + ',' + msg);
+			// FIXME: Proper escaping for id
+			this.game.deliverAll('-2,"' + this.id + '",' + msg);
 			break;
 		default:
 			// Unknown message format
@@ -297,7 +298,9 @@ Player.prototype.handleMessage = function (msg) {
 	}
 };
 
-// The WebSocket server code
+////////////////////////////
+// WebSocket server code //
+//////////////////////////
 
 var server = ws.createServer(),
 	games = {},
@@ -339,12 +342,12 @@ server.addListener('connection', function (conn) {
 		});
 		games[gameId] = game;
 		// FIXME: Hard-coded initial game state
-		game.deliverInitialState([
-			{'$': 'AC', '$type': 'Commander', 'id': 1, 'color': '#ff0000'},
-			{'$': 'AC', '$type': 'Commander', 'id': 2, 'color': '#0000ff'},
-			{'$': 'AC', '$type': 'Ship', 'id': 3, 'player': 1, 'x': 100 << 10, 'y': 100 << 10},
-			{'$': 'AC', '$type': 'Ship', 'id': 4, 'player': 1, 'x': 200 << 10, 'y': 100 << 10},
-			{'$': 'AC', '$type': 'AIShip', 'id': 5, 'player': 1, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
+		game.deliverInitialState('AC', [
+			{'$type': 'Commander', 'id': 1, 'playerId': 'p1', 'color': '#ff0000'},
+			{'$type': 'Commander', 'id': 2, 'playerId': 'p2', 'color': '#0000ff'},
+			{'$type': 'Ship', 'id': 3, 'player': 1, 'x': 100 << 10, 'y': 100 << 10},
+			{'$type': 'Ship', 'id': 4, 'player': 1, 'x': 200 << 10, 'y': 100 << 10},
+			{'$type': 'AIShip', 'id': 5, 'player': 1, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
 		]);
 		game.endInitialState();
 	}

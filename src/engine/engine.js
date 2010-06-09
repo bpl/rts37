@@ -213,8 +213,7 @@ CollisionContext.prototype.tick = function () {
 // Game //
 /////////
 
-function Game(isActive, isLocal) {
-	this.isActive = isActive;
+function Game(isLocal) {
 	this.localPlayer = null;
 	this.managers = [];
 	// Actor handling
@@ -324,8 +323,8 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 
 // Decodes the specified message string and handles the individual messages contained there
 Game.prototype.handleMessageString = function (str) {
-	var data = JSON.parse(str, this.decoder);
-	// FIXME
+	// FIXME: Parse and handle type information from the string
+	this.handleMessage(JSON.parse(str, this.decoder));
 };
 
 Game.prototype.handleCommand = function (player, cmd) {

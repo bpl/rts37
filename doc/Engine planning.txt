@@ -19,102 +19,107 @@ Sample communication of how the game should start:
 
 # The server responds with a server hello
 
-SERVER> A{"$": "hello"}
+SERVER> 1,-1,"hello"
 
 # The client tells the server that the client is ready to receive the initial game
 # state. From the server's perspective initial game state is not much different from
 # backlogged messages.
 
-CLIENT> A{"$": "ack", "tag": 0}
+CLIENT> 1,"ack",0
 
 # The server tells the client which map to use
 
-SERVER> A{"$": "loadMap", "src": "http://localhost:8000/fs/maps/map.js"}
+SERVER> 2,-1,"loadMap","http://localhost:8000/fs/maps/map.js"
 
 # The server tells the client who the players are
 
-SERVER> A{"$": "AC", "$type": "Commander", "id": 1, "playerId": "tim", "color": "#ff0000"}
-SERVER> A{"$": "AC", "$type": "Commander", "id": 2, "playerId": "tom", "color": "#0000ff"}
-SERVER> A{"$": "youAre", "id": 1}
+SERVER> 3,-1,"AC",{"$type": "Commander", "id": 1, "playerId": "tim", "color": "#ff0000"}
+SERVER> 4,-1,"AC",{"$type": "Commander", "id": 2, "playerId": "tom", "color": "#0000ff"}
+SERVER> 5,-1,"youAre",1
 
 # The client tells the server that it has loaded the map
 
-CLIENT> A{"$": "mapDone"}
+CLIENT> 1,"mapDone"
 
 # The server starts the game
 
-SERVER> A{"$": "gameStart"}
+SERVER> 6,-1,"gameStart"
 
 # The server notifies that a tick has completed from its point of view
 
-SERVER> A{"$": "TC", "tick": 0}
+SERVER> 7,-1,"TC",0
 
 # The client notifies that it wishes to send a command
 
-CLIENT> B{"$": "construct", "what": "PowerPlant"}
+CLIENT> 2{"$": "construct", "what": "PowerPlant"}
 
 # The server echoes the command back to all clients
 
-SERVER> B,tim,{"$": "construct", "what": "PowerPlant"}
+SERVER> 8,-2,"tim",{"$": "construct", "what": "PowerPlant"}
 
 # The server notifies again that a tick has completed
 
-SERVER> A{"$": "TC", "tick": 1}
+SERVER> 9,-1,"TC",1
 
 -----------------
 Message type list
 -----------------
 
+The wire format can be easily decoded just by using the following code:
+
+JSON.parse('{"d":[' + msg + ']}')['d']
+
+In a server-to-client message, the first item is the tag of the message and the
+second item is one of the following:
+
+-1: Message
+-2: Command broadcast
+
+In a client-to-server message, the first item is one of the following:
+
+1: Message
+2: Command issuance
+
 SERVER>
 
-hello{}
+"hello"
 Notifies the client that the connection has been established.
 
-loadMap{src: string}
+"loadMap",src(string)
 Tells the client to load a map from the specified source URL.
 
-loadAsset{src: string}
+"loadAsset",src(string)
 Tells the client to load a game asset from the specified source URL.
 
-AC{$type: string, id: integer, ...}
+"AC",{$type: string, id: integer, ...}
 Tells the client to create an actor with the specified parameters and add it to the
 game.
 
-gameStart{}
+"gameStart"
 Notifies the client that the game has started.
 
-TC{tick: integer}
+"TC",tick(integer)
 Notifies the client that a tick has completed.
+
+"error",{msg: string, [...]}
+Notifies the client that an error has occurred.
 
 CLIENT>
 
-ack{tag: integer}
+"ack",tag(integer)
 Acknowledges the receipt of message(s). Parameter tag is the message tag of the last
 server message received, or 0 when no messages have been received yet. The client
 MUST send an "ack" message as the first message after having received the server
 hello.
 
-mapReady{}
+"mapReady"
 Notifies the server that the client has successfully loaded the map as instructed by
 the server.
 
-assetReady{done: number, known: number}
+"assetReady",done(integer),known(integer)
 Notifies the server that the client has successfully loaded "done" number of game
 assets out of "known" number of game assets the server has instructed the client to
 load so far.
 
-TC{tick: integer}
+"TC",tick(integer)
 Notifies the client that a tick has been successfully processed.
-
---------------------
-Alternative syntaxes
---------------------
-
-A,mapDone
-A,AC,Commander,{...}
-A,TC,0
-
-0,"mapDone"
-0,"AC","Commander",{...}
-0,"TC",0
-# These could be easily decoded by with JSON.decode('{"d":[' + msg + ']}')['d']
