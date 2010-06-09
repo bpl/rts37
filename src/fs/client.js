@@ -223,9 +223,7 @@ Viewport.prototype.fireWithSelected = function () {
 function initGame() {
 	var canvas = document.getElementById('screen');
 	assert(canvas, 'initGame: canvas not found');
-	var game = new MyGame(true);
-	var messageLoop = new MyMessageLoop(game, true);
-	game.setMessageLoop(messageLoop);
+	var game = new MyGame(true, true);
 	var uiContext = new UIContext(game);
 	var viewport = new Viewport(game, canvas, uiContext);
 	game.setTicksPerSecond(5);
@@ -259,11 +257,13 @@ function initGame() {
 	// Set up a test enviroment
 	var humanPlayer = game.issueActor(Commander, {
 		'id': game.nextId(),
+		'playerId': 'p1',
 		'color': '#ff0000'
 	});
 	game.issueMessage(humanPlayer, {'$': 'LP', 'player': humanPlayer});
 	var dummyPlayer = game.issueActor(Commander, {
 		'id': game.nextId(),
+		'playerId': 'p2',
 		'color': '#0000ff'
 	});
 	game.issueActor(Ship, {

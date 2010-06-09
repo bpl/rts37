@@ -7,8 +7,8 @@
 
 register('Commander', Commander);
 inherits(Commander, Player);
-function Commander(opt /* id, color */) {
-	Player.call(this, opt.id);
+function Commander(opt /* id, playerId, color */) {
+	Player.call(this, opt);
 	this.color = Color.require(opt.color);
 }
 
@@ -553,8 +553,8 @@ HitMarker.prototype.draw = function (ctx, uiCtx, factor) {
 ///////////
 
 inherits(MyGame, Game);
-function MyGame(isActive) {
-	Game.prototype.constructor.call(this, isActive);
+function MyGame(isActive, isLocal) {
+	Game.prototype.constructor.call(this, isActive, isLocal);
 	this.fieldWidth = 800;
 	this.fieldHeight = 600;
 	this.surfaceContext = new CollisionContext(this);
@@ -565,16 +565,7 @@ function MyGame(isActive) {
 	this.showRadarAsSpinning = false;
 }
 
-////////////////////
-// MyMessageLoop //
-//////////////////
-
-inherits(MyMessageLoop, MessageLoop);
-function MyMessageLoop(game, isLocal) {
-	MessageLoop.call(this, game, isLocal);
-}
-
-MyMessageLoop.prototype.handleCommand = function (player, cmd) {
+MyGame.prototype.handleCommand = function (player, cmd) {
 	// The command is a JavaScript array, where item 0 is a string indicating
 	// the type of the command. Commands may need to be validated because they come
 	// from the client.
@@ -584,8 +575,8 @@ MyMessageLoop.prototype.handleCommand = function (player, cmd) {
 			// [1] is the actor the order was issued to
 			// [2] is the target X coordinate
 			// [3] is the target Y coordinate
-			var actor = this.game.actorWithId(cmd[1]);
-			assert(actor.player === player, 'MyMessageLoop.handleCommand: player mismatch');
+			var actor = this.actorWithId(cmd[1]);
+			assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
 			this.issueMessage(player, {'$': 'GO', 'actor': actor.id, 'x': cmd[2], 'y': cmd[3]});
 			break;
 		case 'FR':
@@ -593,14 +584,14 @@ MyMessageLoop.prototype.handleCommand = function (player, cmd) {
 			// [1] is the actor the order was issued to
 			// [2] is the target X coordinate
 			// [3] is the target Y coordinate
-			var actor = this.game.actorWithId(cmd[1]);
-			assert(actor.player === player, 'MyMessageLoop.handleCommand: player mismatch');
+			var actor = this.actorWithId(cmd[1]);
+			assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
 			actor.commandFireAtPos(cmd[2], cmd[3]);
 			break;
 	}
 };
 
-MyMessageLoop.prototype.handleMessage = function (msg) {
+MyGame.prototype.handleMessage = function (msg) {
 	// The message is a JavaScript object, where property '$' is a string indicating
 	// the type of the message. Not much validation is necessary for messages, because
 	// they come from the server.
@@ -610,16 +601,16 @@ MyMessageLoop.prototype.handleMessage = function (msg) {
 			// ['actor'] is the actor the order was issued to
 			// ['x'] is the target X coordinate
 			// ['y'] is the target Y coordinate
-			var actor = this.game.actorWithId(msg['actor']);
+			var actor = this.actorWithId(msg['actor']);
 			actor.targetX = msg['x'];
 			actor.targetY = msg['y'];
 			break;
 		case 'BL':
 			// Create a radar blip
-			this.game.addActor(Blip, msg);
+			this.addActor(Blip, msg);
 			break;
 		default:
-			MessageLoop.prototype.handleMessage.call(this, msg);
+			Game.prototype.handleMessage.call(this, msg);
 			break;
 	}
 };

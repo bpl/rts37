@@ -45,10 +45,12 @@ Actor.prototype.clickTest = function (x, y, factor) {
 ///////////
 
 inherits(Player, Actor);
-function Player(id) {
-	assert(typeof id == 'number', 'Player: id must be a number');
+function Player(opt /* id, playerId */) {
+	assert(typeof opt.id == 'number', 'Player: id must be a number');
+	assert(typeof opt.playerId == 'string', 'Player: playerId must be a string');
 	Actor.call(this, 0, 0);
-	this.id = id;
+	this.id = opt.id;
+	this.playerId = opt.playerId;
 }
 
 /////////////////////
@@ -211,9 +213,8 @@ CollisionContext.prototype.tick = function () {
 // Game //
 /////////
 
-function Game(isActive) {
+function Game(isActive, isLocal) {
 	this.isActive = isActive;
-	this.messageLoop = null;
 	this.localPlayer = null;
 	this.managers = [];
 	// Actor handling
@@ -221,7 +222,8 @@ function Game(isActive) {
 	this.additionQueue = [];
 	this.deletionQueue = [];
 	this.actorByIdHash = {};
-	this.previousId = 0;
+	// FIXME: Use some other method to create unique IDs
+	this.previousId = 10000;
 	// Interpolation factor. Value 0 means that the frame that is being rendered or that
 	// has been rendered reflects the current simulation state. Value -1 means that the frame
 	// that is being rendered or has been rendered reflects the previous simulation state.
@@ -231,12 +233,11 @@ function Game(isActive) {
 	this.msecsPerTick = 0;
 	this.msecsSinceDrawn = 0;
 	this.setTicksPerSecond(30);
+	// Server communication
+	this.isLocal = isLocal;
+	this.messageQueue = {};
+	this.decoder = Activator.getDecoder(this);
 }
-
-Game.prototype.setMessageLoop = function (messageLoop) {
-	assert(instanceOf(messageLoop, MessageLoop), 'Game: messageLoop must be a MessageLoop');
-	this.messageLoop = messageLoop;
-};
 
 Game.prototype.setLocalPlayer = function (player) {
 	this.localPlayer = player;
@@ -300,18 +301,6 @@ Game.prototype.actorWithId = function (id) {
 
 Game.prototype.resolveId = Game.prototype.actorWithId;
 
-Game.prototype.issueCommand = function (player, cmd) {
-	this.messageLoop.handleCommand(player, cmd);
-};
-
-Game.prototype.issueMessage = function (player, msg) {
-	this.messageLoop.issueMessage(player, msg);
-};
-
-Game.prototype.issueActor = function (type, opt) {
-	return this.messageLoop.issueActor(new type(opt));
-};
-
 Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 	var timeLast = new Date(),
 		remainderMsecs = 0,
@@ -333,56 +322,50 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 	};
 };
 
-//////////////////
-// MessageLoop //
-////////////////
-
-function MessageLoop(game, isLocal) {
-	assert(instanceOf(game, Game), 'MessageLoop: game must be a Game');
-	this.game = game;
-	this.isLocal = isLocal;
-	this.messageQueue = {};
-	this.decoder = Activator.getDecoder(this.game);
-}
-
 // Decodes the specified message string and handles the individual messages contained there
-MessageLoop.prototype.handleMessageString = function (str) {
+Game.prototype.handleMessageString = function (str) {
 	var data = JSON.parse(str, this.decoder);
+	// FIXME
 };
 
-MessageLoop.prototype.handleCommand = function (player, cmd) {
+Game.prototype.handleCommand = function (player, cmd) {
 	// This function intentionally left blank
 };
 
-MessageLoop.prototype.handleMessage = function (msg) {
+Game.prototype.handleMessage = function (msg) {
 	// The message is a JavaScript object, where property '$' is a string indicating
 	// the type of the message.
 	switch (msg['$']) {
 		case 'AA':
 			// Add actor to game (from encoded JSON)
 			// ['a'] is the actor to add
-			this.game.addActor(msg['a']);
+			this.addActor(msg['a']);
 			break;
 		case 'AC':
 			// Add actor to game (from parameters)
 			// ['$type'] is the type of the actor to add
 			// ['opt'] is the parameters passed to the constructor
-			this.game.addActor(new Activator.getType(msg['$type'])(msg));
+			this.addActor(new Activator.getType(msg['$type'])(msg));
 			break;
 		case 'LP':
 			// Set the local player
 			// ['player'] is the player who is the local player
 			var player = msg['player'];
-			assert(instanceOf(player, Player), 'MessageLoop.handleMessage: player of LP must be a Player');
-			this.game.setLocalPlayer(player);
+			assert(instanceOf(player, Player), 'Game.handleMessage: player of LP must be a Player');
+			this.setLocalPlayer(player);
 			break;
 		default:
-			assert(false, 'MessageLoop.handleMessage: unrecognized message type "' + msg['$'] + '"');
+			assert(false, 'Game.handleMessage: unrecognized message type "' + msg['$'] + '"');
 			break;
 	}
 };
 
-MessageLoop.prototype.issueMessage = function (player, msg) {
+Game.prototype.issueCommand = function (player, cmd) {
+	// FIXME: Send to all players as a message
+	this.handleCommand(player, cmd);
+};
+
+Game.prototype.issueMessage = function (player, msg) {
 	if (!this.isLocal) {
 		if (typeof this.messageQueue[player] == 'undefined') {
 			this.messageQueue[player] = [];
@@ -392,10 +375,11 @@ MessageLoop.prototype.issueMessage = function (player, msg) {
 	this.handleMessage(msg);
 };
 
-MessageLoop.prototype.issueActor = function (actor) {
+Game.prototype.issueActor = function (type, opt) {
+	var actor = new type(opt);
 	if (!this.isLocal) {
 		// FIXME: Send to all players as a message
 	}
-	this.game.addActor(actor);
+	this.addActor(actor);
 	return actor;
 };
