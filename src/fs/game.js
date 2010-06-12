@@ -141,8 +141,7 @@ Ship.prototype.tick = function () {
 					if (actor.player != this.game.localPlayer) {
 						if (!actor.isInVisualRadiusOf(this.player)) {
 							// FIXME: Add uncertainty
-							this.game.issueMessage(this.player, {
-								'$': 'BL',
+							this.game.addActor(Blip, {
 								'x': actor.x, 'y': actor.y,
 								'radius': 20
 							});
@@ -159,8 +158,7 @@ Ship.prototype.tick = function () {
 					&& !actor.isInVisualRadiusOf(this.player))
 				{
 					// FIXME: Add uncertainty
-					this.game.issueMessage(this.player, {
-						'$': 'BL',
+					this.game.addActor(Blip, {
 						'x': actor.x, 'y': actor.y,
 						'radius': 4
 					});
@@ -350,7 +348,7 @@ Ship.prototype.commandFireAtPos = function (x, y) {
 	}
 	if (gunIndex < this.currentReloadMsecs.length &&
 			MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
-		this.game.issueActor(Projectile, {
+		this.game.createActor(Projectile, {
 			'player': this.player,
 			'x': this.x, 'y': this.y,
 			'angle': MathUtil.angle(this.x, this.y, x, y),
@@ -564,9 +562,9 @@ function MyGame(isLocal) {
 }
 
 MyGame.prototype.handleCommand = function (player, cmd) {
-	// The command is a JavaScript array, where item 0 is a string indicating
-	// the type of the command. Commands may need to be validated because they come
-	// from the client.
+	// The command is a JavaScript array, where cmd[0] is a string indicating
+	// the type of the command. Commands may need to be validated because the server
+	// echoes command from the clients without parsing them.
 	switch (cmd[0]) {
 		case 'GO':
 			// Movement order
@@ -575,7 +573,8 @@ MyGame.prototype.handleCommand = function (player, cmd) {
 			// [3] is the target Y coordinate
 			var actor = this.actorWithId(cmd[1]);
 			assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
-			this.issueMessage(player, {'$': 'GO', 'actor': actor.id, 'x': cmd[2], 'y': cmd[3]});
+			actor.targetX = cmd[2];
+			actor.targetY = cmd[3];
 			break;
 		case 'FR':
 			// Fire order
@@ -585,30 +584,6 @@ MyGame.prototype.handleCommand = function (player, cmd) {
 			var actor = this.actorWithId(cmd[1]);
 			assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
 			actor.commandFireAtPos(cmd[2], cmd[3]);
-			break;
-	}
-};
-
-MyGame.prototype.handleMessage = function (msg) {
-	// The message is a JavaScript object, where property '$' is a string indicating
-	// the type of the message. Not much validation is necessary for messages, because
-	// they come from the server.
-	switch (msg['$']) {
-		case 'GO':
-			// Set target coordinates of an actor
-			// ['actor'] is the actor the order was issued to
-			// ['x'] is the target X coordinate
-			// ['y'] is the target Y coordinate
-			var actor = this.actorWithId(msg['actor']);
-			actor.targetX = msg['x'];
-			actor.targetY = msg['y'];
-			break;
-		case 'BL':
-			// Create a radar blip
-			this.addActor(Blip, msg);
-			break;
-		default:
-			Game.prototype.handleMessage.call(this, msg);
 			break;
 	}
 };

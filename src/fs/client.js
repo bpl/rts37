@@ -223,20 +223,35 @@ Viewport.prototype.fireWithSelected = function () {
 function Connection(game, url) {
 	var self = this;
 	this.game = game;
+	this.logging = false;
 	this.socket = new WebSocket(url);
 	this.socket.onopen = function () {
 		self.handleOpen();
 	};
-	this.socket.onmessage = function (msg) {
-		self.handleMessage();
+	this.socket.onmessage = function (evt) {
+		self.handleMessage(evt);
 	};
 }
+
+Connection.prototype.setLogging = function (value) {
+	this.logging = value && typeof console != 'undefined';
+};
 
 Connection.prototype.handleOpen = function () {
 };
 
-Connection.prototype.handleMessage = function (msg) {
-	this.game.handleMessageString(msg);
+Connection.prototype.handleMessage = function (evt) {
+	if (this.logging) {
+		console.info('Received: ' + evt.data);
+	}
+	this.game.handleMessageString(evt.data);
+};
+
+Connection.prototype.send = function (data) {
+	if (this.logging) {
+		console.info('Sent: ' + data);
+	}
+	this.socket.send(data);
 };
 
 ////////////////
@@ -281,36 +296,39 @@ function initGame(isLocal) {
 	}, false);
 	if (isLocal) {
 		// Set up a test enviroment
-		var humanPlayer = game.issueActor(Commander, {
+		var humanPlayer = game.createActor(Commander, {
 			'id': game.nextId(),
 			'playerId': 'p1',
 			'color': '#ff0000'
 		});
-		game.issueMessage(humanPlayer, {'$': 'LP', 'player': humanPlayer});
-		var dummyPlayer = game.issueActor(Commander, {
+		game.handleMessage([0, 'LP', humanPlayer]);
+		var dummyPlayer = game.createActor(Commander, {
 			'id': game.nextId(),
 			'playerId': 'p2',
 			'color': '#0000ff'
 		});
-		game.issueActor(Ship, {
+		game.createActor(Ship, {
 			'id': game.nextId(),
 			'player': humanPlayer,
 			'x': 100 << 10, 'y': 100 << 10
 		});
-		game.issueActor(Ship, {
+		game.createActor(Ship, {
 			'id': game.nextId(),
 			'player': humanPlayer,
 			'x': 200 << 10, 'y': 100 << 10
 		});
-		game.issueActor(AIShip, {
+		game.createActor(AIShip, {
 			'id': game.nextId(),
 			'player': dummyPlayer,
 			'x': 200 << 10, 'y': 200 << 10,
 			'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]
 		});
+		game.setRunning(true);
 	} else {
 		// Connect to server
-		var connection = new Connection(game, '/?game=A&player=p1');
+		var connection = new Connection(game, 'ws://localhost:8000/?game=A&player=p1');
+		connection.setLogging(true);
+		game.setConnection(connection);
 		// FIXME: Load initial game state from the server
 	}
 }

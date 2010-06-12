@@ -159,8 +159,11 @@ CollisionContext.prototype.getHighBound = function (actor, radius) {
 };
 
 CollisionContext.prototype.getCollisions = function () {
-	var collided = {};
-	var bound = this.lowSentinel.next;
+	var collided = {},
+		bound = this.lowSentinel.next;
+	if (bound == this.highSentinel) {
+		return;
+	}
 	while (bound) {
 		var bound2 = bound.next;
 		while (bound2.actor != bound.actor) {
@@ -183,8 +186,11 @@ CollisionContext.prototype.getCollisions = function () {
 };
 
 CollisionContext.prototype.tick = function () {
-	var collisions = [];
-	var bound = this.lowSentinel.next;
+	var collisions = [],
+		bound = this.lowSentinel.next;
+	if (bound == this.highSentinel) {
+		return;
+	}
 	while (bound) {
 		var bound2 = bound.next;
 		while (bound2.actor != bound.actor) {
@@ -228,18 +234,26 @@ function Game(isLocal) {
 	// that is being rendered or has been rendered reflects the previous simulation state.
 	this.factor = 0;
 	// Pacing information
+	this.running = false;
 	this.ticksPerSecond = 0;
 	this.msecsPerTick = 0;
 	this.msecsSinceDrawn = 0;
 	this.setTicksPerSecond(30);
 	// Server communication
 	this.isLocal = isLocal;
-	this.messageQueue = {};
+	this.lastTagReceived = 0;
+	this.connection = null;
 	this.decoder = Activator.getDecoder(this);
 }
 
 Game.prototype.setLocalPlayer = function (player) {
 	this.localPlayer = player;
+};
+
+Game.prototype.setConnection = function (connection) {
+	assert(typeof connection == 'object', 'Game.setConnection: connection is not an object');
+	assert(connection === null || typeof connection.send == 'function', 'Game.setConnection: connection.send is not a function');
+	this.connection = connection;
 };
 
 Game.prototype.addManager = function (manager) {
@@ -249,6 +263,10 @@ Game.prototype.addManager = function (manager) {
 Game.prototype.setTicksPerSecond = function (value) {
 	this.ticksPerSecond = value;
 	this.msecsPerTick = 1000 / value;
+};
+
+Game.prototype.setRunning = function (value) {
+	this.running = value;
 };
 
 Game.prototype.tick = function () {
@@ -308,6 +326,9 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 		var timeNow = new Date(),
 			elapsedMsecs = timeNow.getTime() - timeLast.getTime();
 		self.msecsSinceDrawn = elapsedMsecs;
+		if (!self.running) {
+			elapsedMsecs = 0;
+		}
 		elapsedMsecs += remainderMsecs;
 		while (elapsedMsecs >= self.msecsPerTick) {
 			self.tick();
@@ -323,38 +344,78 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 
 // Decodes the specified message string and handles the individual messages contained there
 Game.prototype.handleMessageString = function (str) {
-	// FIXME: Parse and handle type information from the string
-	this.handleMessage(JSON.parse(str, this.decoder));
+	var msg = JSON.parse('{"d":[' + str + ']}', this.decoder)['d'];
+	// [0] is the delivery tag
+	// [1] is the type of the message
+	this.handleMessage(msg);
 };
 
 Game.prototype.handleCommand = function (player, cmd) {
+	// The command is a JavaScript array, where cmd[0] is a string indicating
+	// the type of the command. Commands may need to be validated because the server
+	// echoes command from the clients without parsing them.
+	//
 	// This function intentionally left blank
 };
 
 Game.prototype.handleMessage = function (msg) {
-	// The message is a JavaScript object, where property '$' is a string indicating
-	// the type of the message.
-	switch (msg['$']) {
+	// The message is a JavaScript array where msg[0] is the delivery tag of the
+	// message, msg[1] indicates the type of the message and the rest of the items
+	// are message-specific parameters. Not much validation is necessary for
+	// messages, because they are issued by the server.
+	//
+	// Delivery tag handling
+	assert(typeof msg[0] == 'number', 'Game.handleMessage: message has no delivery tag');
+	if (msg[0] > 0) {
+		// If the message has been handled already, there is no need to handle it
+		// again.
+		if (msg[0] <= this.lastTagReceived) {
+			return;
+		}
+		this.lastTagReceived = msg[0];
+	}
+	// Message type switch
+	assert(typeof msg[1] == 'string', 'Game.handleMessage: message type is not a string');
+	switch (msg[1]) {
+		case 'C':
+			// Command
+			// [2] is the player the command is from
+			// [3] is the properties of the command
+			this.handleCommand(msg[2], msg[3]);
+			break;
 		case 'AA':
 			// Add actor to game (from encoded JSON)
-			// ['a'] is the actor to add
-			this.addActor(msg['a']);
+			// [2] is the actor to add
+			this.addActor(msg[2]);
 			break;
 		case 'AC':
 			// Add actor to game (from parameters)
-			// ['$type'] is the type of the actor to add
-			// ['opt'] is the parameters passed to the constructor
-			this.addActor(new Activator.getType(msg['$type'])(msg));
+			// [2]['$type'] is the type of the actor to add
+			// [2] is the parameters passed to the constructor
+			this.addActor(new Activator.getType(msg[2]['$type'])(msg[2]));
 			break;
 		case 'LP':
 			// Set the local player
-			// ['player'] is the player who is the local player
-			var player = msg['player'];
+			// [2] is the player who is the local player
+			var player = msg[2];
 			assert(instanceOf(player, Player), 'Game.handleMessage: player of LP must be a Player');
 			this.setLocalPlayer(player);
 			break;
+		case 'hello':
+			// Server hello
+			// Send the last delivery tag received in response
+			this.notifyServer(['ack', this.lastTagReceived]);
+			break;
+		case 'error':
+			// Error
+			// [2] is the error object
+			// [2]['msg'] is a textual description of the error
+			if (typeof console != 'undefined') {
+				console.log('Server error: ' + msg[2]['msg']);
+			}
+			break;
 		default:
-			assert(false, 'Game.handleMessage: unrecognized message type "' + msg['$'] + '"');
+			assert(false, 'Game.handleMessage: unrecognized message type "' + msg[1] + '"');
 			break;
 	}
 };
@@ -364,21 +425,24 @@ Game.prototype.issueCommand = function (player, cmd) {
 	this.handleCommand(player, cmd);
 };
 
-Game.prototype.issueMessage = function (player, msg) {
-	if (!this.isLocal) {
-		if (typeof this.messageQueue[player] == 'undefined') {
-			this.messageQueue[player] = [];
-		}
-		this.messageQueue[player].push(msg);
-	}
-	this.handleMessage(msg);
+// Guaranteed delivery of a message to the server
+Game.prototype.issueMessage = function (msg) {
+	// FIXME: Make this actually work. The server doesn't currently expect the
+	// client to send a message tag.
 };
 
-Game.prototype.issueActor = function (type, opt) {
-	var actor = new type(opt);
-	if (!this.isLocal) {
-		// FIXME: Send to all players as a message
+// Non-guaranteed delivery of a message to the server
+Game.prototype.notifyServer = function (msg) {
+	if (this.connection) {
+		var parts = ['1'];
+		for (var i = 0; i < msg.length; ++i) {
+			parts.push(JSON.stringify(msg[i]));
+		}
+		this.connection.send(parts.join(','));
 	}
-	this.addActor(actor);
-	return actor;
+};
+
+// Convenience function for setting up local games
+Game.prototype.createActor = function (type, opt) {
+	return this.addActor(new type(opt));
 };

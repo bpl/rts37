@@ -19,7 +19,7 @@ Sample communication of how the game should start:
 
 # The server responds with a server hello
 
-SERVER> 1,-1,"hello"
+SERVER> 1,"hello"
 
 # The client tells the server that the client is ready to receive the initial game
 # state. From the server's perspective initial game state is not much different from
@@ -29,13 +29,13 @@ CLIENT> 1,"ack",0
 
 # The server tells the client which map to use
 
-SERVER> 2,-1,"loadMap","http://localhost:8000/fs/maps/map.js"
+SERVER> 2,"loadMap","http://localhost:8000/fs/maps/map.js"
 
 # The server tells the client who the players are
 
-SERVER> 3,-1,"AC",{"$type": "Commander", "id": 1, "playerId": "tim", "color": "#ff0000"}
-SERVER> 4,-1,"AC",{"$type": "Commander", "id": 2, "playerId": "tom", "color": "#0000ff"}
-SERVER> 5,-1,"youAre",1
+SERVER> 3,"AC",{"$type": "Commander", "id": 1, "playerId": "tim", "color": "#ff0000"}
+SERVER> 4,"AC",{"$type": "Commander", "id": 2, "playerId": "tom", "color": "#0000ff"}
+SERVER> 5,"youAre",1
 
 # The client tells the server that it has loaded the map
 
@@ -43,11 +43,11 @@ CLIENT> 1,"mapDone"
 
 # The server starts the game
 
-SERVER> 6,-1,"gameStart"
+SERVER> 6,"gameStart"
 
 # The server notifies that a tick has completed from its point of view
 
-SERVER> 7,-1,"TC",0
+SERVER> 7,"TC",0
 
 # The client notifies that it wishes to send a command
 
@@ -55,11 +55,11 @@ CLIENT> 2{"$": "construct", "what": "PowerPlant"}
 
 # The server echoes the command back to all clients
 
-SERVER> 8,-2,"tim",{"$": "construct", "what": "PowerPlant"}
+SERVER> 8,"C","tim",{"$": "construct", "what": "PowerPlant"}
 
 # The server notifies again that a tick has completed
 
-SERVER> 9,-1,"TC",1
+SERVER> 9,"TC",1
 
 -----------------
 Message type list
@@ -70,12 +70,10 @@ The wire format can be easily decoded just by using the following code:
 JSON.parse('{"d":[' + msg + ']}')['d']
 
 In a server-to-client message, the first item is the tag of the message and the
-second item is one of the following:
+second item is the type of the command.
 
--1: Message
--2: Command broadcast
-
-In a client-to-server message, the first item is one of the following:
+In a client-to-server message, the first item is the category of the message. It is
+one of the following values:
 
 1: Message
 2: Command issuance
@@ -103,6 +101,9 @@ Notifies the client that a tick has completed.
 
 "error",{msg: string, [...]}
 Notifies the client that an error has occurred.
+
+"C",player(string),command(object)
+Server-to-client command broadcast
 
 CLIENT>
 

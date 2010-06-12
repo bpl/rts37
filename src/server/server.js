@@ -88,7 +88,7 @@ Game.prototype.deliverInitialState = function (kind, msg) {
 			}
 			return;
 		} else {
-			msg = '-1,"' + kind + '",' + JSON.stringify(msg);
+			msg = '"' + kind + '",' + JSON.stringify(msg);
 		}
 	} else if (typeof msg != 'string') {
 		throw new Error('Game.deliverInitialState: msg is of unexpected type');
@@ -110,7 +110,7 @@ Game.prototype.wake = function (now) {
 	// TODO: Is it necessary to try to prevent bunching here
 	this.wakeAt.setTime(now.getTime() + 1000);
 	if (this.running) {
-		this.deliverAll('-1,"TC",' + this.currentTick++);
+		this.deliverAll('"TC",' + this.currentTick++);
 		return;
 	}
 	// Start the game when all players have received the initial state
@@ -191,7 +191,7 @@ Player.prototype.deliver = function (msg) {
 
 // Let the player know that there is a problem
 Player.notifyError = function (connection, text) {
-	this.notify(connection, '-1,"error",' + JSON.stringify({'msg': text}));
+	this.notify(connection, '"error",' + JSON.stringify({'msg': text}));
 };
 
 // Let the player know that there is a problem
@@ -201,13 +201,13 @@ Player.prototype.notifyError = function (text) {
 
 // Let the player know that there is a problem (with guaranteed delivery)
 Player.prototype.deliverError = function (text) {
-	this.deliver('-1,"error",' + JSON.stringify({'msg': text}));
+	this.deliver('"error",' + JSON.stringify({'msg': text}));
 };
 
 // Send the server hello to the player
 Player.prototype.serverHello = function () {
 	this.connectionState = Player.CONNECTION_STATE.HELLO_SENT;
-	this.notify('-1,"hello"');
+	this.notify('"hello"');
 };
 
 // Handle a message received from the player
@@ -227,12 +227,12 @@ Player.prototype.handleMessage = function (msg) {
 		case Player.CONNECTION_STATE.HELLO_SENT:
 			// We should get an acknowledgement from the client
 			if (msg[0] != '1') {
-				this.notifyError('The client must start with acknowledgement');
+				this.notifyError('The client must start with acknowledgement, but started instead with message of category "' + msg[0] + '"');
 				return;
 			}
 			var payload = JSON.parse('{"d":[' + msg + ']}')['d'];
 			if (!payload || payload[1] != 'ack') {
-				this.notifyError('The client must start with acknowledgement');
+				this.notifyError('The client must start with acknowledgement, but started instead with message of type "' + msg[1] + '"');
 				return;
 			}
 			if (typeof payload[2] != 'number') {
