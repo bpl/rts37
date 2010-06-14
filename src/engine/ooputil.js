@@ -40,8 +40,8 @@ function register(typeName, type) {
 }
 
 Activator.getType = function (typeName) {
-	var result = this.types[typeName];
-	assert(typeof result == 'function', 'Activator.getType: object type "' + data.type + '" not registered');
+	var result = Activator.types[typeName];
+	assert(typeof result == 'function', 'Activator.getType: object type "' + typeName + '" not registered');
 	return result;
 };
 
@@ -61,13 +61,15 @@ Activator.getDecoder = function (resolver) {
 						result.push(decode(i, value[i]));
 					}
 					return result;
-				} else if (typeof value.id == 'number') {
-					return resolver.resolveId(value.id);
+				} else if (typeof value['$id'] == 'number') {
+					var actor = resolver.resolveId(value['$id']);
+					assert(actor, 'Activator.getDecoder: could not resolve actor ' + value['$id']);
+					return actor;
 				} else {
 					return value;
 				}
 			default:
-				assert(false, 'Activator._decodeMember: a member with unknown type encountered');
+				assert(false, 'Activator.getDecoder: a member with unknown type encountered');
 				return null;
 		}
 	};
@@ -91,7 +93,7 @@ Activator._encodeMember = function (key, value) {
 				}
 				return result;
 			} else if (typeof value.id == 'number') {
-				return {'id': value.id};
+				return {'$id': value.id};
 			} else {
 				return value;
 			}

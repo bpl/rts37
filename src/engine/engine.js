@@ -294,7 +294,11 @@ Game.prototype.addActor = function (actor /* or: type, opt */) {
 	if (arguments.length == 2) {
 		actor = new arguments[0](arguments[1]);
 	}
-	this.additionQueue.push(actor);
+	if (this.running) {
+		this.additionQueue.push(actor);
+	} else {
+		this.actors.push(actor);
+	}
 	if (actor.id !== null) {
 		this.actorByIdHash[actor.id] = actor;
 	}
@@ -305,7 +309,12 @@ Game.prototype.addActor = function (actor /* or: type, opt */) {
 Game.prototype.removeActor = function (actor) {
 	var idx = this.actors.indexOf(actor);
 	if (idx >= 0 && this.deletionQueue.indexOf(actor) < 0) {
-		this.deletionQueue.push(actor);
+		if (this.running) {
+			this.deletionQueue.push(actor);
+		} else {
+			this.actors.splice(idx, 1);
+			actor.afterRemove();
+		}
 	}
 	if (actor.id !== null) {
 		delete this.actorByIdHash[actor.id];
@@ -383,18 +392,14 @@ Game.prototype.handleMessage = function (msg) {
 			// [3] is the properties of the command
 			this.handleCommand(msg[2], msg[3]);
 			break;
-		case 'AA':
-			// Add actor to game (from encoded JSON)
-			// [2] is the actor to add
-			this.addActor(msg[2]);
-			break;
 		case 'AC':
 			// Add actor to game (from parameters)
 			// [2]['$type'] is the type of the actor to add
 			// [2] is the parameters passed to the constructor
-			this.addActor(new Activator.getType(msg[2]['$type'])(msg[2]));
+			var type = Activator.getType(msg[2]['$type']);
+			this.addActor(new type(msg[2]));
 			break;
-		case 'LP':
+		case 'youAre':
 			// Set the local player
 			// [2] is the player who is the local player
 			var player = msg[2];

@@ -345,10 +345,11 @@ server.addListener('connection', function (conn) {
 		game.deliverInitialState('AC', [
 			{'$type': 'Commander', 'id': 1, 'playerId': 'p1', 'color': '#ff0000'},
 			{'$type': 'Commander', 'id': 2, 'playerId': 'p2', 'color': '#0000ff'},
-			{'$type': 'Ship', 'id': 3, 'player': 1, 'x': 100 << 10, 'y': 100 << 10},
-			{'$type': 'Ship', 'id': 4, 'player': 1, 'x': 200 << 10, 'y': 100 << 10},
-			{'$type': 'AIShip', 'id': 5, 'player': 1, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
+			{'$type': 'Ship', 'id': 3, 'player': {'$id': 1}, 'x': 100 << 10, 'y': 100 << 10},
+			{'$type': 'Ship', 'id': 4, 'player': {'$id': 1}, 'x': 200 << 10, 'y': 100 << 10},
+			{'$type': 'AIShip', 'id': 5, 'player': {'$id': 2}, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
 		]);
+		game.deliverInitialState('youAre', [{'$id': 1}]);
 		game.endInitialState();
 	}
 	

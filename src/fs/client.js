@@ -301,7 +301,7 @@ function initGame(isLocal) {
 			'playerId': 'p1',
 			'color': '#ff0000'
 		});
-		game.handleMessage([0, 'LP', humanPlayer]);
+		game.handleMessage([0, 'youAre', humanPlayer]);
 		var dummyPlayer = game.createActor(Commander, {
 			'id': game.nextId(),
 			'playerId': 'p2',
