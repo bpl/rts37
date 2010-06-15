@@ -263,7 +263,7 @@ function initGame(isLocal) {
 	splash.parentNode.removeChild(splash);
 	var canvas = document.getElementById('screen');
 	assert(canvas, 'initGame: canvas not found');
-	var game = new MyGame(true, true);
+	var game = new MyGame(isLocal);
 	var uiContext = new UIContext(game);
 	var viewport = new Viewport(game, canvas, uiContext);
 	game.setTicksPerSecond(5);

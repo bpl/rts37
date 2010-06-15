@@ -242,6 +242,7 @@ function Game(isLocal) {
 	// Server communication
 	this.isLocal = isLocal;
 	this.lastTagReceived = 0;
+	this.msecsToAcknowledgement = 0;
 	this.connection = null;
 	this.decoder = Activator.getDecoder(this);
 }
@@ -328,13 +329,23 @@ Game.prototype.actorWithId = function (id) {
 Game.prototype.resolveId = Game.prototype.actorWithId;
 
 Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
-	var timeLast = new Date(),
-		remainderMsecs = 0,
+	var timeLast = new Date(),   // The last time the screen was drawn
+		remainderMsecs = 0,      // Remaining msecs from the previous tick
 		self = this;
 	return function () {
 		var timeNow = new Date(),
 			elapsedMsecs = timeNow.getTime() - timeLast.getTime();
 		self.msecsSinceDrawn = elapsedMsecs;
+		// Send acknowledgement 100 msecs after receiving a message that has not
+		// been acknowledged yet.
+		if (self.msecsToAcknowledgement > 0) {
+			self.msecsToAcknowledgement -= elapsedMsecs;
+			if (self.msecsToAcknowledgement <= 0) {
+				self.msecsToAcknowledgement = 0;
+				self.notifyServer(['ack', self.lastTagReceived]);
+			}
+		}
+		// If the game has not started yet or has been paused, do not advance.
 		if (!self.running) {
 			elapsedMsecs = 0;
 		}
@@ -382,6 +393,9 @@ Game.prototype.handleMessage = function (msg) {
 			return;
 		}
 		this.lastTagReceived = msg[0];
+		if (this.msecsToAcknowledgement <= 0) {
+			this.msecsToAcknowledgement = 100;
+		}
 	}
 	// Message type switch
 	assert(typeof msg[1] == 'string', 'Game.handleMessage: message type is not a string');
@@ -391,6 +405,11 @@ Game.prototype.handleMessage = function (msg) {
 			// [2] is the player the command is from
 			// [3] is the properties of the command
 			this.handleCommand(msg[2], msg[3]);
+			break;
+		case 'TC':
+			// Tick completed
+			// [2] is the tick number
+			// FIXME: Implement
 			break;
 		case 'AC':
 			// Add actor to game (from parameters)
@@ -438,6 +457,7 @@ Game.prototype.issueMessage = function (msg) {
 
 // Non-guaranteed delivery of a message to the server
 Game.prototype.notifyServer = function (msg) {
+	assert(!this.isLocal, 'Game.notifyServer: can\'t send because the game is local');
 	if (this.connection) {
 		var parts = ['1'];
 		for (var i = 0; i < msg.length; ++i) {
