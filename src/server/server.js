@@ -110,7 +110,7 @@ Game.prototype.wake = function (now) {
 	// TODO: Is it necessary to try to prevent bunching here
 	this.wakeAt.setTime(now.getTime() + 1000);
 	if (this.running) {
-		this.deliverAll('"TC",' + this.currentTick++);
+		this.deliverAll('"tick",' + this.currentTick++);
 		return;
 	}
 	// Start the game when all players have received the initial state
@@ -375,7 +375,6 @@ server.addListener('connection', function (conn) {
 	});
 	
 	conn.addListener('message', function (msg) {
-		sys.log('<' + conn._id + '> says ' + msg);
 		player.handleMessage(msg);
 	});
 });

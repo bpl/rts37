@@ -235,6 +235,8 @@ function Game(isLocal) {
 	this.factor = 0;
 	// Pacing information
 	this.running = false;
+	this.lastProcessedTick = 0;
+	this.lastPermittedTick = 0;
 	this.ticksPerSecond = 0;
 	this.msecsPerTick = 0;
 	this.msecsSinceDrawn = 0;
@@ -350,13 +352,20 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 			elapsedMsecs = 0;
 		}
 		elapsedMsecs += remainderMsecs;
-		while (elapsedMsecs >= self.msecsPerTick) {
+		while ((self.isLocal && elapsedMsecs >= self.msecsPerTick)
+				|| (!self.isLocal && self.lastPermittedTick > self.lastProcessedTick)) {
 			self.tick();
 			tickFunc();
 			elapsedMsecs -= self.msecsPerTick;
+			self.lastProcessedTick++;
 		}
-		self.factor = 1 - elapsedMsecs / self.msecsPerTick;
-		remainderMsecs = elapsedMsecs;
+		if (!this.isLocal) {
+			// FIXME: Make this work
+			self.factor = 0;
+		} else {
+			self.factor = 1 - elapsedMsecs / self.msecsPerTick;
+			remainderMsecs = elapsedMsecs;
+		}
 		timeLast = timeNow;
 		drawFunc();
 	};
@@ -406,10 +415,24 @@ Game.prototype.handleMessage = function (msg) {
 			// [3] is the properties of the command
 			this.handleCommand(msg[2], msg[3]);
 			break;
-		case 'TC':
-			// Tick completed
-			// [2] is the tick number
-			// FIXME: Implement
+		case 'tick':
+			// Tick permitted
+			// [2] is the number of the tick we are now permitted to process
+			// FIXME: Should we handle here returning to a paused game
+			var tick = msg[2];
+			assert(typeof tick == 'number', 'Game.handleMessage: tick must be a number');
+			if (tick == this.lastPermittedTick + 1) {
+				// Increase the last permitted tick to let the game loop proceed
+				this.lastPermittedTick++;
+			} else if (tick == 0 && this.lastPermittedTick == 0) {
+				// Signal the start of the game
+				this.running = true;
+			} else {
+				// Error, log it
+				if (typeof console != 'undefined') {
+					console.log('Error: Tick numbers out of sequence. Server told the next would be ' + tick + ', but the current is ' + this.lastPermittedTick);
+				}
+			}
 			break;
 		case 'AC':
 			// Add actor to game (from parameters)

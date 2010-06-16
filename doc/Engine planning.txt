@@ -47,7 +47,7 @@ SERVER> 6,"gameStart"
 
 # The server notifies that a tick has completed from its point of view
 
-SERVER> 7,"TC",0
+SERVER> 7,"tick",0
 
 # The client notifies that it wishes to send a command
 
@@ -59,7 +59,7 @@ SERVER> 8,"C","tim",{"$": "construct", "what": "PowerPlant"}
 
 # The server notifies again that a tick has completed
 
-SERVER> 9,"TC",1
+SERVER> 9,"tick",1
 
 -----------------
 Message type list
@@ -96,7 +96,7 @@ game.
 "gameStart"
 Notifies the client that the game has started.
 
-"TC",tick(integer)
+"tick",tick(integer)
 Notifies the client that a tick has completed.
 
 "error",{msg: string, [...]}
