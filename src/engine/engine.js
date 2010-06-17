@@ -359,7 +359,7 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 			elapsedMsecs -= self.msecsPerTick;
 			self.lastProcessedTick++;
 		}
-		if (!this.isLocal) {
+		if (!self.isLocal) {
 			// FIXME: Make this work
 			self.factor = 0;
 		} else {
@@ -383,8 +383,7 @@ Game.prototype.handleCommand = function (player, cmd) {
 	// The command is a JavaScript array, where cmd[0] is a string indicating
 	// the type of the command. Commands may need to be validated because the server
 	// echoes command from the clients without parsing them.
-	//
-	// This function intentionally left blank
+	assert(false, 'Game.handleCommand: unknown command "' + cmd + '"');
 };
 
 Game.prototype.handleMessage = function (msg) {
@@ -411,9 +410,11 @@ Game.prototype.handleMessage = function (msg) {
 	switch (msg[1]) {
 		case 'C':
 			// Command
-			// [2] is the player the command is from
+			// [2] is the actor id of the player the command is from
 			// [3] is the properties of the command
-			this.handleCommand(msg[2], msg[3]);
+			var player = this.actorWithId(msg[2]);
+			assert(instanceOf(player, Player), 'Game.handleMessage: player of C must be a Player');
+			this.handleCommand(player, msg[3]);
 			break;
 		case 'tick':
 			// Tick permitted
@@ -445,7 +446,7 @@ Game.prototype.handleMessage = function (msg) {
 			// Set the local player
 			// [2] is the player who is the local player
 			var player = msg[2];
-			assert(instanceOf(player, Player), 'Game.handleMessage: player of LP must be a Player');
+			assert(instanceOf(player, Player), 'Game.handleMessage: player of youAre must be a Player');
 			this.setLocalPlayer(player);
 			break;
 		case 'hello':
@@ -467,9 +468,13 @@ Game.prototype.handleMessage = function (msg) {
 	}
 };
 
-Game.prototype.issueCommand = function (player, cmd) {
-	// FIXME: Send to all players as a message
-	this.handleCommand(player, cmd);
+Game.prototype.issueCommand = function (cmd) {
+	if (this.isLocal) {
+		this.handleCommand(this.localPlayer, cmd);
+	} else {
+		// FIXME: Send to all players as a message
+		this.connection.send('2' + JSON.stringify(cmd));
+	}
 };
 
 // Guaranteed delivery of a message to the server

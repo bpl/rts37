@@ -147,7 +147,7 @@ Ship.prototype.tick = function () {
 							});
 						}
 					} else if (instanceOf(this, AIShip)) {
-						this.fireAtActor(actor);
+						this.fireAtPos(actor.x, actor.y);
 					}
 				}
 			} else if (instanceOf(actor, Projectile)) {
@@ -174,7 +174,7 @@ Ship.prototype.tick = function () {
 						&& instanceOf(actor, Ship)
 						&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
 						&& actor.isInRadarRadiusOf(this.player)) {
-					this.fireAtActor(actor);
+					this.fireAtPos(actor.x, actor.y);
 					break;
 				}
 			}
@@ -330,17 +330,6 @@ Ship.prototype.isInRadarRadiusOf = function (player) {
 };
 
 Ship.prototype.fireAtPos = function (x, y) {
-	if (this.reloadingCount < this.currentReloadMsecs.length &&
-			MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
-		this.game.issueCommand(this.player, ['FR', this.id, x, y]);
-	}
-};
-
-Ship.prototype.fireAtActor = function (actor) {
-	this.fireAtPos(actor.x, actor.y);
-};
-
-Ship.prototype.commandFireAtPos = function (x, y) {
 	for (var gunIndex = 0; gunIndex < this.currentReloadMsecs.length; ++gunIndex) {
 		if (this.currentReloadMsecs[gunIndex] <= 0) {
 			break;
@@ -357,6 +346,13 @@ Ship.prototype.commandFireAtPos = function (x, y) {
 		});
 		this.currentReloadMsecs[gunIndex] = this.reloadMsecs;
 		++this.reloadingCount;
+	}
+};
+
+Ship.prototype.issueFireAtPos = function (x, y) {
+	if (this.reloadingCount < this.currentReloadMsecs.length &&
+			MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
+		this.game.issueCommand(['FR', this.id, x, y]);
 	}
 };
 
@@ -583,7 +579,7 @@ MyGame.prototype.handleCommand = function (player, cmd) {
 			// [3] is the target Y coordinate
 			var actor = this.actorWithId(cmd[1]);
 			assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
-			actor.commandFireAtPos(cmd[2], cmd[3]);
+			actor.fireAtPos(cmd[2], cmd[3]);
 			break;
 	}
 };

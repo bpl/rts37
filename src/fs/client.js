@@ -126,7 +126,7 @@ Viewport.prototype.handleClick = function (x, y) {
 	}
 	for (var idx in this.uiContext.selectedActors) {
 		var actor = this.uiContext.selectedActors[idx];
-		this.game.issueCommand(actor.player, ['GO', actor.id, target[0], target[1]]);
+		this.game.issueCommand(['GO', actor.id, target[0], target[1]]);
 	}
 };
 
@@ -211,7 +211,7 @@ Viewport.prototype.fireWithSelected = function () {
 		var actor = this.uiContext.selectedActors[idx];
 		if (actor.player == this.game.localPlayer
 				&& instanceOf(actor, Ship)) {
-			actor.fireAtPos(this.lastMouseX, this.lastMouseY);
+			actor.issueFireAtPos(this.lastMouseX, this.lastMouseY);
 		}
 	}
 };

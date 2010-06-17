@@ -55,7 +55,7 @@ CLIENT> 2{"$": "construct", "what": "PowerPlant"}
 
 # The server echoes the command back to all clients
 
-SERVER> 8,"C","tim",{"$": "construct", "what": "PowerPlant"}
+SERVER> 8,"C",1,{"$": "construct", "what": "PowerPlant"}
 
 # The server notifies again that a tick has completed
 
@@ -102,7 +102,7 @@ Notifies the client that a tick has completed.
 "error",{msg: string, [...]}
 Notifies the client that an error has occurred.
 
-"C",player(string),command(object)
+"C",player(number),command(object)
 Server-to-client command broadcast
 
 CLIENT>

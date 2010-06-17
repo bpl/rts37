@@ -59,7 +59,11 @@ function Game(opt /* id, playerIds */) {
 	this.id = opt.id;
 	this.players = {};
 	for (var i = 0; i < opt.playerIds.length; ++i) {
-		var player = new Player(this, opt.playerIds[i]);
+		var player = new Player({
+			'game': this,
+			'id': opt.playerIds[i],
+			'actorId': i + 1
+		});
 		this.players[player.id] = player;
 	}
 }
@@ -128,9 +132,10 @@ Game.prototype.wake = function (now) {
 // Player //
 ///////////
 
-function Player(game, id) {
-	this.game = game;
-	this.id = id;
+function Player(opt /* game, id, actorId */) {
+	this.game = opt.game;
+	this.id = opt.id;
+	this.actorId = opt.actorId;
 	this.connection = null;
 	this.lastDeliveryTag = 0;
 	this.initialStateLastTag = -1;
@@ -285,11 +290,11 @@ Player.prototype.handleMessage = function (msg) {
 					break;
 			}
 			break;
-		case 'B':
+		case '2':
 			// Player to player broadcast
 			// The server should forward the rest of the message to all players
 			// FIXME: Proper escaping for id
-			this.game.deliverAll('-2,"' + this.id + '",' + msg);
+			this.game.deliverAll('"C",' + this.actorId + ',' + msg.substr(1));
 			break;
 		default:
 			// Unknown message format
