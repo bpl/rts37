@@ -313,7 +313,7 @@ server.addListener('error', function (exception) {
 // This gets called for example when the request listener throws an exception.
 // It is shared by WebSocket and HTTP listeners.
 server.addListener('clientError', function (exception) {
-	sys.log('Server client error ' + (exception.stack || exception));
+	sys.log('Client error ' + (exception.stack || exception));
 });
 
 server.addListener('listening', function () {
@@ -450,7 +450,6 @@ server.addListener('request', function (request, response) {
 	}
 	
 	var requestPath = url.parse(request.url).pathname;
-	sys.log('[HTTP] Request ' + requestPath);
 	// FIXME: Requests to hidden files should give an error
 	var requestFile = path.join(options.documentRoot, util.cleanPath(requestPath));
 	
@@ -460,7 +459,6 @@ server.addListener('request', function (request, response) {
 			sendErrorWithErr(response, err);
 			return;
 		}
-		sys.log('[HTTP] Stat success for ' + requestPath);
 		if (!stats.isFile()) {
 			sendError(response, 403, 'The requested URL ' + requestPath + ' is not a file.');
 			return;
@@ -468,7 +466,6 @@ server.addListener('request', function (request, response) {
 		var stream = fs.createReadStream(requestFile),
 			headerWritten = false;
 		stream.addListener('data', function (data) {
-			sys.log('[HTTP] Sending ' + data.length + ' bytes for ' + requestPath);
 			if (!headerWritten) {
 				var extname = util.removePrefix('.', path.extname(path.basename(requestFile)));
 				response.writeHead(200, {
@@ -480,7 +477,7 @@ server.addListener('request', function (request, response) {
 			response.write(data);
 		});
 		stream.addListener('end', function (data) {
-			sys.log('[HTTP] End for ' + requestPath);
+			sys.log('[HTTP] Served ' + requestPath);
 			response.end();
 		});
 		stream.addListener('error', function (exception) {
