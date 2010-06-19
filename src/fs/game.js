@@ -581,6 +581,9 @@ MyGame.prototype.handleCommand = function (player, cmd) {
 			assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
 			actor.fireAtPos(cmd[2], cmd[3]);
 			break;
+		default:
+			Game.prototype.handleCommand.call(this, player, cmd);
+			break;
 	}
 };
 

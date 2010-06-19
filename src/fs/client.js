@@ -233,6 +233,10 @@ function Connection(game, url) {
 	};
 }
 
+Connection.INCOMING_LOG_FILTER = /^\d+,"tick",\d+$/;
+
+Connection.OUTGOING_LOG_FILTER = /^\d+,"ack",\d+/;
+
 Connection.prototype.setLogging = function (value) {
 	this.logging = value && typeof console != 'undefined';
 };
@@ -241,14 +245,14 @@ Connection.prototype.handleOpen = function () {
 };
 
 Connection.prototype.handleMessage = function (evt) {
-	if (this.logging) {
+	if (this.logging && !evt.data.match(Connection.INCOMING_LOG_FILTER)) {
 		console.info('Received: ' + evt.data);
 	}
 	this.game.handleMessageString(evt.data);
 };
 
 Connection.prototype.send = function (data) {
-	if (this.logging) {
+	if (this.logging && !data.match(Connection.OUTGOING_LOG_FILTER)) {
 		console.info('Sent: ' + data);
 	}
 	this.socket.send(data);
@@ -301,7 +305,7 @@ function initGame(isLocal) {
 			'playerId': 'p1',
 			'color': '#ff0000'
 		});
-		game.handleMessage([0, 'youAre', humanPlayer]);
+		game.handleMessage([0, 'youAre', humanPlayer.id]);
 		var dummyPlayer = game.createActor(Commander, {
 			'id': game.nextId(),
 			'playerId': 'p2',
