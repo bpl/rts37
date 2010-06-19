@@ -85,8 +85,14 @@ Game.prototype.deliverAll = function (msg) {
 // Guaranteed delivery of message to all players, including players who have not
 // joined yet.
 Game.prototype.deliverInitialState = function (kind, msg) {
-	if (typeof msg == 'object') {
-		if (msg instanceof Array) {
+	if (Array.isArray(kind) && typeof msg == 'undefined') {
+		var parts = [];
+		for (var i = 0; i < kind.length; ++i) {
+			parts.push(JSON.stringify(kind[i]));
+		}
+		msg = parts.join(',');
+	} else if (typeof msg == 'object') {
+		if (Array.isArray(msg)) {
 			for (var i = 0; i < msg.length; ++i) {
 				this.deliverInitialState(kind, msg[i]);
 			}
@@ -354,7 +360,7 @@ server.addListener('connection', function (conn) {
 			{'$type': 'Ship', 'id': 4, 'player': {'$id': 1}, 'x': 200 << 10, 'y': 100 << 10},
 			{'$type': 'AIShip', 'id': 5, 'player': {'$id': 2}, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
 		]);
-		game.deliverInitialState('youAre', [{'$id': 1}]);
+		game.deliverInitialState(['youAre', 1]);
 		game.endInitialState();
 	}
 	

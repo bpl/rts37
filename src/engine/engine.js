@@ -444,8 +444,8 @@ Game.prototype.handleMessage = function (msg) {
 			break;
 		case 'youAre':
 			// Set the local player
-			// [2] is the player who is the local player
-			var player = msg[2];
+			// [2] is the actor id of the local player
+			var player = this.actorWithId(msg[2]);
 			assert(instanceOf(player, Player), 'Game.handleMessage: player of youAre must be a Player');
 			this.setLocalPlayer(player);
 			break;

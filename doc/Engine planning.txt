@@ -93,6 +93,10 @@ Tells the client to load a game asset from the specified source URL.
 Tells the client to create an actor with the specified parameters and add it to the
 game.
 
+"youAre",actor(number)
+Tells the client the id of the actor that represents the player the client is
+associated with.
+
 "gameStart"
 Notifies the client that the game has started.
 
