@@ -244,6 +244,9 @@ function Game(isLocal) {
 	// Server communication
 	this.isLocal = isLocal;
 	this.lastTagReceived = 0;
+	// The last item is an array (queue) of commands to process at the next tick.
+	// The commands received during this turn are pushed to item 0.
+	this.commandQueues = [[]];
 	this.acknowledgeAt = 0;
 	this.connection = null;
 	this.decoder = Activator.getDecoder(this);
@@ -358,16 +361,17 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 	} else {
 		var timeLast = new Date(),   // The last time the screen was drawn
 			remainderMsecs = 0,      // Remaining msecs from the previous tick
+			schedulingBaseTime = 0,
 			wasRunning = false,
 			self = this;
 		return function () {
 			var timeNow = new Date(),
 				elapsedMsecs = timeNow.getTime() - timeLast.getTime();
 			// Send acknowledgement 100 msecs after receiving a message that has not
-			// been acknowledged yet.
+			// been acknowledged yet or processing a new tick.
 			if (self.acknowledgeAt > 0 && self.acknowledgeAt <= timeNow.getTime()) {
 				self.acknowledgeAt = 0;
-				self.notifyServer(['ack', self.lastTagReceived]);
+				self.notifyServer(['ack', self.lastTagReceived, self.lastProcessedTick]);
 			}
 			// If the game has not started yet or has been paused, do not advance.
 			if (!wasRunning || !self.running) {
@@ -375,6 +379,7 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 				timeLast = timeNow;
 				if (self.running) {
 					wasRunning = true;
+					schedulingBaseTime = timeNow.getTime() - self.lastProcessedTick * self.msecsPerTick;
 				} else if (wasRunning) {
 					wasRunning = false;
 				}
@@ -383,14 +388,31 @@ Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 			}
 			self.msecsSinceDrawn = elapsedMsecs;
 			elapsedMsecs += remainderMsecs;
-			while (self.lastPermittedTick > self.lastProcessedTick) {
+			if (Math.floor((timeNow.getTime() - schedulingBaseTime) / self.msecsPerTick) >= self.lastPermittedTick
+					&& self.lastPermittedTick > self.lastProcessedTick) {
+				// First process commands
+				var tickCommands = self.commandQueues.pop();
+				self.commandQueues.unshift([]);
+				for (var i = 0; i < tickCommands.length; ++i) {
+					var command = tickCommands[i];
+					self.handleCommand(command[0], command[1]);
+				}
+				// Then handle the tick
 				self.tick();
 				tickFunc();
 				elapsedMsecs -= self.msecsPerTick;
 				self.lastProcessedTick++;
+				self.queueAcknowledgement();
 			}
-			// FIXME: Make this work
-			self.factor = 0;
+			var tickBase = schedulingBaseTime + self.lastProcessedTick * self.msecsPerTick,
+				elapsedFromTick = (new Date()).getTime() - tickBase;
+			self.factor = 1 - elapsedFromTick / self.msecsPerTick;
+			if (self.factor < 0) {
+				self.factor = 0;
+			} else if (self.factor > 1) {
+				self.factor = 1;
+				schedulingTimeBase = (new Date()).getTime() - self.lastProcessedTick * self.msecsPerTick;
+			}
 			timeLast = timeNow;
 			drawFunc();
 		};
@@ -427,9 +449,7 @@ Game.prototype.handleMessage = function (msg) {
 			return;
 		}
 		this.lastTagReceived = msg[0];
-		if (this.acknowledgeAt <= 0) {
-			this.acknowledgeAt = (new Date()).getTime() + 100;
-		}
+		this.queueAcknowledgement();
 	}
 	// Message type switch
 	assert(typeof msg[1] == 'string', 'Game.handleMessage: message type is not a string');
@@ -440,7 +460,7 @@ Game.prototype.handleMessage = function (msg) {
 			// [3] is the properties of the command
 			var player = this.actorWithId(msg[2]);
 			assert(instanceOf(player, Player), 'Game.handleMessage: player of C must be a Player');
-			this.handleCommand(player, msg[3]);
+			this.commandQueues[0].push([player, msg[3]]);
 			break;
 		case 'tick':
 			// Tick permitted
@@ -471,14 +491,16 @@ Game.prototype.handleMessage = function (msg) {
 		case 'youAre':
 			// Set the local player
 			// [2] is the actor id of the local player
+			assert(!this.localPlayer, 'Game.handleMessage: local player is already set');
 			var player = this.actorWithId(msg[2]);
 			assert(instanceOf(player, Player), 'Game.handleMessage: player of youAre must be a Player');
 			this.setLocalPlayer(player);
 			break;
 		case 'hello':
 			// Server hello
-			// Send the last delivery tag received in response
-			this.notifyServer(['ack', this.lastTagReceived]);
+			// Send the last delivery tag received and last tick processed in
+			// response.
+			this.notifyServer(['ack', this.lastTagReceived, this.lastProcessedTick]);
 			break;
 		case 'error':
 			// Error
@@ -518,6 +540,13 @@ Game.prototype.notifyServer = function (msg) {
 			parts.push(JSON.stringify(msg[i]));
 		}
 		this.connection.send(parts.join(','));
+	}
+};
+
+// Send acknowledgement to server after at most 100 milliseconds
+Game.prototype.queueAcknowledgement = function () {
+	if (this.acknowledgeAt <= 0) {
+		this.acknowledgeAt = (new Date()).getTime() + 100;
 	}
 };
 

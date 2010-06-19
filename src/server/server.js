@@ -118,8 +118,18 @@ Game.prototype.endInitialState = function () {
 // Called by the server when requested
 Game.prototype.wake = function (now) {
 	// TODO: Is it necessary to try to prevent bunching here
-	this.wakeAt.setTime(now.getTime() + 1000);
+	this.wakeAt.setTime(now.getTime() + 200);
 	if (this.running) {
+		// Check that no player is lagging
+		// FIXME: Make the maximum lag amount configurable
+		// FIXME: Only restart when the lagging player has catched up fully
+		// FIXME: Let other players know about the lag
+		for (var id in this.players) {
+			if (this.players[id].lastProcessedTick < this.currentTick - 10) {
+				return;
+			}
+		}
+		// Nobody is lagging, so we are cleared to advance
 		this.deliverAll('"tick",' + this.currentTick++);
 		return;
 	}
@@ -145,6 +155,7 @@ function Player(opt /* game, id, actorId */) {
 	this.connection = null;
 	this.lastDeliveryTag = 0;
 	this.initialStateLastTag = -1;
+	this.lastProcessedTick = 0;
 	this.deliveryQueue = [];
 	this.connectionState = Player.CONNECTION_STATE.INITIAL;
 }
@@ -281,14 +292,23 @@ Player.prototype.handleMessage = function (msg) {
 					// FIXME: Tick has been processed successfully
 					break;
 				case 'ack':
-					// Message delivery acknowledgement. Parameters:
-					// tag: Delivery tag of the last message received
+					// Message delivery and tick processing acknowledgement.
+					// Parameters:
+					// [2]: Delivery tag of the last message received
+					// [3]: Tick number of the last tick processed
 					if (typeof payload[2] != 'number') {
 						this.notifyError('Invalid acknowledgement tag ' + (payload[2] || '!MISSING'));
 						break;
 					}
+					if (typeof payload[3] != 'number') {
+						this.notifyError('Invalid tick number ' + (payload[3] || '!MISSING'));
+						break;
+					}
 					while (this.deliveryQueue.length > 0 && this.deliveryQueue[0][0] <= payload[2]) {
 						this.deliveryQueue.shift();
+					}
+					if (this.lastProcessedTick < payload[3]) {
+						this.lastProcessedTick = payload[3];
 					}
 					break;
 				default:
@@ -398,7 +418,7 @@ setInterval(function () {
 			games[id].wake(now);
 		}
 	}
-}, 100);
+}, 10);
 
 // HTTP request handling
 //

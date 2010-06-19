@@ -25,7 +25,7 @@ SERVER> 1,"hello"
 # state. From the server's perspective initial game state is not much different from
 # backlogged messages.
 
-CLIENT> 1,"ack",0
+CLIENT> 1,"ack",0,0
 
 # The server tells the client which map to use
 
@@ -111,11 +111,12 @@ Server-to-client command broadcast
 
 CLIENT>
 
-"ack",tag(integer)
-Acknowledges the receipt of message(s). Parameter tag is the message tag of the last
-server message received, or 0 when no messages have been received yet. The client
-MUST send an "ack" message as the first message after having received the server
-hello.
+"ack",tag(integer),tick(integer)
+Acknowledges the receipt of message(s) and processing of tick(s). Parameter tag is
+the message tag of the last server message received, or 0 when no messages have been
+received yet. Parameter tick is the tick number of the last tick processed, or 0
+when no ticks have been processed yet. The client MUST send an "ack" message as the
+first message after having received the server hello.
 
 "mapReady"
 Notifies the server that the client has successfully loaded the map as instructed by

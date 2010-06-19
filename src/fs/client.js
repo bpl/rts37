@@ -235,7 +235,7 @@ function Connection(game, url) {
 
 Connection.INCOMING_LOG_FILTER = /^\d+,"tick",\d+$/;
 
-Connection.OUTGOING_LOG_FILTER = /^\d+,"ack",\d+/;
+Connection.OUTGOING_LOG_FILTER = /^\d+,"ack",\d+,\d+$/;
 
 Connection.prototype.setLogging = function (value) {
 	this.logging = value && typeof console != 'undefined';
