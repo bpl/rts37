@@ -244,7 +244,7 @@ function Game(isLocal) {
 	// Server communication
 	this.isLocal = isLocal;
 	this.lastTagReceived = 0;
-	this.msecsToAcknowledgement = 0;
+	this.acknowledgeAt = 0;
 	this.connection = null;
 	this.decoder = Activator.getDecoder(this);
 }
@@ -331,44 +331,70 @@ Game.prototype.actorWithId = function (id) {
 Game.prototype.resolveId = Game.prototype.actorWithId;
 
 Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
-	var timeLast = new Date(),   // The last time the screen was drawn
-		remainderMsecs = 0,      // Remaining msecs from the previous tick
-		self = this;
-	return function () {
-		var timeNow = new Date(),
-			elapsedMsecs = timeNow.getTime() - timeLast.getTime();
-		self.msecsSinceDrawn = elapsedMsecs;
-		// Send acknowledgement 100 msecs after receiving a message that has not
-		// been acknowledged yet.
-		if (self.msecsToAcknowledgement > 0) {
-			self.msecsToAcknowledgement -= elapsedMsecs;
-			if (self.msecsToAcknowledgement <= 0) {
-				self.msecsToAcknowledgement = 0;
-				self.notifyServer(['ack', self.lastTagReceived]);
+	if (this.isLocal) {
+		var timeLast = new Date(),   // The last time the screen was drawn
+			remainderMsecs = 0,      // Remaining msecs from the previous tick
+			self = this;
+		return function () {
+			var timeNow = new Date(),
+				elapsedMsecs = timeNow.getTime() - timeLast.getTime();
+			self.msecsSinceDrawn = elapsedMsecs;
+			// If the game has not started yet or has been paused, do not advance.
+			if (!self.running) {
+				elapsedMsecs = 0;
 			}
-		}
-		// If the game has not started yet or has been paused, do not advance.
-		if (!self.running) {
-			elapsedMsecs = 0;
-		}
-		elapsedMsecs += remainderMsecs;
-		while ((self.isLocal && elapsedMsecs >= self.msecsPerTick)
-				|| (!self.isLocal && self.lastPermittedTick > self.lastProcessedTick)) {
-			self.tick();
-			tickFunc();
-			elapsedMsecs -= self.msecsPerTick;
-			self.lastProcessedTick++;
-		}
-		if (!self.isLocal) {
-			// FIXME: Make this work
-			self.factor = 0;
-		} else {
+			elapsedMsecs += remainderMsecs;
+			while (elapsedMsecs >= self.msecsPerTick) {
+				self.tick();
+				tickFunc();
+				elapsedMsecs -= self.msecsPerTick;
+				self.lastProcessedTick++;
+			}
 			self.factor = 1 - elapsedMsecs / self.msecsPerTick;
 			remainderMsecs = elapsedMsecs;
-		}
-		timeLast = timeNow;
-		drawFunc();
-	};
+			timeLast = timeNow;
+			drawFunc();
+		};
+	} else {
+		var timeLast = new Date(),   // The last time the screen was drawn
+			remainderMsecs = 0,      // Remaining msecs from the previous tick
+			wasRunning = false,
+			self = this;
+		return function () {
+			var timeNow = new Date(),
+				elapsedMsecs = timeNow.getTime() - timeLast.getTime();
+			// Send acknowledgement 100 msecs after receiving a message that has not
+			// been acknowledged yet.
+			if (self.acknowledgeAt > 0 && self.acknowledgeAt <= timeNow.getTime()) {
+				self.acknowledgeAt = 0;
+				self.notifyServer(['ack', self.lastTagReceived]);
+			}
+			// If the game has not started yet or has been paused, do not advance.
+			if (!wasRunning || !self.running) {
+				self.msecsSinceDrawn = elapsedMsecs;
+				timeLast = timeNow;
+				if (self.running) {
+					wasRunning = true;
+				} else if (wasRunning) {
+					wasRunning = false;
+				}
+				drawFunc();
+				return;
+			}
+			self.msecsSinceDrawn = elapsedMsecs;
+			elapsedMsecs += remainderMsecs;
+			while (self.lastPermittedTick > self.lastProcessedTick) {
+				self.tick();
+				tickFunc();
+				elapsedMsecs -= self.msecsPerTick;
+				self.lastProcessedTick++;
+			}
+			// FIXME: Make this work
+			self.factor = 0;
+			timeLast = timeNow;
+			drawFunc();
+		};
+	}
 };
 
 // Decodes the specified message string and handles the individual messages contained there
@@ -401,8 +427,8 @@ Game.prototype.handleMessage = function (msg) {
 			return;
 		}
 		this.lastTagReceived = msg[0];
-		if (this.msecsToAcknowledgement <= 0) {
-			this.msecsToAcknowledgement = 100;
+		if (this.acknowledgeAt <= 0) {
+			this.acknowledgeAt = (new Date()).getTime() + 100;
 		}
 	}
 	// Message type switch
