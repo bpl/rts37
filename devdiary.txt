@@ -58,3 +58,18 @@ http://github.com/felixge/node-paperboy
 I might start using it at some point. However, writing my own crude
 implementation turned out to be useful, because I learned quite a bit about
 the Node.js file system API.
+
+----------
+2010-06-19
+----------
+
+The game loop is giving me trouble. I have hard time wrapping my head around
+exactly how I should do speed control to minimize both stuttering in case of
+dropped packets and latency during normal gameplay.
+
+Git infrastructure continues to impress me. As I'm not collaborating with
+anyone (yet, at least), I don't need the full power of GitHub, but setting up
+a remote backup of my repository was easy enough with Dropbox. All I needed to
+do was to follow these instructions:
+
+http://intranation.com/entries/2010/02/using-dropbox-git-repository/
