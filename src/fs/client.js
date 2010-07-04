@@ -281,13 +281,21 @@ function initGame(isLocal) {
 		}),
 		10
 	);
+	function normalizedOffset(evt) {
+		return [
+			evt.clientX - canvas.offsetLeft + document.body.scrollLeft,
+			evt.clientY - canvas.offsetTop + document.body.scrollTop
+		];
+	}
 	canvas.addEventListener('click', function (evt) {
 		evt.preventDefault();
-		viewport.handleClick(evt.clientX - canvas.offsetLeft, evt.clientY - canvas.offsetTop);
+		var offset = normalizedOffset(evt);
+		viewport.handleClick(offset[0], offset[1]);
 	}, false);
 	canvas.addEventListener('mousemove', function (evt) {
 		evt.preventDefault();
-		viewport.handleMouseMove(evt.clientX - canvas.offsetLeft, evt.clientY - canvas.offsetTop);
+		var offset = normalizedOffset(evt);
+		viewport.handleMouseMove(offset[0], offset[1]);
 	}, false);
 	document.addEventListener('keypress', function (evt) {
 		evt.preventDefault();
