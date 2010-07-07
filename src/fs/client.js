@@ -341,6 +341,5 @@ function initGame(isLocal) {
 		var connection = new Connection(game, 'ws://localhost:8000/?game=A&player=p1');
 		connection.setLogging(true);
 		game.setConnection(connection);
-		// FIXME: Load initial game state from the server
 	}
 }

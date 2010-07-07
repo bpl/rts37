@@ -288,9 +288,6 @@ Player.prototype.handleMessage = function (msg) {
 				case 'bail':
 					// FIXME: Gracefully exit the game
 					break;
-				case 'tickReady':
-					// FIXME: Tick has been processed successfully
-					break;
 				case 'ack':
 					// Message delivery and tick processing acknowledgement.
 					// Parameters:

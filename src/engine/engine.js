@@ -520,7 +520,6 @@ Game.prototype.issueCommand = function (cmd) {
 	if (this.isLocal) {
 		this.handleCommand(this.localPlayer, cmd);
 	} else {
-		// FIXME: Send to all players as a message
 		this.connection.send('2' + JSON.stringify(cmd));
 	}
 };

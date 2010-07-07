@@ -46,7 +46,6 @@ Activator.getType = function (typeName) {
 };
 
 Activator.getDecoder = function (resolver) {
-	// FIXME: reso = resolver? Is it needed?
 	return function decode(key, value) {
 		switch (typeof value) {
 			case 'string':

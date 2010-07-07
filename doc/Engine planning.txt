@@ -126,6 +126,3 @@ the server.
 Notifies the server that the client has successfully loaded "done" number of game
 assets out of "known" number of game assets the server has instructed the client to
 load so far.
-
-"TC",tick(integer)
-Notifies the client that a tick has been successfully processed.
