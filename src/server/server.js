@@ -48,11 +48,20 @@ var options = {
 /////////
 
 function Game(opt /* id, playerIds */) {
+	//
 	// Properties with static default values
+	//
 	this.currentTick = 0;
 	this.running = false;
 	this.wakeAt = new Date(0);
+	// The number of assets that the players have been asked to load
+	this.assetsSent = 0;
+	// Do we know everything that comprises the initial game state (essentially
+	// object creation and asset loading messages)
+	this.initialStateKnown = false;
+	//
 	// Properties that depend on game options
+	//
 	assert(typeof opt.id == 'string', 'Game: id is not a string');
 	assert(opt.playerIds instanceof Array, 'Game: playerIds is not an array');
 	assert(opt.playerIds.length > 0, 'Game: playerIds is empty');
@@ -82,14 +91,24 @@ Game.prototype.deliverAll = function (msg) {
 	}
 };
 
-// Guaranteed delivery of message to all players, including players who have not
-// joined yet.
+// Guaranteed delivery of a message or a set of messages to all players,
+// including players who have not joined yet. Messages with the type of
+// 'loadAsset' are special-cased, incrementing the assets sent counter. This
+// function accepts three sets of parameters:
+// - (array), where the items of the array make up the message, with array[0]
+//   being the type of the message.
+// - (string, array), where string is the type of the messages to be sent and
+//   array contains the other parameters for each of the message (i.e. array
+//   contains multiple messages).
+// - (string, object), where string is the type of the message and object is
+//   the first parameter of the message.
 Game.prototype.deliverInitialState = function (kind, msg) {
 	if (Array.isArray(kind) && typeof msg == 'undefined') {
 		var parts = [];
 		for (var i = 0; i < kind.length; ++i) {
 			parts.push(JSON.stringify(kind[i]));
 		}
+		kind = kind[0];
 		msg = parts.join(',');
 	} else if (typeof msg == 'object') {
 		if (Array.isArray(msg)) {
@@ -100,8 +119,11 @@ Game.prototype.deliverInitialState = function (kind, msg) {
 		} else {
 			msg = '"' + kind + '",' + JSON.stringify(msg);
 		}
-	} else if (typeof msg != 'string') {
-		throw new Error('Game.deliverInitialState: msg is of unexpected type');
+	} else {
+		assert(false, 'Game.deliverInitialState: unexpected parameter');
+	}
+	if (kind == 'loadAsset') {
+		this.assetsSent++;
 	}
 	for (var id in this.players) {
 		this.players[id].deliver(msg);
@@ -110,6 +132,8 @@ Game.prototype.deliverInitialState = function (kind, msg) {
 
 // Indicates that all initial game state has been queued for sending
 Game.prototype.endInitialState = function () {
+	assert(!this.initialStateKnown, 'Game.endInitialState: initial state is already marked as known');
+	this.initialStateKnown = true;
 	for (var id in this.players) {
 		this.players[id].endInitialState();
 	}
@@ -134,10 +158,11 @@ Game.prototype.wake = function (now) {
 		return;
 	}
 	// Start the game when all players have received the initial state
-	// FIXME: Should also wait until all assets have been loaded
-	for (var id in this.players) {
-		if (!this.players[id].initialStateAcknowledged()) {
-			return;
+	if (this.initialStateKnown) {
+		for (var id in this.players) {
+			if (!this.players[id].initialStateComplete()) {
+				return;
+			}
 		}
 	}
 	// FIXME: Do this also if one of the players has failed to appear
@@ -155,6 +180,7 @@ function Player(opt /* game, id, actorId */) {
 	this.connection = null;
 	this.lastDeliveryTag = 0;
 	this.initialStateLastTag = -1;
+	this.assetsLoaded = 0;
 	this.lastProcessedTick = 0;
 	this.deliveryQueue = [];
 	this.connectionState = Player.CONNECTION_STATE.INITIAL;
@@ -178,10 +204,12 @@ Player.prototype.endInitialState = function () {
 	this.initialStateLastTag = this.lastDeliveryTag;
 };
 
-// Has the initial state been sent and acknowledged
-Player.prototype.initialStateAcknowledged = function () {
-	return this.initialStateLastTag >= 0 && (this.deliveryQueue.length <= 0 ||
-			this.deliveryQueue[0][0] > this.initialStateLastTag);
+// Returns true if the initial state been sent and acknowledged, and have all
+// the assets requested by the server have been loaded.
+Player.prototype.initialStateComplete = function () {
+	return this.initialStateLastTag >= 0 &&
+			(this.deliveryQueue.length <= 0 || this.deliveryQueue[0][0] > this.initialStateLastTag) &&
+			(this.game.assetsSent <= this.assetsLoaded);
 };
 
 // Non-guaranteed delivery of message to the player
@@ -306,6 +334,28 @@ Player.prototype.handleMessage = function (msg) {
 					}
 					if (this.lastProcessedTick < payload[3]) {
 						this.lastProcessedTick = payload[3];
+					}
+					break;
+				case 'assetReady':
+					// Acknowledgement that some assets have finished loading.
+					// Parameters:
+					// [2]: The number of assets that have finished loading
+					// [3]: Total number of assets the client knows it needs
+					if (typeof payload[2] != 'number') {
+						this.notifyError('Invalid number of loaded assets ' + (payload[2] || '!MISSING'));
+						break;
+					}
+					if (typeof payload[3] != 'number') {
+						this.notifyError('Invalid number of known assets ' + (payload[3] || '!MISSING'));
+						break;
+					}
+					if (this.assetsLoaded < payload[2]) {
+						this.assetsLoaded = payload[2];
+					} else if (this.assetsLoaded > payload[2]) {
+						this.notifyError('The client is notifying about assets it has already notified about, ' + payload[2] + ' vs. ' + this.assetsLoaded);
+					}
+					if (this.game.assetsSend > payload[3]) {
+						this.notifyError('The client knows too many assets ' + payload[3] + ' vs. ' + this.game.assetsSent);
 					}
 					break;
 				default:
