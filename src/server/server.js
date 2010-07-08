@@ -84,11 +84,23 @@ Game.prototype.getPlayer = function (id) {
 	return null;
 };
 
-// Guaranteed delivery of message to all players
-Game.prototype.deliverAll = function (msg) {
+// Guaranteed delivery of a message to all players. This version of this
+// function accepts a single parameter, containing the message as a
+// JSON-formatted string.
+Game.prototype.deliverAllRaw = function (msg) {
 	for (var id in this.players) {
-		this.players[id].deliver(msg);
+		this.players[id].deliverRaw(msg);
 	}
+};
+
+// Guaranteed delivery of a message to all players. This version of this
+// function accepts the parts of the message as arguments.
+Game.prototype.deliverAll = function () {
+	var parts = [];
+	for (var i = 0; i < arguments.length; ++i) {
+		parts.push(JSON.stringify(arguments[i]));
+	}
+	this.deliverAllRaw(parts.join(','));
 };
 
 // Guaranteed delivery of a message or a set of messages to all players,
@@ -126,7 +138,16 @@ Game.prototype.deliverInitialState = function (kind, msg) {
 		this.assetsSent++;
 	}
 	for (var id in this.players) {
-		this.players[id].deliver(msg);
+		this.players[id].deliverRaw(msg);
+	}
+};
+
+// Lets every player know what the actor id of their Player object is. This must
+// be called exactly once, after all the player objects have been queued for
+// delivery to the players.
+Game.prototype.deliverWhoIsWho = function () {
+	for (var id in this.players) {
+		this.players[id].deliver('youAre', this.players[id].actorId);
 	}
 };
 
@@ -154,7 +175,7 @@ Game.prototype.wake = function (now) {
 			}
 		}
 		// Nobody is lagging, so we are cleared to advance
-		this.deliverAll('"tick",' + this.currentTick++);
+		this.deliverAll('tick', this.currentTick++);
 		return;
 	}
 	// Start the game when all players have received the initial state
@@ -212,25 +233,29 @@ Player.prototype.initialStateComplete = function () {
 			(this.game.assetsSent <= this.assetsLoaded);
 };
 
-// Non-guaranteed delivery of message to the player
-Player.notify = function (connection, msg) {
+// Non-guaranteed delivery of a message to the player. The first argument is the
+// connection the notification is to be sent to. The rest of the arguments
+// make up the parts of the message. Implemented as a class function because we
+// want to be able to send notifications connections with whom we have not
+// associated a Player object.
+Player.notify = function (connection) {
 	// FIXME: Better check for the vitality of the connection (if possible)
 	if (connection) {
-		connection.write('0,' + msg);
+		// 0 = delivery tag indicating a notification
+		var parts = [0];
+		for (var i = 1; i < arguments.length; ++i) {
+			parts.push(JSON.stringify(arguments[i]));
+		}
+		connection.write(parts.join(','));
 	}
 };
 
-// Non-guaranteed delivery of message to the player
-Player.prototype.notify = function (msg) {
-	// FIXME: Better check for the vitality of the connection (if possible)
-	Player.notify(this.connection, msg);
-};
-
-// Guaranteed delivery of message to this player. Each message gets a delivery tag,
-// a monotonically incrementing integer. The client will periodically echo the most
-// recent tag received back to the server, so that the server knows which messages
-// are safe to discard from the queue.
-Player.prototype.deliver = function (msg) {
+// Guaranteed delivery of a message to this player, with the message given as a
+// single string containing JSON notation fragment. Each message gets a delivery
+// tag, a monotonically incrementing integer. The client will periodically echo
+// the most recent tag received back to the server, so that the server knows
+// which messages are safe to discard from the queue.
+Player.prototype.deliverRaw = function (msg) {
 	var deliveryTag = ++this.lastDeliveryTag;
 	this.deliveryQueue.push([deliveryTag, msg]);
 	// FIXME: Better check for the vitality of the connection (if possible)
@@ -239,9 +264,20 @@ Player.prototype.deliver = function (msg) {
 	}
 };
 
+// Guaranteed delivery of a message to this player, with the parts of the
+// message given as parameters. The parameters will be converted into JSON
+// format. See Game.deliverAll for more information.
+Player.prototype.deliver = function () {
+	var parts = [];
+	for (var i = 0; i < arguments.length; ++i) {
+		parts.push(JSON.stringify(arguments[i]));
+	}
+	this.deliverRaw(parts.join(','));
+};
+
 // Let the player know that there is a problem
 Player.notifyError = function (connection, text) {
-	this.notify(connection, '"error",' + JSON.stringify({'msg': text}));
+	this.notify(connection, 'error', {'msg': text});
 };
 
 // Let the player know that there is a problem
@@ -251,13 +287,13 @@ Player.prototype.notifyError = function (text) {
 
 // Let the player know that there is a problem (with guaranteed delivery)
 Player.prototype.deliverError = function (text) {
-	this.deliver('"error",' + JSON.stringify({'msg': text}));
+	this.deliver('error', {'msg': text});
 };
 
 // Send the server hello to the player
 Player.prototype.serverHello = function () {
 	this.connectionState = Player.CONNECTION_STATE.HELLO_SENT;
-	this.notify('"hello"');
+	Player.notify(this.connection, 'hello');
 };
 
 // Handle a message received from the player
@@ -367,7 +403,7 @@ Player.prototype.handleMessage = function (msg) {
 			// Player to player broadcast
 			// The server should forward the rest of the message to all players
 			// FIXME: Proper escaping for id
-			this.game.deliverAll('"C",' + this.actorId + ',' + msg.substr(1));
+			this.game.deliverAllRaw('"C",' + this.actorId + ',' + msg.substr(1));
 			break;
 		default:
 			// Unknown message format
@@ -427,7 +463,7 @@ server.addListener('connection', function (conn) {
 			{'$type': 'Ship', 'id': 4, 'player': {'$id': 1}, 'x': 200 << 10, 'y': 100 << 10},
 			{'$type': 'AIShip', 'id': 5, 'player': {'$id': 2}, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
 		]);
-		game.deliverInitialState(['youAre', 1]);
+		game.deliverWhoIsWho();
 		game.endInitialState();
 	}
 	
