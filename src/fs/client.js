@@ -248,7 +248,9 @@ Connection.prototype.handleMessage = function (evt) {
 	if (this.logging && !evt.data.match(Connection.INCOMING_LOG_FILTER)) {
 		console.info('Received: ' + evt.data);
 	}
-	this.game.handleMessageString(evt.data);
+	if (evt.data) {
+		this.game.handleMessageString(evt.data);
+	}
 };
 
 Connection.prototype.send = function (data) {
@@ -267,9 +269,9 @@ function initGame(isLocal) {
 	splash.parentNode.removeChild(splash);
 	var canvas = document.getElementById('screen');
 	assert(canvas, 'initGame: canvas not found');
-	var game = new MyGame(isLocal);
-	var uiContext = new UIContext(game);
-	var viewport = new Viewport(game, canvas, uiContext);
+	var game = new MyGame(isLocal),
+		uiContext = new UIContext(game),
+		viewport = new Viewport(game, canvas, uiContext);
 	game.setTicksPerSecond(5);
 	window.setInterval(game.getGameLoop(
 		function () {
@@ -306,40 +308,128 @@ function initGame(isLocal) {
 			viewport.handleKeyPress(String.fromCharCode(code));
 		}
 	}, false);
-	if (isLocal) {
-		// Set up a test enviroment
-		var humanPlayer = game.createActor(Commander, {
-			'id': game.nextId(),
-			'playerId': 'p1',
-			'color': '#ff0000'
-		});
-		game.handleMessage([0, 'youAre', humanPlayer.id]);
-		var dummyPlayer = game.createActor(Commander, {
-			'id': game.nextId(),
-			'playerId': 'p2',
-			'color': '#0000ff'
-		});
-		game.createActor(Ship, {
-			'id': game.nextId(),
-			'player': humanPlayer,
-			'x': 100 << 10, 'y': 100 << 10
-		});
-		game.createActor(Ship, {
-			'id': game.nextId(),
-			'player': humanPlayer,
-			'x': 200 << 10, 'y': 100 << 10
-		});
-		game.createActor(AIShip, {
-			'id': game.nextId(),
-			'player': dummyPlayer,
-			'x': 200 << 10, 'y': 200 << 10,
-			'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]
-		});
-		game.setRunning(true);
-	} else {
-		// Connect to server
-		var connection = new Connection(game, 'ws://localhost:8000/?game=A&player=p1');
-		connection.setLogging(true);
-		game.setConnection(connection);
-	}
+	return game;
 }
+
+function createRemoteGame() {
+	var state = document.getElementById('f-create-state').value,
+		gameId = document.getElementById('f-create-gameId').value,
+		playerId = document.getElementById('f-create-playerId').value,
+		game = initGame(false),
+		connection = new Connection(game, 'ws://localhost:8000/?game=' + escape(gameId) + '&player=' + escape(playerId) + '&state=' + escape(state));
+	connection.setLogging(true);
+	game.setConnection(connection);
+}
+
+function joinRemoteGame() {
+	var gameId = document.getElementById('f-join-gameId').value,
+		playerId = document.getElementById('f-join-playerId').value,
+		game = initGame(false),
+		connection = new Connection(game, 'ws://localhost:8000/?game=' + escape(gameId) + '&player=' + escape(playerId));
+	connection.setLogging(true);
+	game.setConnection(connection);
+}
+
+function localGame() {
+	var state = document.getElementById('f-local-state').value,
+		playerId = document.getElementById('f-local-playerId').value;
+	try {
+		state = stateSpecToArray(state);
+	} catch (e) {
+		alert('Parse error in initial game state. Check console for details.');
+		throw e;
+	}
+	var game = initGame(true);
+	for (var i = 0; i < state.length; ++i) {
+		var msg = state[i],
+			parts = ['0'];
+		for (var j = 0; j < msg.length; ++j) {
+			parts.push(JSON.stringify(msg[j]));
+		}
+		game.handleMessageString(parts.join(','));
+	}
+	var player = game.playerWithPlayerId(playerId);
+	if (!player) {
+		alert('Incorrect player ID');
+		return;
+	}
+	game.handleMessage([0, 'youAre', player.id]);
+	game.setRunning(true);
+}
+
+//////////////////////////////
+// User interface controls //
+////////////////////////////
+
+window.addEventListener('load', function () {
+	function hasClass(elm, className) {
+		var parts = elm.className.split(' ');
+		for (var i = 0; i < parts.length; ++i) {
+			if (parts[i] == className) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	function addClass(elm, className) {
+		var parts = elm.className.split(' ');
+		for (var i = 0; i < parts.length; ++i) {
+			if (parts[i] == className) {
+				return;
+			}
+		}
+		parts.push(className);
+		elm.className = parts.join(' ');
+	}
+	
+	function removeClass(elm, className) {
+		var parts = elm.className.split(' ');
+		for (var i = 0; i < parts.length; ++i) {
+			if (parts[i] == className) {
+				parts.splice(i, 1);
+				elm.className = parts.join(' ');
+				return;
+			}
+		}
+	}
+
+	function getParentWithClassName(elm, className) {
+		while (elm) {
+			if (hasClass(elm, className)) {
+				return elm;
+			}
+			elm = elm.parentNode;
+		}
+		return null;
+	}
+	
+	var splash = document.getElementById('splash');
+	
+	splash.addEventListener('click', function (evt) {
+		if (evt.target.tagName.toLowerCase() == 'a') {
+			var parentList = getParentWithClassName(evt.target, 'tabs');
+			if (!parentList) {
+				return;
+			}
+			evt.preventDefault();
+			if (hasClass(evt.target, 'selected')) {
+				return;
+			}
+			var tabs = parentList.getElementsByTagName('li');
+			for (var i = 0; i < tabs.length; ++i) {
+				var tab = tabs[i],
+					sheet = document.getElementById(tab.firstChild.href.match(/#(.*)$/)[1]);
+				if (sheet) {
+					if (tab.firstChild == evt.target) {
+						addClass(tab, 'selected');
+						removeClass(sheet, 'hidden');
+					} else {
+						removeClass(tab, 'selected');
+						addClass(sheet, 'hidden');
+					}
+				}
+			}
+		}
+	});
+});

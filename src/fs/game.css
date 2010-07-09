@@ -3,16 +3,23 @@ html, body {
 	padding : 0;
 }
 
+.hidden { display : none; }
+
+#splash {
+	font-family : "Lucida Grande", "Droid Sans", Verdana, sans-serif;
+	font-size : 14px;
+}
+
 #splash {
 	position : absolute;
 	left : 50%;
 	top : 50%;
 	width : 500px;
-	height : 250px;
-	margin-left : -290px;
-	margin-top : -165px;
-	padding : 20px;
 	background : rgba(0, 0, 0, 0.8);
+	color : #eee;
+	margin-left : -290px;
+	margin-top : -180px;
+	padding : 20px;
 	-webkit-border-radius : 20px;
 	-webkit-box-shadow : rgba(0, 0, 0, 0.7) 0 10px 45px;
 }
@@ -37,4 +44,39 @@ button:active {
 	background : -webkit-gradient(linear, left top, left bottom, from(#036), to(#9cf));
 	border : 1px solid #69c;
 	text-shadow : #9cf 0 0 3px;
+}
+
+.tabs {
+	list-style : none;
+	margin : 0;
+	padding : 0;
+}
+
+.tabs > li {
+	display : inline-block;
+}
+
+.tabs > li > a {
+	display : inline-block;
+	color : #eee;
+	background : #333;
+	margin-bottom : -1px;
+	padding : 5px 10px 5px 10px;
+	border : 1px solid #777;
+	text-decoration : none;
+}
+
+.tabs > li.selected > a {
+	background : -webkit-gradient(linear, left top, left bottom, from(#666), to(#333));
+	border-bottom : 1px solid #333;
+}
+
+.tabs > li:not(.selected) > a:hover {
+	text-shadow : #9cf 0 0 3px;
+}
+
+.sheet {
+	background : #333;
+	padding : 5px 10px 5px 10px;
+	border : 1px solid #777;
 }

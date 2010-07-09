@@ -8,7 +8,8 @@ var sys = require('sys'),
 	http = require('http'),
 	ws = require('./lib/ws'),
 	util = require('./serverutil'),
-	assert = require('../engine/util').assert;
+	eutil = require('../engine/util'),
+	assert = eutil.assert;
 
 var options = {
 	// The TCP port this server will listen to
@@ -103,42 +104,19 @@ Game.prototype.deliverAll = function () {
 	this.deliverAllRaw(parts.join(','));
 };
 
-// Guaranteed delivery of a message or a set of messages to all players,
-// including players who have not joined yet. Messages with the type of
-// 'loadAsset' are special-cased, incrementing the assets sent counter. This
-// function accepts three sets of parameters:
-// - (array), where the items of the array make up the message, with array[0]
-//   being the type of the message.
-// - (string, array), where string is the type of the messages to be sent and
-//   array contains the other parameters for each of the message (i.e. array
-//   contains multiple messages).
-// - (string, object), where string is the type of the message and object is
-//   the first parameter of the message.
-Game.prototype.deliverInitialState = function (kind, msg) {
-	if (Array.isArray(kind) && typeof msg == 'undefined') {
-		var parts = [];
-		for (var i = 0; i < kind.length; ++i) {
-			parts.push(JSON.stringify(kind[i]));
+// Guaranteed delivery of a set of messages to all players, including players
+// who have not joined yet. Messages with the type of 'loadAsset' are
+// special-cased, incrementing the assets sent counter.
+Game.prototype.deliverInitialState = function (msgs) {
+	for (var i = 0; i < msgs.length; ++i) {
+		var msg = msgs[i];
+		if (msg[0] == 'loadAsset') {
+			this.assetsSent++;
 		}
-		kind = kind[0];
-		msg = parts.join(',');
-	} else if (typeof msg == 'object') {
-		if (Array.isArray(msg)) {
-			for (var i = 0; i < msg.length; ++i) {
-				this.deliverInitialState(kind, msg[i]);
-			}
-			return;
-		} else {
-			msg = '"' + kind + '",' + JSON.stringify(msg);
+		for (var id in this.players) {
+			var player = this.players[id];
+			player.deliver.apply(player, msg);
 		}
-	} else {
-		assert(false, 'Game.deliverInitialState: unexpected parameter');
-	}
-	if (kind == 'loadAsset') {
-		this.assetsSent++;
-	}
-	for (var id in this.players) {
-		this.players[id].deliverRaw(msg);
 	}
 };
 
@@ -440,8 +418,9 @@ server.addListener('connection', function (conn) {
 	// FIXME: Access to a private member, not good but currently required to gain
 	// access to the query string.
 	var requestUrl = url.parse(conn._req.url, true),
-		gameId = (requestUrl.query || [])['game'] || '',
-		playerId = (requestUrl.query || [])['player'] || '',
+		gameId = (requestUrl.query || {})['game'] || '',
+		playerId = (requestUrl.query || {})['player'] || '',
+		state = (requestUrl.query || {})['state'] || '',
 		requestUrl = null;
 		
 	// FIXME: Fire a request to validate gameId and playerId. For now we'll just
@@ -449,20 +428,28 @@ server.addListener('connection', function (conn) {
 	if (games.hasOwnProperty(gameId)) {
 		var game = games[gameId];
 	} else {
+		// FIXME: The game state should be valided somehow and it probably
+		// should be loaded from somewhere. For now we'll just use the game
+		// state sent by the client.
+		if (!state) {
+			Player.notifyError(conn, 'No initial game state specified');
+			conn.close();
+			return;
+		}
+		try {
+			state = eutil.stateSpecToArray(state);
+		} catch (e) {
+			Player.notifyError(conn, 'Error was encountered while parsing the initial game state: ' + sys.inspect(e));
+			conn.close();
+			return;
+		}
 		// FIXME: Hard-coded game options
 		var game = new Game({
 			'id': gameId,
 			'playerIds': ['p1']
 		});
 		games[gameId] = game;
-		// FIXME: Hard-coded initial game state
-		game.deliverInitialState('AC', [
-			{'$type': 'Commander', 'id': 1, 'playerId': 'p1', 'color': '#ff0000'},
-			{'$type': 'Commander', 'id': 2, 'playerId': 'p2', 'color': '#0000ff'},
-			{'$type': 'Ship', 'id': 3, 'player': {'$id': 1}, 'x': 100 << 10, 'y': 100 << 10},
-			{'$type': 'Ship', 'id': 4, 'player': {'$id': 1}, 'x': 200 << 10, 'y': 100 << 10},
-			{'$type': 'AIShip', 'id': 5, 'player': {'$id': 2}, 'x': 200 << 10, 'y': 200 << 10, 'waypoints': [[100 << 10, 500 << 10], [700 << 10, 550 << 10]]}
-		]);
+		game.deliverInitialState(state);
 		game.deliverWhoIsWho();
 		game.endInitialState();
 	}

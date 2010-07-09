@@ -333,6 +333,18 @@ Game.prototype.actorWithId = function (id) {
 
 Game.prototype.resolveId = Game.prototype.actorWithId;
 
+Game.prototype.playerWithPlayerId = function (playerId) {
+	for (var i = 0; i < this.actors.length; ++i) {
+		var actor = this.actors[i];
+		if (instanceOf(actor, Player)) {
+			if (actor.playerId == playerId) {
+				return actor;
+			}
+		}
+	}
+	return null;
+};
+
 Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
 	if (this.isLocal) {
 		var timeLast = new Date(),   // The last time the screen was drawn
