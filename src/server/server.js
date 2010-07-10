@@ -414,7 +414,7 @@ server.addListener('listening', function () {
 
 // WebSocket request handling
 server.addListener('connection', function (conn) {
-	sys.log('<' + conn._id + '> connected');
+	sys.log('<' + conn.id + '> connected');
 	// FIXME: Access to a private member, not good but currently required to gain
 	// access to the query string.
 	var requestUrl = url.parse(conn._req.url, true),
@@ -466,10 +466,10 @@ server.addListener('connection', function (conn) {
 	player.setConnection(conn);
 	player.serverHello();
 		
-	sys.log('<' + conn._id + '> logged in to game ' + game.id + ' as player ' + player.id);
+	sys.log('<' + conn.id + '> logged in to game ' + game.id + ' as player ' + player.id);
 	
 	conn.addListener('close', function () {
-		sys.log('<' + conn._id + '> disconnected');
+		sys.log('<' + conn.id + '> disconnected');
 		if (player.connection == conn) {
 			player.setConnection(null);
 		}
