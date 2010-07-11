@@ -280,6 +280,13 @@ function initGame(isLocal) {
 		function () {
 			uiContext.update();
 			viewport.draw();
+			// Draw data
+			var ctx = canvas.getContext('2d');
+			ctx.fillStyle = '#fff';
+			ctx.fillText(
+				'permitted ' + game.lastPermittedTick + ', processed ' + game.lastProcessedTick,
+				10, 10
+			);
 		}),
 		10
 	);
