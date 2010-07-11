@@ -27,6 +27,17 @@ function stateSpecToArray(state) {
 	return result;
 }
 
+// Converts a number to string and pads it to three digits
+function padToThree(value) {
+	if (value < 10) {
+		return '00' + value;
+	} else if (value < 100) {
+		return '0' + value;
+	} else {
+		return value.toString();
+	}
+}
+
 ///////////////////////
 // AssertionFailure //
 /////////////////////
@@ -48,5 +59,6 @@ if (typeof exports != 'undefined') {
 	exports.assert = assert;
 	exports.splitLines = splitLines;
 	exports.stateSpecToArray = stateSpecToArray;
+	exports.padToThree = padToThree;
 	exports.AssertionFailure = AssertionFailure;
 }

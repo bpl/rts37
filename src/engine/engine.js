@@ -141,7 +141,10 @@ function CollisionContext(game) {
 	this.lowSentinel = new CollisionBound(-Infinity, 0, 0, true, null);
 	this.highSentinel = new CollisionBound(Infinity, 0, 0, false, null);
 	this.highSentinel.addAfter(this.lowSentinel);
-	game.addManager(this);
+	var self = this;
+	game.onTick.register(function () {
+		self.tick();
+	});
 }
 
 CollisionContext.prototype.getLowBound = function (actor, radius) {
@@ -215,33 +218,67 @@ CollisionContext.prototype.tick = function () {
 	}
 };
 
+////////////
+// Event //
+//////////
+
+function Event() {
+	this.handlers = [];
+}
+
+// Registers an event handler to this event. This function specified in the
+// first argument is the handler to be called.
+Event.prototype.register = function (func) {
+	this.handlers.push(func);
+};
+
+Event.prototype.emit = function () {
+	for (var i = 0; i < this.handlers.length; ++i) {
+		this.handlers[i]();
+	}
+};
+
 ///////////
 // Game //
 /////////
 
 function Game(isLocal) {
 	this.localPlayer = null;
-	this.managers = [];
+	//
 	// Actor handling
+	//
 	this.actors = [];
 	this.additionQueue = [];
 	this.deletionQueue = [];
 	this.actorByIdHash = {};
 	// FIXME: Use some other method to create unique IDs
 	this.previousId = 10000;
-	// Interpolation factor. Value 0 means that the frame that is being rendered or that
-	// has been rendered reflects the current simulation state. Value -1 means that the frame
-	// that is being rendered or has been rendered reflects the previous simulation state.
-	this.factor = 0;
+	//
 	// Pacing information
+	//
+	// Interpolation factor. Value 0 means that the frame that is being rendered
+	// or that has been rendered reflects the current simulation state. Value -1
+	// means that the frame that is being rendered or has been rendered reflects
+	// the previous simulation state.
+	this.factor = 0;
+	// Should the game be running, according to the server or the user
 	this.running = false;
+	// Is the game really running (it might not be, even if it should, if
+	// somebody is lagging).
+	this.reallyRunning = false;
 	this.lastProcessedTick = 0;
 	this.lastPermittedTick = 0;
 	this.ticksPerSecond = 0;
 	this.msecsPerTick = 0;
+	// How far into the current tick we are
+	this.msecsSinceTick = 0;
 	this.msecsSinceDrawn = 0;
+	this.lastConsideredTick = 0;
+	this.lastDrawn = 0;
 	this.setTicksPerSecond(30);
+	//
 	// Server communication
+	//
 	this.isLocal = isLocal;
 	this.lastTagReceived = 0;
 	// The last item is an array (queue) of commands to process at the next tick.
@@ -250,6 +287,13 @@ function Game(isLocal) {
 	this.acknowledgeAt = 0;
 	this.connection = null;
 	this.decoder = Activator.getDecoder(this);
+	//
+	// Events
+	//
+	// Emitted after a tick has been processed
+	this.onTick = new Event();
+	// Emitted when a frame should be drawn
+	this.onDraw = new Event();
 }
 
 Game.prototype.setLocalPlayer = function (player) {
@@ -262,10 +306,6 @@ Game.prototype.setConnection = function (connection) {
 	this.connection = connection;
 };
 
-Game.prototype.addManager = function (manager) {
-	this.managers.push(manager);
-};
-
 Game.prototype.setTicksPerSecond = function (value) {
 	this.ticksPerSecond = value;
 	this.msecsPerTick = 1000 / value;
@@ -273,6 +313,9 @@ Game.prototype.setTicksPerSecond = function (value) {
 
 Game.prototype.setRunning = function (value) {
 	this.running = value;
+	if (!value) {
+		this.reallyRunning = false;
+	}
 };
 
 Game.prototype.tick = function () {
@@ -282,14 +325,12 @@ Game.prototype.tick = function () {
 	for (var i = 0; i < this.actors.length; ++i) {
 		this.actors[i].tick();
 	}
-	for (var i = 0; i < this.managers.length; ++i) {
-		this.managers[i].tick();
-	}
 	while (this.deletionQueue.length > 0) {
 		var actor = this.deletionQueue.shift();
 		this.actors.splice(this.actors.indexOf(actor), 1);
 		actor.afterRemove();
 	}
+	this.onTick.emit();
 };
 
 Game.prototype.nextId = function () {
@@ -345,77 +386,76 @@ Game.prototype.playerWithPlayerId = function (playerId) {
 	return null;
 };
 
-Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
+// The main game loop. This should be called repeatedly from a timer.
+Game.prototype.process = function () {
 	// FIXME: Handle client lagging behind the server
 	// FIXME: Soft adjustment for situations where the client has a tendency to
 	// speed past the server.
-	var self = this;
-	// How much into the current tick we are
-	var sinceTickMsecs = 0;
-	var timeLast = 0;
-	var lastDrawn = new Date();
-	var loopRunning = false;
-	return function () {
-		// Acknowledgement handling. Send acknowledgement 100 msecs after
-		// receiving a message that has not been acknowledgement yet, and after
-		// processing a new tick.
-		if (!self.isLocal) {
-			if (self.acknowledgeAt > 0 && self.acknowledgeAt <= (new Date()).getTime()) {
-				self.acknowledgeAt = 0;
-				self.notifyServer(['ack', self.lastTagReceived, self.lastProcessedTick]);
-			}
+	// FIXME: If this is a local game and we have been paused for a really long
+	// time (over a second or so), don't do any catch-up.
+	//
+	// Acknowledgement handling. Send acknowledgement 100 msecs after receiving
+	// a message that has not been acknowledgement yet, and after processing a
+	// new tick.
+	if (!this.isLocal) {
+		if (this.acknowledgeAt > 0 && this.acknowledgeAt <= (new Date()).getTime()) {
+			this.acknowledgeAt = 0;
+			this.notifyServer(['ack', this.lastTagReceived, this.lastProcessedTick]);
 		}
-		// If the game loop is not running, check if we can start or resume it
-		if (!loopRunning) {
-			if (self.running && (self.isLocal || self.lastPermittedTick > self.lastProcessedTick)) {
-				timeLast = new Date();
-				sinceTickMsecs = 0;
-				loopRunning = true;
-			}
+	}
+	// If the game loop is not running, check if we can start or resume it
+	if (!this.reallyRunning) {
+		if (this.running && (this.isLocal || this.lastPermittedTick > this.lastProcessedTick)) {
+			this.lastConsideredTick = new Date();
+			this.msecsSinceTick = 0;
+			this.reallyRunning = true;
 		}
-		// If the game loop is running, check if the projected time for the next
-		// tick has elapsed. If so, advance.
-		if (loopRunning) {
-			var timeNow = new Date();
-			var elapsedMsecs = timeNow.getTime() - timeLast.getTime();
-			sinceTickMsecs += elapsedMsecs;
-			timeLast = timeNow;
-			if (sinceTickMsecs >= self.msecsPerTick) {
-				if (self.isLocal || self.lastPermittedTick > self.lastProcessedTick) {
-					// We have a clearance to process the next tick, so process it
-					if (!self.isLocal) {
-						self.processCommandQueue();
-					}
-					// Then handle the tick
-					self.tick();
-					tickFunc();
-					self.lastProcessedTick++;
-					if (!self.isLocal) {
-						self.queueAcknowledgement();
-					}
-					sinceTickMsecs -= self.msecsPerTick;
-				} else {
-					// The scheduled time to process the next tick has passed,
-					// but we are missing the clearance to process it. We need
-					// to resynchronize the game.
-					loopRunning = false;
-				}
-			}
-		}
-		// Finally, do drawing
-		if (loopRunning) {
-			self.factor = 1 - sinceTickMsecs / self.msecsPerTick;
-			if (self.factor < 0) {
-				self.factor = 0;
-			}
-		} else {
-			self.factor = 0;
-		}
+	}
+	// If the game loop is running, check if the projected time for the next
+	// tick has elapsed. If so, advance.
+	if (this.reallyRunning) {
 		var timeNow = new Date();
-		self.msecsSinceDrawn = timeNow.getTime() - lastDrawn.getTime();
-		lastDrawn = timeNow;
-		drawFunc();
-	};
+		var elapsedMsecs = timeNow.getTime() - this.lastConsideredTick.getTime();
+		this.msecsSinceTick += elapsedMsecs;
+		this.lastConsideredTick = timeNow;
+		if (this.msecsSinceTick >= this.msecsPerTick) {
+			if (this.isLocal || this.lastPermittedTick > this.lastProcessedTick) {
+				// We have a clearance to process the next tick, so process it
+				if (!this.isLocal) {
+					this.processCommandQueue();
+				}
+				// Then handle the tick
+				this.tick();
+				this.lastProcessedTick++;
+				if (!this.isLocal) {
+					this.queueAcknowledgement();
+				}
+				this.msecsSinceTick -= this.msecsPerTick;
+			} else {
+				// The scheduled time to process the next tick has passed, but
+				// we are missing the clearance to process it. We need to
+				// resynchronize the game.
+				this.reallyRunning = false;
+			}
+		}
+	}
+	// Finally, do the drawing
+	if (this.reallyRunning) {
+		this.factor = 1 - this.msecsSinceTick / this.msecsPerTick;
+		if (this.factor < 0) {
+			this.factor = 0;
+		}
+	} else {
+		this.factor = 0;
+	}
+	var timeNow = new Date();
+	if (this.lastDrawn) {
+		this.msecsSinceDrawn = timeNow.getTime() - this.lastDrawn.getTime();
+	} else {
+		this.msecsSinceDrawn = 0;
+	}
+	this.lastDrawn = timeNow;
+	this.onDraw.emit();
 };
 
 Game.prototype.processCommandQueue = function () {

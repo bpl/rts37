@@ -273,23 +273,26 @@ function initGame(isLocal) {
 		uiContext = new UIContext(game),
 		viewport = new Viewport(game, canvas, uiContext);
 	game.setTicksPerSecond(5);
-	window.setInterval(game.getGameLoop(
-		function () {
-			viewport.tick();
-		},
-		function () {
-			uiContext.update();
-			viewport.draw();
-			// Draw data
-			var ctx = canvas.getContext('2d');
-			ctx.fillStyle = '#fff';
-			ctx.fillText(
-				'permitted ' + game.lastPermittedTick + ', processed ' + game.lastProcessedTick,
-				10, 10
-			);
-		}),
-		10
-	);
+	game.onTick.register(function () {
+		viewport.tick();
+	});
+	game.onDraw.register(function () {
+		uiContext.update();
+		viewport.draw();
+		// Draw some performance indicators
+		var ctx = canvas.getContext('2d');
+		ctx.fillStyle = '#fff';
+		ctx.fillText(
+			'permitted ' + game.lastPermittedTick +
+				', processed ' + game.lastProcessedTick +
+				', sinceTick ' + padToThree(game.msecsSinceTick) +
+				', sinceDrawn ' + padToThree(game.msecsSinceDrawn),
+			10, 10
+		);
+	});
+	window.setInterval(function () {
+		game.process();
+	}, 10);
 	function normalizedOffset(evt) {
 		return [
 			evt.clientX - canvas.offsetLeft + document.body.scrollLeft,
