@@ -346,88 +346,84 @@ Game.prototype.playerWithPlayerId = function (playerId) {
 };
 
 Game.prototype.getGameLoop = function (tickFunc, drawFunc) {
-	if (this.isLocal) {
-		var timeLast = new Date(),   // The last time the screen was drawn
-			remainderMsecs = 0,      // Remaining msecs from the previous tick
-			self = this;
-		return function () {
-			var timeNow = new Date(),
-				elapsedMsecs = timeNow.getTime() - timeLast.getTime();
-			self.msecsSinceDrawn = elapsedMsecs;
-			// If the game has not started yet or has been paused, do not advance.
-			if (!self.running) {
-				elapsedMsecs = 0;
-			}
-			elapsedMsecs += remainderMsecs;
-			while (elapsedMsecs >= self.msecsPerTick) {
-				self.tick();
-				tickFunc();
-				elapsedMsecs -= self.msecsPerTick;
-				self.lastProcessedTick++;
-			}
-			self.factor = 1 - elapsedMsecs / self.msecsPerTick;
-			remainderMsecs = elapsedMsecs;
-			timeLast = timeNow;
-			drawFunc();
-		};
-	} else {
-		var timeLast = new Date(),   // The last time the screen was drawn
-			remainderMsecs = 0,      // Remaining msecs from the previous tick
-			schedulingBaseTime = 0,
-			wasRunning = false,
-			self = this;
-		return function () {
-			var timeNow = new Date(),
-				elapsedMsecs = timeNow.getTime() - timeLast.getTime();
-			// Send acknowledgement 100 msecs after receiving a message that has not
-			// been acknowledged yet or processing a new tick.
-			if (self.acknowledgeAt > 0 && self.acknowledgeAt <= timeNow.getTime()) {
+	// FIXME: Handle client lagging behind the server
+	// FIXME: Soft adjustment for situations where the client has a tendency to
+	// speed past the server.
+	var self = this;
+	// How much into the current tick we are
+	var sinceTickMsecs = 0;
+	var timeLast = 0;
+	var lastDrawn = new Date();
+	var loopRunning = false;
+	return function () {
+		// Acknowledgement handling. Send acknowledgement 100 msecs after
+		// receiving a message that has not been acknowledgement yet, and after
+		// processing a new tick.
+		if (!self.isLocal) {
+			if (self.acknowledgeAt > 0 && self.acknowledgeAt <= (new Date()).getTime()) {
 				self.acknowledgeAt = 0;
 				self.notifyServer(['ack', self.lastTagReceived, self.lastProcessedTick]);
 			}
-			// If the game has not started yet or has been paused, do not advance.
-			if (!wasRunning || !self.running) {
-				self.msecsSinceDrawn = elapsedMsecs;
-				timeLast = timeNow;
-				if (self.running) {
-					wasRunning = true;
-					schedulingBaseTime = timeNow.getTime() - self.lastProcessedTick * self.msecsPerTick;
-				} else if (wasRunning) {
-					wasRunning = false;
-				}
-				drawFunc();
-				return;
+		}
+		// If the game loop is not running, check if we can start or resume it
+		if (!loopRunning) {
+			if (self.running && (self.isLocal || self.lastPermittedTick > self.lastProcessedTick)) {
+				timeLast = new Date();
+				sinceTickMsecs = 0;
+				loopRunning = true;
 			}
-			self.msecsSinceDrawn = elapsedMsecs;
-			elapsedMsecs += remainderMsecs;
-			if (Math.floor((timeNow.getTime() - schedulingBaseTime) / self.msecsPerTick) >= self.lastPermittedTick
-					&& self.lastPermittedTick > self.lastProcessedTick) {
-				// First process commands
-				var tickCommands = self.commandQueues.pop();
-				self.commandQueues.unshift([]);
-				for (var i = 0; i < tickCommands.length; ++i) {
-					var command = tickCommands[i];
-					self.handleCommand(command[0], command[1]);
+		}
+		// If the game loop is running, check if the projected time for the next
+		// tick has elapsed. If so, advance.
+		if (loopRunning) {
+			var timeNow = new Date();
+			var elapsedMsecs = timeNow.getTime() - timeLast.getTime();
+			sinceTickMsecs += elapsedMsecs;
+			timeLast = timeNow;
+			if (sinceTickMsecs >= self.msecsPerTick) {
+				if (self.isLocal || self.lastPermittedTick > self.lastProcessedTick) {
+					// We have a clearance to process the next tick, so process it
+					if (!self.isLocal) {
+						self.processCommandQueue();
+					}
+					// Then handle the tick
+					self.tick();
+					tickFunc();
+					self.lastProcessedTick++;
+					if (!self.isLocal) {
+						self.queueAcknowledgement();
+					}
+					sinceTickMsecs -= self.msecsPerTick;
+				} else {
+					// The scheduled time to process the next tick has passed,
+					// but we are missing the clearance to process it. We need
+					// to resynchronize the game.
+					loopRunning = false;
 				}
-				// Then handle the tick
-				self.tick();
-				tickFunc();
-				elapsedMsecs -= self.msecsPerTick;
-				self.lastProcessedTick++;
-				self.queueAcknowledgement();
 			}
-			var tickBase = schedulingBaseTime + self.lastProcessedTick * self.msecsPerTick,
-				elapsedFromTick = (new Date()).getTime() - tickBase;
-			self.factor = 1 - elapsedFromTick / self.msecsPerTick;
+		}
+		// Finally, do drawing
+		if (loopRunning) {
+			self.factor = 1 - sinceTickMsecs / self.msecsPerTick;
 			if (self.factor < 0) {
 				self.factor = 0;
-			} else if (self.factor > 1) {
-				self.factor = 1;
-				schedulingTimeBase = (new Date()).getTime() - self.lastProcessedTick * self.msecsPerTick;
 			}
-			timeLast = timeNow;
-			drawFunc();
-		};
+		} else {
+			self.factor = 0;
+		}
+		var timeNow = new Date();
+		self.msecsSinceDrawn = timeNow.getTime() - lastDrawn.getTime();
+		lastDrawn = timeNow;
+		drawFunc();
+	};
+};
+
+Game.prototype.processCommandQueue = function () {
+	var tickCommands = this.commandQueues.pop();
+	this.commandQueues.unshift([]);
+	for (var i = 0; i < tickCommands.length; ++i) {
+		var command = tickCommands[i];
+		this.handleCommand(command[0], command[1]);
 	}
 };
 
