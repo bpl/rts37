@@ -21,7 +21,10 @@ var options = {
 		'html': 'text/html; charset=utf-8',
 		'css': 'text/css',
 		'js': 'text/javascript'
-	}
+	},
+	// How long can a client keep missing tick processing acknowledgements
+	// before it is considered lagging.
+	acceptedLagMsecs: 5000
 };
 
 // Current plan for tick (turn) handling
@@ -48,13 +51,13 @@ var options = {
 // Game //
 /////////
 
-function Game(opt /* id, playerIds */) {
+function Game(opt /* id, ticksPerSecond, playerIds */) {
 	//
 	// Properties with static default values
 	//
 	this.currentTick = 0;
 	this.running = false;
-	this.wakeAt = new Date(0);
+	this.wakeAt = 0;
 	// The number of assets that the players have been asked to load
 	this.assetsSent = 0;
 	// Do we know everything that comprises the initial game state (essentially
@@ -66,7 +69,10 @@ function Game(opt /* id, playerIds */) {
 	assert(typeof opt.id == 'string', 'Game: id is not a string');
 	assert(opt.playerIds instanceof Array, 'Game: playerIds is not an array');
 	assert(opt.playerIds.length > 0, 'Game: playerIds is empty');
+	assert(opt.ticksPerSecond > 0, 'Game: ticksPerSecond is not a positive number');
 	this.id = opt.id;
+	this.ticksPerSecond = opt.ticksPerSecond;
+	this.msecsPerTick = 1000 / this.ticksPerSecond;
 	this.players = {};
 	for (var i = 0; i < opt.playerIds.length; ++i) {
 		var player = new Player({
@@ -138,17 +144,28 @@ Game.prototype.endInitialState = function () {
 	}
 };
 
-// Called by the server when requested
+// Called by the server when the current server clock exceeds time specified in
+// wakeAt property.
 Game.prototype.wake = function (now) {
-	// TODO: Is it necessary to try to prevent bunching here
-	this.wakeAt.setTime(now.getTime() + 200);
+	// TODO: Is it necessary to try to prevent bunching here to keep the server
+	// load stable?
+	//
+	// If we overslept i.e. the server temporarily froze for some reason,
+	// do not try to catch up, and just process the next tick one tick length
+	// from now. If we are on time, wake up the next time one tick length from
+	// the exact moment we were supposed to wake up this time to keep the pace
+	// as constant as possible.
+	if (now - this.wakeAt > this.msecsPerTick * 1.5) {
+		this.wakeAt = now + this.msecsPerTick;
+	} else {
+		this.wakeAt += this.msecsPerTick;
+	}
 	if (this.running) {
 		// Check that no player is lagging
-		// FIXME: Make the maximum lag amount configurable
 		// FIXME: Only restart when the lagging player has catched up fully
 		// FIXME: Let other players know about the lag
 		for (var id in this.players) {
-			if (this.players[id].lastProcessedTick < this.currentTick - 10) {
+			if (this.players[id].lastProcessedTick < this.currentTick - options.acceptedLagMsecs / this.msecsPerTick) {
 				return;
 			}
 		}
@@ -446,6 +463,7 @@ server.addListener('connection', function (conn) {
 		// FIXME: Hard-coded game options
 		var game = new Game({
 			'id': gameId,
+			'ticksPerSecond': 5,
 			'playerIds': ['p1']
 		});
 		games[gameId] = game;
@@ -482,7 +500,7 @@ server.addListener('connection', function (conn) {
 
 // Send the notifications for ticks having ended etc.
 setInterval(function () {
-	var now = new Date();
+	var now = (new Date()).getTime();
 	for (var id in games) {
 		if (games[id].wakeAt <= now) {
 			games[id].wake(now);
