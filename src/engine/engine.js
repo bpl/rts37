@@ -435,6 +435,11 @@ Game.prototype.process = function () {
 				// The scheduled time to process the next tick has passed, but
 				// we are missing the clearance to process it. We need to
 				// resynchronize the game.
+				// FIXME: Currently this causes an irritating jab when the game
+				// resynchronizes while an unit is moving. It would probably be
+				// a good idea to keep the interpolation factor at 0 while
+				// resynchronizing or reset all the delta values when it becomes
+				// clear that we must resynchronize.
 				this.reallyRunning = false;
 			}
 		}
