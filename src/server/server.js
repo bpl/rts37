@@ -6,14 +6,23 @@ var sys = require('sys'),
 	path = require('path'),
 	url = require('url'),
 	http = require('http'),
+	net = require('net'),
+	repl = require('repl'),
 	ws = require('./lib/ws'),
 	util = require('./serverutil'),
 	eutil = require('../engine/util'),
 	assert = eutil.assert;
 
 var options = {
-	// The TCP port this server will listen to
+	// The TCP port this server will listen to for HTTP and WebSocket
+	// connections. Must be greater than zero.
 	listenPort: 8000,
+	// The TCP port this server will listen to for REPL session connections
+	// (use netcat to connect and issue commands). Set to zero to disable REPL
+	// access. Disabling REPL is pretty much mandatory for *all* public
+	// installations, as currently no authentication or encryption is provided
+	// at all.
+	replPort: 8001,
 	// The document root for HTTP requests
 	documentRoot: '../',
 	// File extension to MIME type associations
@@ -612,3 +621,20 @@ server.addListener('request', function (request, response) {
 });
 
 server.listen(options.listenPort);
+
+// REPL server, a lightweight alternative to a remote debugger
+
+if (options.replPort > 0) {
+	// Node.js makes this almost too easy. Copied pretty much in verbatim from
+	// the documentation of the REPL module.
+	net.createServer(function (socket) {
+		var instance = repl.start('repl> ', socket);
+		// Expose the server state to the REPL instance
+		instance.context.server = server;
+		instance.context.games = games;
+		instance.context.Game = Game;
+		instance.context.Player = Player;
+		sys.log('REPL session started with ' + socket.remoteAddress);
+	}).listen(options.replPort);
+	sys.log('Warning: REPL active on port ' + options.replPort);
+}
