@@ -270,12 +270,14 @@ function Game(isLocal) {
 	this.lastPermittedTick = 0;
 	this.ticksPerSecond = 0;
 	this.msecsPerTick = 0;
+	this.cappedToFps = 0;
+	this.msecsPerFrameMin = 0;
 	// How far into the current tick we are
 	this.msecsSinceTick = 0;
 	this.msecsSinceDrawn = 0;
 	this.lastConsideredTick = 0;
 	this.lastDrawn = 0;
-	this.setTicksPerSecond(30);
+	this.setTicksPerSecond(5);
 	//
 	// Server communication
 	//
@@ -309,6 +311,11 @@ Game.prototype.setConnection = function (connection) {
 Game.prototype.setTicksPerSecond = function (value) {
 	this.ticksPerSecond = value;
 	this.msecsPerTick = 1000 / value;
+};
+
+Game.prototype.setCappedToFps = function (value) {
+	this.cappedToFps = value;
+	this.msecsPerFrameMin = value > 0 ? 1000 / value : 0;
 };
 
 Game.prototype.setRunning = function (value) {
@@ -455,7 +462,11 @@ Game.prototype.process = function () {
 	}
 	var timeNow = new Date();
 	if (this.lastDrawn) {
-		this.msecsSinceDrawn = timeNow.getTime() - this.lastDrawn.getTime();
+		var sinceDrawn = timeNow.getTime() - this.lastDrawn.getTime();
+		if (this.cappedToFps > 0 && sinceDrawn < this.msecsPerFrameMin) {
+			return;
+		}
+		this.msecsSinceDrawn = sinceDrawn;
 	} else {
 		this.msecsSinceDrawn = 0;
 	}

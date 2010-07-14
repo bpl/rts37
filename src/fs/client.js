@@ -273,6 +273,7 @@ function initGame(isLocal) {
 		uiContext = new UIContext(game),
 		viewport = new Viewport(game, canvas, uiContext);
 	game.setTicksPerSecond(5);
+	game.setCappedToFps(30);
 	game.onTick.register(function () {
 		viewport.tick();
 	});
