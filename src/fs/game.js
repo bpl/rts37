@@ -102,7 +102,9 @@ Ship.prototype.tick = function () {
 			this.angle = angle;
 		}
 		var delta = MathUtil.anglePoint(this.angle, Math.round(this.speed / this.game.ticksPerSecond));
-		this.setPosition(this.x + delta[0], this.y + delta[1]);
+		if (this.game.map.getTileAt(this.x + delta[0], this.y + delta[1]) === 0) {
+			this.setPosition(this.x + delta[0], this.y + delta[1]);
+		}
 		if (MathUtil.manhattanDistance(this.x, this.y, this.targetX, this.targetY) <= 5120) {
 			this.targetX = null;
 			this.targetY = null;
@@ -547,8 +549,14 @@ HitMarker.prototype.draw = function (ctx, uiCtx, factor) {
 inherits(MyGame, Game);
 function MyGame(isLocal) {
 	Game.prototype.constructor.call(this, isLocal);
-	this.fieldWidth = 800;
-	this.fieldHeight = 600;
+	this.map = new Map(50, 37, 16);
+	// FIXME: Hardcoded map content
+	this.map.setTile(30, 20, 1);
+	this.map.setTile(30, 21, 1);
+	this.map.setTile(30, 22, 1);
+	this.map.setTile(31, 22, 1);
+	this.fieldWidth = this.map.width * this.map.tileSize;
+	this.fieldHeight = this.map.height * this.map.tileSize;
 	this.surfaceContext = new CollisionContext(this);
 	// Gameplay modes
 	this.RADAR_MODE_SIMPLE = 1;

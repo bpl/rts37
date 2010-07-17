@@ -6,14 +6,12 @@
 ////////
 
 function Map(width, height) {
-	// FIXME: Check precedence
 	assert(width > 0 && width % 1 == 0, 'Map: width must be a positive integer');
 	assert(height > 0 && height % 1 == 0, 'Map: height must be a positive integer');
 	this.tiles = [];
 	this.width = width;
 	this.height = height;
 	this.widthShift = 0;
-	// FIXME: Check precedence
 	while (1 << this.widthShift < this.width) {
 		++this.widthShift;
 	}

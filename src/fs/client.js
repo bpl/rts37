@@ -102,6 +102,8 @@ Viewport.prototype.draw = function () {
 	// Draw the boundaries of the playfield
 	ctx.strokeStyle = '#fff';
 	ctx.strokeRect(0, 0, this.game.fieldWidth, this.game.fieldHeight);
+	// Draw map tiles
+	this.game.map.draw(ctx, this.uiContext, this.game.factor);
 	// Draw everything else
 	for (var idx in this.game.actors) {
 		this.game.actors[idx].draw(ctx, this.uiContext, this.game.factor);
