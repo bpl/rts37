@@ -6,34 +6,64 @@ var sys = require('sys'),
 	path = require('path'),
 	url = require('url'),
 	http = require('http'),
-	net = require('net'),
-	repl = require('repl'),
 	ws = require('./lib/ws'),
 	util = require('./serverutil'),
 	eutil = require('../engine/util'),
 	assert = eutil.assert;
 
-var options = {
-	// The TCP port this server will listen to for HTTP and WebSocket
-	// connections. Must be greater than zero.
-	listenPort: 8000,
-	// The TCP port this server will listen to for REPL session connections
-	// (use netcat to connect and issue commands). Set to zero to disable REPL
-	// access. Disabling REPL is pretty much mandatory for *all* public
-	// installations, as currently no authentication or encryption is provided
-	// at all.
-	replPort: 8001,
-	// The document root for HTTP requests
-	documentRoot: '../',
-	// File extension to MIME type associations
-	mimeTypes: {
-		'html': 'text/html; charset=utf-8',
-		'css': 'text/css',
-		'js': 'text/javascript'
-	},
-	// How long can a client keep missing tick processing acknowledgements
-	// before it is considered lagging.
-	acceptedLagMsecs: 5000
+//////////////
+// Manager //
+////////////
+
+function Manager() {
+	// Games by game ID
+	this.games = {};
+	// Games sorted from the first to wake up to the last to wake up as a
+	// delayed shift priority queue.
+	this.wakeQueue = [];
+	// The number of empty items at the start of the queue
+	this.emptySpace = 0;
+}
+
+Manager.prototype.gameWithId = function (id) {
+	return this.games[id] || null;
+};
+
+Manager.prototype.add = function (game) {
+	assert(!this.games[game.id], 'Manager.addGame: duplicate game ID');
+	this.games[game.id] = game;
+	this.enqueue(game);
+};
+
+Manager.prototype.enqueue = function (game) {
+	if (game.wakeAt > 0) {
+		for (var i = this.wakeQueue.length - 1; i >= this.emptySpace; --i) {
+			if (this.wakeQueue[i].wakeAt <= game.wakeAt) {
+				this.wakeQueue.splice(i + 1, 0, game);
+				return;
+			}
+		}
+		// The game will be inserted at the beginning of the queue, so fall through
+	}
+	if (this.emptySpace > 0) {
+		this.wakeQueue[--this.emptySpace] = game;
+	} else {
+		this.wakeQueue.unshift(game);
+	}
+};
+
+Manager.prototype.tryDequeue = function (now) {
+	if (this.emptySpace >= this.wakeQueue.length ||
+			this.wakeQueue[this.emptySpace].wakeAt > now) {
+		return null;
+	}
+	if (this.emptySpace * 2 < this.wakeQueue.length) {
+		return this.wakeQueue[this.emptySpace++];
+	}
+	var result = this.wakeQueue[this.emptySpace];
+	this.wakeQueue = this.wakeQueue.slice(this.emptySpace + 1);
+	this.emptySpace = 0;
+	return result;
 };
 
 // Current plan for tick (turn) handling
@@ -60,7 +90,7 @@ var options = {
 // Game //
 /////////
 
-function Game(opt /* id, ticksPerSecond, playerIds */) {
+function Game(opt /* id, ticksPerSecond, acceptedLagMsecs, playerIds */) {
 	//
 	// Properties with static default values
 	//
@@ -82,6 +112,7 @@ function Game(opt /* id, ticksPerSecond, playerIds */) {
 	this.id = opt.id;
 	this.ticksPerSecond = opt.ticksPerSecond;
 	this.msecsPerTick = 1000 / this.ticksPerSecond;
+	this.acceptedLagMsecs = opt.acceptedLagMsecs;
 	this.players = {};
 	for (var i = 0; i < opt.playerIds.length; ++i) {
 		var player = new Player({
@@ -174,7 +205,7 @@ Game.prototype.wake = function (now) {
 		// FIXME: Only restart when the lagging player has catched up fully
 		// FIXME: Let other players know about the lag
 		for (var id in this.players) {
-			if (this.players[id].lastProcessedTick < this.currentTick - options.acceptedLagMsecs / this.msecsPerTick) {
+			if (this.players[id].lastProcessedTick < this.currentTick - this.acceptedLagMsecs / this.msecsPerTick) {
 				return;
 			}
 		}
@@ -416,30 +447,72 @@ Player.prototype.handleMessage = function (msg) {
 	}
 };
 
-////////////////////////////
-// WebSocket server code //
-//////////////////////////
+/////////////
+// Server //
+///////////
 
-var server = ws.createServer(),
-	games = {},
-	lastIntervalAt = new Date();
+function Server(opt) {
+	// Please see runserver.js for a list of options
+	this.options = opt;
+	// The WebSocket server we will be using
+	this.server = ws.createServer();
+	// Holds a list of games
+	this.manager = new Manager();
 
-server.addListener('error', function (exception) {
+	var self = this;
+
+	this.server.addListener('error', function (exception) {
+		self.handleError(exception);
+	});
+
+	this.server.addListener('clientError', function (exception) {
+		self.handleClientError(exception);
+	});
+
+	this.server.addListener('listening', function () {
+		self.handleListening();
+	});
+
+	this.server.addListener('connection', function (conn) {
+		self.handleConnection(conn);
+	});
+
+	this.server.addListener('request', function (request, response) {
+		self.handleRequest(request, response);
+	});
+}
+
+Server.prototype.listen = function () {
+	this.server.listen(this.options.listenPort);
+	// Send the notifications for ticks having ended etc.
+	var self = this;
+	setInterval(function () {
+		var now = (new Date()).getTime();
+		var game;
+		while (game = self.manager.tryDequeue(now)) {
+			// FIXME: What if there is an exception?
+			game.wake(now);
+			self.manager.enqueue(game);
+		}
+	}, 10);
+};
+
+Server.prototype.handleError = function (exception) {
 	sys.log('Server error ' + sys.inspect(exception));
-});
+};
 
 // This gets called for example when the request listener throws an exception.
 // It is shared by WebSocket and HTTP listeners.
-server.addListener('clientError', function (exception) {
+Server.prototype.handleClientError = function (exception) {
 	sys.log('Client error ' + (exception.stack || exception));
-});
+};
 
-server.addListener('listening', function () {
+Server.prototype.handleListening = function () {
 	sys.log('Listening for connections');
-});
+};
 
 // WebSocket request handling
-server.addListener('connection', function (conn) {
+Server.prototype.handleConnection = function (conn) {
 	sys.log('<' + conn.id + '> connected');
 	// FIXME: Access to a private member, not good but currently required to gain
 	// access to the query string.
@@ -448,12 +521,11 @@ server.addListener('connection', function (conn) {
 		playerId = (requestUrl.query || {})['player'] || '',
 		state = (requestUrl.query || {})['state'] || '',
 		requestUrl = null;
-		
+
 	// FIXME: Fire a request to validate gameId and playerId. For now we'll just
 	// create them if they don't exist.
-	if (games.hasOwnProperty(gameId)) {
-		var game = games[gameId];
-	} else {
+	var game = this.manager.gameWithId(gameId);
+	if (!game) {
 		// FIXME: The game state should be valided somehow and it probably
 		// should be loaded from somewhere. For now we'll just use the game
 		// state sent by the client.
@@ -470,17 +542,18 @@ server.addListener('connection', function (conn) {
 			return;
 		}
 		// FIXME: Hard-coded game options
-		var game = new Game({
+		game = new Game({
 			'id': gameId,
 			'ticksPerSecond': 5,
+			'acceptedLagMsecs': this.options.acceptedLagMsecs,
 			'playerIds': ['p1']
 		});
-		games[gameId] = game;
+		this.manager.add(game);
 		game.deliverInitialState(state);
 		game.deliverWhoIsWho();
 		game.endInitialState();
 	}
-	
+
 	var player = game.getPlayer(playerId);
 	if (!player) {
 		// The doesn't appear to exist a player with this player id, so we just send
@@ -489,33 +562,23 @@ server.addListener('connection', function (conn) {
 		conn.close();
 		return;
 	}
-	
+
 	player.setConnection(conn);
 	player.serverHello();
-		
+
 	sys.log('<' + conn.id + '> logged in to game ' + game.id + ' as player ' + player.id);
-	
+
 	conn.addListener('close', function () {
 		sys.log('<' + conn.id + '> disconnected');
 		if (player.connection == conn) {
 			player.setConnection(null);
 		}
 	});
-	
+
 	conn.addListener('message', function (msg) {
 		player.handleMessage(msg);
 	});
-});
-
-// Send the notifications for ticks having ended etc.
-setInterval(function () {
-	var now = (new Date()).getTime();
-	for (var id in games) {
-		if (games[id].wakeAt <= now) {
-			games[id].wake(now);
-		}
-	}
-}, 10);
+};
 
 // HTTP request handling
 //
@@ -544,7 +607,7 @@ setInterval(function () {
 //
 // - If you know the length of the response body in advance, add the proper
 //   Content-Length header in the response.
-server.addListener('request', function (request, response) {
+Server.prototype.handleRequest = function (request, response) {
 
 	// FIXME: Escaping for the explanation
 	function sendError(response, statusCode, explanation) {
@@ -562,7 +625,7 @@ server.addListener('request', function (request, response) {
 		response.write(body, 'utf8');
 		response.end();
 	}
-	
+
 	function sendErrorWithErr(response, err) {
 		switch (err.errno) {
 			case process.EACCES:
@@ -576,11 +639,12 @@ server.addListener('request', function (request, response) {
 				break;
 		}
 	}
-	
+
 	var requestPath = url.parse(request.url).pathname;
 	// FIXME: Requests to hidden files should give an error
-	var requestFile = path.join(options.documentRoot, util.cleanPath(requestPath));
-	
+	var requestFile = path.join(this.options.documentRoot, util.cleanPath(requestPath));
+	var self = this;
+
 	fs.stat(requestFile, function (err, stats) {
 		if (err) {
 			sys.log('[HTTP] Stat failure ' + err + ' for ' + requestPath);
@@ -597,7 +661,7 @@ server.addListener('request', function (request, response) {
 			if (!headerWritten) {
 				var extname = util.removePrefix('.', path.extname(path.basename(requestFile)));
 				response.writeHead(200, {
-					'Content-Type': (options.mimeTypes.hasOwnProperty(extname) ? options.mimeTypes[extname] : 'text/plain'),
+					'Content-Type': (self.options.mimeTypes.hasOwnProperty(extname) ? self.options.mimeTypes[extname] : 'text/plain'),
 					'Content-Length': stats.size
 				});
 				headerWritten = true;
@@ -618,23 +682,16 @@ server.addListener('request', function (request, response) {
 			}
 		});
 	});
-});
+};
 
-server.listen(options.listenPort);
-
-// REPL server, a lightweight alternative to a remote debugger
-
-if (options.replPort > 0) {
-	// Node.js makes this almost too easy. Copied pretty much in verbatim from
-	// the documentation of the REPL module.
-	net.createServer(function (socket) {
-		var instance = repl.start('repl> ', socket);
-		// Expose the server state to the REPL instance
-		instance.context.server = server;
-		instance.context.games = games;
-		instance.context.Game = Game;
-		instance.context.Player = Player;
-		sys.log('REPL session started with ' + socket.remoteAddress);
-	}).listen(options.replPort);
-	sys.log('Warning: REPL active on port ' + options.replPort);
+// To maintain consistency with other Node.js modules
+function createServer(opt) {
+	return new Server(opt);
 }
+
+// Exports
+exports.Manager = Manager;
+exports.Game = Game;
+exports.Player = Player;
+exports.Server = Server;
+exports.createServer = createServer;
