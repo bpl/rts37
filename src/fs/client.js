@@ -384,7 +384,7 @@ window.addEventListener('load', function () {
 		}
 		return false;
 	}
-	
+
 	function addClass(elm, className) {
 		var parts = elm.className.split(' ');
 		for (var i = 0; i < parts.length; ++i) {
@@ -395,7 +395,7 @@ window.addEventListener('load', function () {
 		parts.push(className);
 		elm.className = parts.join(' ');
 	}
-	
+
 	function removeClass(elm, className) {
 		var parts = elm.className.split(' ');
 		for (var i = 0; i < parts.length; ++i) {
@@ -416,9 +416,9 @@ window.addEventListener('load', function () {
 		}
 		return null;
 	}
-	
+
 	var splash = document.getElementById('splash');
-	
+
 	splash.addEventListener('click', function (evt) {
 		if (evt.target.tagName.toLowerCase() == 'a') {
 			var parentList = getParentWithClassName(evt.target, 'tabs');
