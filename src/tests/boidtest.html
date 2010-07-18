@@ -1,0 +1,350 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Firing Solution Unit Flocking Tester</title>
+	<style type="text/css">
+
+html, body { margin : 0; padding : 0; }
+
+	</style>
+	<script src="../engine/util.js"></script>
+	<script src="../engine/ooputil.js"></script>
+	<script src="../engine/mathutil.js"></script>
+	<script src="../engine/htmlutil.js"></script>
+	<script type="text/javascript">
+
+var fieldWidth = 0;
+var fieldHeight = 0;
+
+var boids = [];
+
+/*
+var options = {
+	'visualDistance': 20,
+	'separationDistance': 15,
+	'goalReachedDistance': 20,
+	'speed': 2,
+	'rotationSpeed': Math.PI / 10,
+	'size': 5
+};
+//*/
+
+///*
+// Slower, more tank-like behavior
+var options = {
+	'visualDistance': 20,
+	'separationDistance': 15,
+	'goalReachedDistance': 20,
+	'speed': 0.5,
+	'rotationSpeed': Math.PI / 80,
+	'size': 5
+};
+//*/
+
+function scale(dx, dy, speed) {
+	if (dx == 0 && dy == 0) {
+		return [0, 0];
+	}
+	var rad = Math.atan2(dy, dx);
+	return [speed * Math.cos(rad), speed * Math.sin(rad)];
+}
+
+///////////
+// Boid //
+/////////
+
+function Boid(x, y) {
+	this.x = x;
+	this.y = y;
+	this.speed = options.speed;
+	this.targetX = x;
+	this.targetY = y;
+};
+
+Boid.prototype.setTarget = function (x, y) {
+	this.targetX = x;
+	this.targetY = y;
+};
+
+Boid.prototype.getMates = function () {
+	var result = [];
+	for (var i = 0; i < boids.length; ++i) {
+		var boid = boids[i];
+		var distanceSquared = Math.pow(Math.abs(this.x - boid.x), 2) + Math.pow(Math.abs(this.y - boid.y), 2);
+		if (boid != this && distanceSquared <= Math.pow(options.visualDistance, 2)) {
+			result.push([boid, Math.sqrt(distanceSquared)]);
+		}
+	}
+	return result;
+}
+
+Boid.prototype.tick = function () {
+	var dx = 0;
+	var dy = 0;
+	var mates = this.getMates();
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		// Separation
+		if (mate[1] <= options.separationDistance) {
+			dx += (this.x - mate[0].x) / options.separationDistance * 10;
+			dy += (this.y - mate[0].y) / options.separationDistance * 10;
+		}
+	}
+	// Goal seeking
+	var goal = scale(this.targetX - this.x, this.targetY - this.y, 1);
+	dx += goal[0];
+	dy += goal[1];
+	// Apply
+	var res = scale(dx, dy, options.speed);
+	this.x += res[0];
+	this.y += res[1];
+};
+
+////////////
+// Boid2 //
+//////////
+
+function Boid2(x, y) {
+	Boid.call(this, x, y);
+	this.goalReached = true;
+	this.heading = 0;
+	this.rotationSpeed = options.rotationSpeed;
+};
+
+Boid2.prototype.setTarget = function (x, y) {
+	this.targetX = x;
+	this.targetY = y;
+	this.goalReached = false;
+}
+
+Boid2.prototype.getMates = Boid.prototype.getMates;
+
+// See http://www.red3d.com/cwr/steer/gdc99/
+Boid2.prototype.tick = function () {
+	var dx = 0;
+	var dy = 0;
+	var mates = this.getMates();
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		// Separation
+		if (mate[1] <= options.separationDistance && (!mate[0].goalReached || this.goalReached)) {
+			dx += (this.x - mate[0].x) / options.separationDistance * 10;
+			dy += (this.y - mate[0].y) / options.separationDistance * 10;
+		}
+		// Alignment
+		/*if (mate[0].heading && !mate[0].goalReached) {
+			dx += Math.cos(mate[0].heading);
+			dy += Math.sin(mate[0].heading);
+		}*/
+	}
+	// Goal seeking
+	if (!this.goalReached) {
+		if (Math.pow(this.targetX - this.x, 2) + Math.pow(this.targetY - this.y, 2)
+			<= Math.pow(options.goalReachedDistance, 2))
+		{
+			this.goalReached = true
+		} else {
+			var goal = scale(this.targetX - this.x, this.targetY - this.y, 1);
+			dx += goal[0];
+			dy += goal[1];
+		}
+	}
+	// Apply
+	if (dx == 0 && dy == 0) {
+		return;
+	}
+	var targetHeading = Math.atan2(dy, dx);
+	var angleDelta = MathUtil.angleDelta(this.heading, targetHeading);
+	if (Math.abs(angleDelta) > this.rotationSpeed) {
+		this.heading = MathUtil.normalizeAngle(this.heading + angleDelta / Math.abs(angleDelta) * this.rotationSpeed);
+	} else {
+		this.heading = targetHeading;
+	}
+	this.x += this.speed * Math.cos(this.heading);
+	this.y += this.speed * Math.sin(this.heading);
+};
+
+////////////
+// Boid3 //
+//////////
+
+function Boid3(x, y) {
+	Boid2.call(this, x, y);
+};
+
+Boid3.prototype.setTarget = Boid2.prototype.setTarget;
+
+Boid3.prototype.getMates = Boid.prototype.getMates;
+
+// See http://www.red3d.com/cwr/steer/gdc99/
+Boid3.prototype.tick = function () {
+	var sepX = 0;
+	var sepY = 0;
+	var alignX = 0;
+	var alignY = 0;
+	var mates = this.getMates();
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		// Separation
+		if (mate[1] <= options.separationDistance && (!mate[0].goalReached || this.goalReached)) {
+			/*
+			sepX += (this.x - mate[0].x) / options.separationDistance;
+			sepY += (this.y - mate[0].y) / options.separationDistance;
+			//*/
+
+			/*
+			if (this.x > mate[0].x) {
+				sepX += 1 - (this.x - mate[0].x) / options.separationDistance;
+			} else {
+				sepX -= 1 - (mate[0].x - this.x) / options.separationDistance;
+			}
+			if (this.y > mate[0].y) {
+				sepY += 1 - (this.y - mate[0].y) / options.separationDistance;
+			} else {
+				sepY -= 1 - (mate[0].y - this.y) / options.separationDistance;
+			}
+			//*/
+
+			/*
+			if (this.x > mate[0].x) {
+				sepX += 1 / ((this.x - mate[0].x) / options.separationDistance) - 1;
+			} else {
+				sepX -= 1 / ((mate[0].x - this.x) / options.separationDistance) - 1;
+			}
+			if (this.y > mate[0].y) {
+				sepY += 1 / ((this.y - mate[0].y) / options.separationDistance) - 1;
+			} else {
+				sepY -= 1 / ((mate[0].y - this.y) / options.separationDistance) - 1;
+			}
+			//*/
+
+			///*
+			var sepThis = scale(this.x - mate[0].x, this.y - mate[0].y, 1);
+			sepX += sepThis[0];
+			sepY += sepThis[1];
+			//*/
+		}
+		// Alignment
+		/*if (mate[0].heading && !mate[0].goalReached) {
+			alignX += Math.cos(mate[0].heading);
+			alignY += Math.sin(mate[0].heading);
+		}*/
+	}
+	// Goal seeking
+	var goalX = 0;
+	var goalY = 0;
+	if (!this.goalReached) {
+		if (Math.pow(this.targetX - this.x, 2) + Math.pow(this.targetY - this.y, 2)
+			<= Math.pow(options.goalReachedDistance, 2))
+		{
+			this.goalReached = true
+		} else {
+			goalX = this.targetX - this.x;
+			goalY = this.targetY - this.y;
+		}
+	}
+	// Apply components
+	var separation = scale(sepX, sepY, 2);
+	var alignment = scale(alignX, alignY, 1);
+	var goal = scale(goalX, goalY, 1);
+	var dx = separation[0] + alignment[0] + goal[0];
+	var dy = separation[1] + alignment[1] + goal[1];
+	// Apply combined
+	if (dx == 0 && dy == 0) {
+		return;
+	}
+	var targetHeading = Math.atan2(dy, dx);
+	var angleDelta = MathUtil.angleDelta(this.heading, targetHeading);
+	if (Math.abs(angleDelta) > this.rotationSpeed) {
+		this.heading = MathUtil.normalizeAngle(this.heading + angleDelta / Math.abs(angleDelta) * this.rotationSpeed);
+	} else {
+		this.heading = targetHeading;
+	}
+	this.x += this.speed * Math.cos(this.heading);
+	this.y += this.speed * Math.sin(this.heading);
+};
+
+////////////////
+// Main loop //
+//////////////
+
+function init() {
+	var timeNode = document.getElementById('time').firstChild;
+	var canvas = document.getElementById('screen');
+	var ctx = canvas.getContext('2d');
+
+	fieldWidth = parseInt(canvas.width);
+	fieldHeight = parseInt(canvas.height);
+
+	var boidType = Boid3;
+
+	boids.push(new boidType(100, 100));
+	boids.push(new boidType(100, 110));
+	boids.push(new boidType(110, 100));
+	boids.push(new boidType(110, 110));
+	boids.push(new boidType(120, 100));
+	boids.push(new boidType(120, 110));
+	boids.push(new boidType(100, 120));
+	boids.push(new boidType(110, 120));
+
+	var loopStarted = false;
+
+	function drawScreen(color, size) {
+		ctx.save();
+		ctx.fillStyle = color;
+		for (var i = 0; i < boids.length; ++i) {
+			var boid = boids[i];
+			ctx.save();
+			ctx.translate(boid.x, boid.y);
+			if (boid.heading) {
+				ctx.rotate(boid.heading);
+			}
+			ctx.fillRect(-size, -size, size * 2 + 1, size * 2 + 1);
+			ctx.restore();
+		}
+		ctx.restore();
+	}
+
+	function startLoop() {
+		if (loopStarted) {
+			return;
+		}
+		setInterval(function () {
+			drawScreen('#fff', options.size + 1);
+			var atStart = new Date();
+			for (var i = 0; i < boids.length; ++i) {
+				boids[i].tick();
+			}
+			var atEnd = new Date();
+			drawScreen('#000', options.size);
+			timeNode.nodeValue = 'Time : ' + (atEnd - atStart) + ' ms';
+		}, 10);
+		loopStarted = true;
+	}
+
+	canvas.addEventListener('click', function (evt) {
+		for (var i = 0; i < boids.length; ++i) {
+			boids[i].setTarget(evt.clientX, evt.clientY);
+		}
+		startLoop();
+	}, false);
+
+	drawScreen('#000', options.size);
+}
+
+window.addEventListener('load', init, false);
+
+	</script>
+</head>
+<body>
+
+<canvas id="screen" width="1000" height="1000"></canvas>
+
+<div style="position : absolute; top : 20px; left : 920px;">
+
+<p id="time">Time: ? ms</p>
+
+</div>
+
+</body>
+</html>
