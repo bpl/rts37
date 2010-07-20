@@ -41,6 +41,28 @@ var options = {
 };
 //*/
 
+var groupColors = [
+	'#000',
+	'#900',
+	'#090',
+	'#009'
+];
+
+function getMode() {
+	var elm = document.getElementById('mode');
+	return elm.options[elm.selectedIndex].value;
+}
+
+function getGroup() {
+	var elm = document.getElementById('group');
+	return elm.selectedIndex + 1;
+}
+
+function getCount() {
+	var elm = document.getElementById('count');
+	return parseInt(elm.options[elm.selectedIndex].value);
+}
+
 function scale(dx, dy, speed) {
 	if (dx == 0 && dy == 0) {
 		return [0, 0];
@@ -53,9 +75,10 @@ function scale(dx, dy, speed) {
 // Boid //
 /////////
 
-function Boid(x, y) {
+function Boid(x, y, group) {
 	this.x = x;
 	this.y = y;
+	this.group = group;
 	this.speed = options.speed;
 	this.targetX = x;
 	this.targetY = y;
@@ -104,8 +127,8 @@ Boid.prototype.tick = function () {
 // Boid2 //
 //////////
 
-function Boid2(x, y) {
-	Boid.call(this, x, y);
+function Boid2(x, y, group) {
+	Boid.call(this, x, y, group);
 	this.goalReached = true;
 	this.heading = 0;
 	this.rotationSpeed = options.rotationSpeed;
@@ -168,8 +191,8 @@ Boid2.prototype.tick = function () {
 // Boid3 //
 //////////
 
-function Boid3(x, y) {
-	Boid2.call(this, x, y);
+function Boid3(x, y, group) {
+	Boid2.call(this, x, y, group);
 };
 
 Boid3.prototype.setTarget = Boid2.prototype.setTarget;
@@ -278,23 +301,28 @@ function init() {
 
 	var boidType = Boid3;
 
-	boids.push(new boidType(100, 100));
-	boids.push(new boidType(100, 110));
-	boids.push(new boidType(110, 100));
-	boids.push(new boidType(110, 110));
-	boids.push(new boidType(120, 100));
-	boids.push(new boidType(120, 110));
-	boids.push(new boidType(100, 120));
-	boids.push(new boidType(110, 120));
+	boids.push(new boidType(100, 100, 1));
+	boids.push(new boidType(100, 110, 1));
+	boids.push(new boidType(110, 100, 1));
+	boids.push(new boidType(110, 110, 1));
+	boids.push(new boidType(120, 100, 1));
+	boids.push(new boidType(120, 110, 1));
+	boids.push(new boidType(100, 120, 1));
+	boids.push(new boidType(110, 120, 1));
 
 	var loopStarted = false;
 
-	function drawScreen(color, size) {
+	function drawScreen(paint, size) {
 		ctx.save();
-		ctx.fillStyle = color;
+		if (!paint) {
+			ctx.fillStyle = '#fff';
+		}
 		for (var i = 0; i < boids.length; ++i) {
 			var boid = boids[i];
 			ctx.save();
+			if (paint) {
+				ctx.fillStyle = groupColors[boid.group - 1];
+			}
 			ctx.translate(boid.x, boid.y);
 			if (boid.heading) {
 				ctx.rotate(boid.heading);
@@ -310,26 +338,41 @@ function init() {
 			return;
 		}
 		setInterval(function () {
-			drawScreen('#fff', options.size + 1);
+			drawScreen(false, options.size + 1);
 			var atStart = new Date();
 			for (var i = 0; i < boids.length; ++i) {
 				boids[i].tick();
 			}
 			var atEnd = new Date();
-			drawScreen('#000', options.size);
+			drawScreen(true, options.size);
 			timeNode.nodeValue = 'Time : ' + (atEnd - atStart) + ' ms';
 		}, 10);
 		loopStarted = true;
 	}
 
 	canvas.addEventListener('click', function (evt) {
-		for (var i = 0; i < boids.length; ++i) {
-			boids[i].setTarget(evt.clientX, evt.clientY);
+		var group = getGroup();
+		switch (getMode()) {
+			case 'move':
+				for (var i = 0; i < boids.length; ++i) {
+					if (boids[i].group == group) {
+						boids[i].setTarget(evt.clientX, evt.clientY);
+					}
+				}
+				break;
+			case 'create':
+				var count = getCount();
+				for (var i = 0; i < count; ++i) {
+					boids.push(new boidType(evt.clientX, evt.clientY + i * 5, group));
+				}
+				break;
+			default:
+				alert('Unknown mode');
 		}
 		startLoop();
 	}, false);
 
-	drawScreen('#000', options.size);
+	drawScreen(true, options.size);
 }
 
 window.addEventListener('load', init, false);
@@ -343,6 +386,34 @@ window.addEventListener('load', init, false);
 <div style="position : absolute; top : 20px; left : 920px;">
 
 <p id="time">Time: ? ms</p>
+
+<p>Mode:<br>
+<select id="mode">
+<option value="move">Move</option>
+<option value="create">Create</option>
+</select></p>
+
+<p>Group:<br>
+<select id="group">
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+</select></p>
+
+<p>Count:<br>
+<select id="count">
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+<option value="5">5</option>
+<option value="6">6</option>
+<option value="7">7</option>
+<option value="8">8</option>
+<option value="9">9</option>
+<option value="10">10</option>
+</select></p>
 
 </div>
 
