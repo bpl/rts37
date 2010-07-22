@@ -18,9 +18,12 @@ var fieldHeight = 0;
 
 var boids = [];
 
+var creationCounter = 0;
+
 /*
 var options = {
 	'visualDistance': 20,
+	'collisionDistance': 10,
 	'separationDistance': 15,
 	'goalReachedDistance': 20,
 	'speed': 2,
@@ -33,7 +36,8 @@ var options = {
 // Slower, more tank-like behavior
 var options = {
 	'visualDistance': 20,
-	'separationDistance': 15,
+	'collisionDistance': 13,
+	'separationDistance': 20,
 	'goalReachedDistance': 20,
 	'speed': 0.5,
 	'rotationSpeed': Math.PI / 80,
@@ -82,6 +86,7 @@ function Boid(x, y, group) {
 	this.speed = options.speed;
 	this.targetX = x;
 	this.targetY = y;
+	this.serialNo = creationCounter++;
 };
 
 Boid.prototype.setTarget = function (x, y) {
@@ -287,6 +292,171 @@ Boid3.prototype.tick = function () {
 	this.y += this.speed * Math.sin(this.heading);
 };
 
+////////////
+// Boid4 //
+//////////
+
+// Warning: doesn't really work
+
+function Boid4(x, y, group) {
+	Boid2.call(this, x, y, group);
+};
+
+Boid4.prototype.setTarget = Boid2.prototype.setTarget;
+
+Boid4.prototype.getMates = Boid.prototype.getMates;
+
+Boid4.prototype.tick = function () {
+	var whiskers = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+	var goalBias = [0, 2, 2, 10, 10, 15, 15, 20, 20, 20, 15, 15, 10, 10, 2, 2];
+	var mateBias = [10, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5];
+	//*
+	var whiskers = [1,  1, 1,  1,  1,  1,  1,  1];
+	var goalBias = [0,  2, 10, 15, 20, 15, 10, 2];
+	var mateBias = [20, 10, 0,  0,  0,  0,  0,  10];
+	//*/
+	var mates = this.getMates();
+	var shouldMove = false;
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		// Separation
+		if (mate[1] > 0 && mate[1] <= options.separationDistance && (!mate[0].goalReached || this.goalReached)) {
+			var direction = Math.floor((Math.atan2(this.y - mate[0].y, this.x - mate[0].x) + Math.PI) / (Math.PI * 2 / whiskers.length));
+			if (mate[1] <= 10) {
+				whiskers[direction] = Infinity;
+				shouldMove = true;
+			} else {
+				/*for (var j = 0; j < whiskers.length; ++j) {
+					whiskers[(direction + j) % whiskers.length] += (options.separationDistance - mate[1]) * mateBias[j];
+				}
+				shouldMove = true;*/
+			}
+		}
+	}
+	// Goal seeking
+	if (!this.goalReached || shouldMove) {
+		if (Math.pow(this.targetX - this.x, 2) + Math.pow(this.targetY - this.y, 2)
+			<= Math.pow(options.goalReachedDistance, 2)) {
+			this.goalReached = true;
+		} else {
+			shouldMove = true;
+			var direction = Math.floor((Math.atan2(this.y - this.targetY, this.x - this.targetX) + Math.PI) / (Math.PI * 2 / whiskers.length));
+			for (var i = 1; i < whiskers.length; ++i) {
+				whiskers[(direction + i) % whiskers.length] += goalBias[i];
+			}
+		}
+	}
+	// Find best direction
+	if (!shouldMove) {
+		return;
+	}
+	var bestDirection = -1;
+	var bestValue = Infinity;
+	for (var i = 0; i < whiskers.length; ++i) {
+		if (whiskers[i] < bestValue) {
+			bestValue = whiskers[i];
+			bestDirection = i;
+		}
+	}
+	// Orient towards best direction
+	if (bestDirection < 0) {
+		return;
+	}
+	var targetHeading = Math.PI * 2 / whiskers.length * (bestDirection + 0.5);
+	/*var angleDelta = MathUtil.angleDelta(this.heading, targetHeading);
+	if (Math.abs(angleDelta) > this.rotationSpeed) {
+		this.heading = MathUtil.normalizeAngle(this.heading + angleDelta / Math.abs(angleDelta) * this.rotationSpeed);
+	} else {
+		this.heading = targetHeading;
+	}*/
+	this.heading = targetHeading;
+	if (this.heading == targetHeading /*whiskers[Math.floor((this.heading + Math.PI) / (Math.PI * 2 / whiskers.length))] < Infinity*/) {
+		this.x += this.speed * Math.cos(this.heading);
+		this.y += this.speed * Math.sin(this.heading);
+	}
+};
+
+////////////
+// Boid5 //
+//////////
+
+function Boid5(x, y, group) {
+	Boid2.call(this, x, y, group);
+};
+
+Boid5.prototype.setTarget = Boid2.prototype.setTarget;
+
+Boid5.prototype.getMates = Boid.prototype.getMates;
+
+// See http://www.red3d.com/cwr/steer/gdc99/
+Boid5.prototype.tick = function () {
+	var sepX = 0;
+	var sepY = 0;
+	var alignX = 0;
+	var alignY = 0;
+	var shouldMove = false;
+	var mates = this.getMates();
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		// Separation
+		if (mate[1] <= options.separationDistance && (!mate[0].goalReached || this.goalReached)) {
+			var sepThis = scale(this.x - mate[0].x, this.y - mate[0].y, 1);
+			sepX += sepThis[0];
+			sepY += sepThis[1];
+			shouldMove = true;
+		}
+		// Alignment
+		/*if (mate[0].heading && !mate[0].goalReached) {
+			alignX += Math.cos(mate[0].heading);
+			alignY += Math.sin(mate[0].heading);
+		}*/
+	}
+	// Goal seeking
+	var goalX = 0;
+	var goalY = 0;
+	if (!this.goalReached || shouldMove) {
+		if (Math.pow(this.targetX - this.x, 2) + Math.pow(this.targetY - this.y, 2)
+				<= Math.pow(options.goalReachedDistance, 2)) {
+			this.goalReached = true;
+		} else {
+			goalX = this.targetX - this.x;
+			goalY = this.targetY - this.y;
+			shouldMove = true;
+		}
+	}
+	// Apply components
+	var separation = scale(sepX, sepY, 2);
+	var alignment = scale(alignX, alignY, 1);
+	var goal = scale(goalX, goalY, 1);
+	var dx = separation[0] + alignment[0] + goal[0];
+	var dy = separation[1] + alignment[1] + goal[1];
+	// Apply combined
+	if (dx == 0 && dy == 0) {
+		return;
+	}
+	var targetHeading = Math.atan2(dy, dx);
+	var angleDelta = MathUtil.angleDelta(this.heading, targetHeading);
+	if (Math.abs(angleDelta) > this.rotationSpeed) {
+		this.heading = MathUtil.normalizeAngle(this.heading + angleDelta / Math.abs(angleDelta) * this.rotationSpeed);
+	} else {
+		this.heading = targetHeading;
+	}
+	var newX = this.x + this.speed * Math.cos(this.heading);
+	var newY = this.y + this.speed * Math.sin(this.heading);
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		if (Math.pow(mate[0].x - this.x, 2) + Math.pow(mate[0].y - this.y, 2)
+				<= Math.pow(options.collisionDistance, 2)) {
+			var mateDirection = Math.atan2(mate[0].y - this.y, mate[0].x - this.x);
+			if (Math.abs(MathUtil.angleDelta(this.heading, mateDirection)) <= Math.PI / 2) {
+				return;
+			}
+		}
+	}
+	this.x = newX;
+	this.y = newY;
+};
+
 ////////////////
 // Main loop //
 //////////////
@@ -299,7 +469,7 @@ function init() {
 	fieldWidth = parseInt(canvas.width);
 	fieldHeight = parseInt(canvas.height);
 
-	var boidType = Boid3;
+	var boidType = Boid5;
 
 	boids.push(new boidType(100, 100, 1));
 	boids.push(new boidType(100, 110, 1));
@@ -412,7 +582,7 @@ window.addEventListener('load', init, false);
 <option value="7">7</option>
 <option value="8">8</option>
 <option value="9">9</option>
-<option value="10">10</option>
+<option value="10" selected>10</option>
 </select></p>
 
 </div>
