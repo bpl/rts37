@@ -18,6 +18,14 @@ map.height = 64;
 	for (var i = 0; i < map.width * map.height; ++i) {
 		map.push(1);
 	}
+	for (var i = 0; i < map.width; ++i) {
+		map[i] = 3;
+		map[map.length - 1 - i] = 3;
+	}
+	for (var i = 0; i < map.height; ++i) {
+		map[i * map.width] = 3;
+		map[(i + 1) * map.width - 1] = 3;
+	}
 })();
 
 var startCoords = [2, 2];
@@ -32,7 +40,7 @@ map.indexToCoords = function (idx) {
 	return [idx % this.width, Math.floor(idx / this.width)];
 };
 
-var mapColors = ['#f00', '#ccc', '#00f'];
+var mapColors = ['#f00', '#ccc', '#00f', '#999'];
 var tileSize = 7;
 
 function drawTile(ctx, x, y, color) {
@@ -88,24 +96,38 @@ function init() {
 	var ctx = canvas.getContext('2d');
 	updateCanvas(ctx);
 	ctx.lineWidth = 3;
-	
+
 	var lastX = -1;
 	var lastY = -1;
 	var setTo = 1;
-	
+
+	var brushSize = 0;
+
+	function drawOnMap(cx, cy) {
+		for (var x = cx - brushSize; x <= cx + brushSize; ++x) {
+			for (var y = cy - brushSize; y <= cy + brushSize; ++y) {
+				if (x > 0 && x < map.width - 1 && y > 0 && y < map.height - 1) {
+					var idx = map.coordsToIndex(x, y);
+					map[idx] = setTo;
+					drawTile(ctx, x, y, mapColors[setTo]);
+				}
+			}
+		}
+	}
+
 	canvas.addEventListener('mousedown', function (evt) {
+		brushSize = document.getElementById('brush').selectedIndex;
 		var x = Math.floor((evt.clientX - canvas.offsetLeft) / tileSize);
 		var y = Math.floor((evt.clientY - canvas.offsetTop) / tileSize);
 		if (x >= 0 && x < map.width && y >= 0 && y < map.height) {
 			var idx = map.coordsToIndex(x, y);
 			setTo = 3 - map[idx];
-			map[idx] = setTo;
-			drawTile(ctx, x, y, mapColors[setTo]);
+			drawOnMap(x, y);
 			lastX = x;
 			lastY = y;
 		}
 	}, false);
-	
+
 	canvas.addEventListener('mousemove', function (evt) {
 		if (lastX < 0 || lastY < 0) {
 			return;
@@ -114,18 +136,17 @@ function init() {
 		var y = Math.floor((evt.clientY - canvas.offsetTop) / tileSize);
 		if (x >= 0 && x < map.width && y >= 0 && y < map.height && (x != lastX || y != lastY)) {
 			var idx = map.coordsToIndex(x, y);
-			map[idx] = setTo;
-			drawTile(ctx, x, y, mapColors[setTo]);
+			drawOnMap(x, y);
 			lastX = x;
 			lastY = y;
 		}
 	}, false);
-	
+
 	canvas.addEventListener('mouseup', function (evt) {
 		lastX = -1;
 		lastY = -1;
 	}, false);
-	
+
 	var elms = document.getElementsByTagName('button');
 	for (var i = 0; i < elms.length; ++i) {
 		elms[i].addEventListener('click', function () {
@@ -171,9 +192,13 @@ window.addEventListener('load', init, false);
 
 <p><button value="potentialField">Potential</button></p>
 
+<p><button value="potentialField2">Potential 2</button></p>
+
 <p><label><input type="checkbox" id="debug">Debug</label></p>
 
 <p><label><input type="checkbox" id="draw" checked>Draw</label></p>
+
+<p><select id="brush"><option value="0">1x1</option><option value="1">3x3</option><option value="2" selected>5x5</option></select></p>
 
 <p id="time">Time: ? ms</p>
 

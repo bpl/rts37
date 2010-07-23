@@ -53,7 +53,7 @@ Pathfinder.naiveAStar = function (map, startIdx, endIdx, debug) {
 					}
 					// Otherwise do the following.
 					var G = tiles[currentIdx][1] + (xDelta && yDelta ? 14 : 10);
-					var H = (Math.abs(x - endX) + Math.abs(y - endY)) * 10; 
+					var H = (Math.abs(x - endX) + Math.abs(y - endY)) * 10;
 					if (!tile) {
 						// If it isn’t on the open list, add it to the open list.
 						// Make the current square the parent of this square.
@@ -136,7 +136,7 @@ Pathfinder.naiveAStar2 = function (map, startIdx, endIdx, debug) {
 					}
 					// Otherwise do the following.
 					var G = tiles[currentIdx][1] + (xDelta && yDelta ? 14 : 10);
-					var H = (Math.abs(x - endX) + Math.abs(y - endY)) * 10; 
+					var H = (Math.abs(x - endX) + Math.abs(y - endY)) * 10;
 					if (!tile) {
 						// If it isn’t on the open list, add it to the open list.
 						// Make the current square the parent of this square.
@@ -217,7 +217,7 @@ Pathfinder.naiveAStar3 = function (map, startIdx, endIdx, debug) {
 					}
 					// Otherwise do the following.
 					var G = tiles[currentIdx][1] + (xDelta && yDelta ? 14 : 10);
-					var H = (Math.abs(x - endX) + Math.abs(y - endY)) * 10; 
+					var H = (Math.abs(x - endX) + Math.abs(y - endY)) * 10;
 					if (!tile) {
 						// If it isn’t on the open list, add it to the open list.
 						// Make the current square the parent of this square.
@@ -296,7 +296,7 @@ Pathfinder.naiveAStar4 = function (map, startIdx, endIdx, debug) {
 					}
 					// Otherwise do the following.
 					var G = tiles[currentIdx][1] + (xDelta && yDelta ? 14 : 10);
-					var H = (Math.abs(x - endX) + Math.abs(y - endY)) * 10; 
+					var H = (Math.abs(x - endX) + Math.abs(y - endY)) * 10;
 					if (!tile) {
 						// If it isn’t on the open list, add it to the open list.
 						// Make the current square the parent of this square.
@@ -443,6 +443,107 @@ Pathfinder.potentialField = function (map, startIdx, endIdx, debug) {
 				}
 			}
 		}
+	}
+	if (debug) {
+		for (var idx = 0; idx < pf.length; ++idx) {
+			if (pf[idx]) {
+				debug[idx] = pf[idx];
+			}
+		}
+	}
+	var currentIdx = startIdx;
+	stack.push(startIdx);
+	while (currentIdx != endIdx) {
+		var cost = pf[currentIdx];
+		var currentX = currentIdx % map.width;
+		var currentY = currentIdx >> widthShift;
+		var bestIdx = -1;
+		for (var yDelta = -1; yDelta <= 1; ++yDelta) {
+			for (var xDelta = -1; xDelta <= 1; ++xDelta) {
+				var x = currentX + xDelta;
+				var y = currentY + yDelta;
+				if ((xDelta || yDelta) && x >= 0 && x < map.width && y >= 0 && y < map.height) {
+					var idx = y * map.width + x;
+					if (pf[idx] < cost) {
+						bestIdx = idx;
+						cost = pf[idx];
+					}
+				}
+			}
+		}
+		if (bestIdx < 0) {
+			return null;
+		}
+		stack.push(bestIdx);
+		currentIdx = bestIdx;
+	}
+	return stack;
+};
+
+Pathfinder.potentialField2 = function (map, startIdx, endIdx, debug) {
+	var tileCount = map.width * map.height;
+	var widthShift = 7;
+	assert(map.width == (1 << widthShift), 'potentialField2: width mismatch');
+	var pf = [];
+	for (var i = map.length - 1; i >= 0; --i) {
+		pf.push(1000000);
+	}
+	var stack = [];
+	var stack2 = [endIdx];
+	pf[endIdx] = 1;
+	var cost = 1;
+	var mapWidth = map.width;
+	while (stack.length > 0 || stack2.length > 0) {
+		++cost;
+		for (var i = stack.length - 1; i >= 0; --i) {
+			var currentIdx = stack[i];
+			var idx = currentIdx + 1;
+			if (map[idx] == 1 && pf[idx] > cost) {
+				pf[idx] = cost;
+				stack2.push(idx);
+			}
+			var idx = currentIdx - 1;
+			if (map[idx] == 1 && pf[idx] > cost) {
+				pf[idx] = cost;
+				stack2.push(idx);
+			}
+			var idx = currentIdx + mapWidth;
+			if (map[idx] == 1 && pf[idx] > cost) {
+				pf[idx] = cost;
+				stack2.push(idx);
+			}
+			var idx = currentIdx - mapWidth;
+			if (map[idx] == 1 && pf[idx] > cost) {
+				pf[idx] = cost;
+				stack2.push(idx);
+			}
+		}
+		stack.length = 0;
+		++cost;
+		for (var i = stack2.length - 1; i >= 0; --i) {
+			var currentIdx = stack2[i];
+			var idx = currentIdx + 1;
+			if (map[idx] == 1 && pf[idx] > cost) {
+				pf[idx] = cost;
+				stack.push(idx);
+			}
+			var idx = currentIdx - 1;
+			if (map[idx] == 1 && pf[idx] > cost) {
+				pf[idx] = cost;
+				stack.push(idx);
+			}
+			var idx = currentIdx + mapWidth;
+			if (map[idx] == 1 && pf[idx] > cost) {
+				pf[idx] = cost;
+				stack.push(idx);
+			}
+			var idx = currentIdx - mapWidth;
+			if (map[idx] == 1 && pf[idx] > cost) {
+				pf[idx] = cost;
+				stack.push(idx);
+			}
+		}
+		stack2.length = 0;
 	}
 	if (debug) {
 		for (var idx = 0; idx < pf.length; ++idx) {
