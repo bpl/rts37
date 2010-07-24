@@ -110,7 +110,7 @@ SweepBall.prototype.setPosition = function (x, y) {
 	while (this.prevX && this.x < this.prevX.x) {
 		var prev = this.prevX;
 		if (this.nextX) {
-			this.nextX.prevX = prev; 
+			this.nextX.prevX = prev;
 		}
 		if (prev.prevX) {
 			prev.prevX.nextX = this;
@@ -123,7 +123,7 @@ SweepBall.prototype.setPosition = function (x, y) {
 	while (this.nextX && this.x > this.nextX.x) {
 		var next = this.nextX;
 		if (this.prevX) {
-			this.prevX.nextX = next; 
+			this.prevX.nextX = next;
 		}
 		if (next.nextX) {
 			next.nextX.prevX = this;
@@ -201,7 +201,7 @@ SweepBall2.prototype.setPosition = function (x, y) {
 	while (this.prevX && this.x < this.prevX.x) {
 		var prev = this.prevX;
 		if (this.nextX) {
-			this.nextX.prevX = prev; 
+			this.nextX.prevX = prev;
 		}
 		if (prev.prevX) {
 			prev.prevX.nextX = this;
@@ -214,7 +214,7 @@ SweepBall2.prototype.setPosition = function (x, y) {
 	while (this.nextX && this.x > this.nextX.x) {
 		var next = this.nextX;
 		if (this.prevX) {
-			this.prevX.nextX = next; 
+			this.prevX.nextX = next;
 		}
 		if (next.nextX) {
 			next.nextX.prevX = this;
@@ -227,7 +227,7 @@ SweepBall2.prototype.setPosition = function (x, y) {
 	while (this.prevY && this.y < this.prevY.y) {
 		var prev = this.prevY;
 		if (this.nextY) {
-			this.nextY.prevY = prev; 
+			this.nextY.prevY = prev;
 		}
 		if (prev.prevY) {
 			prev.prevY.nextY = this;
@@ -240,7 +240,7 @@ SweepBall2.prototype.setPosition = function (x, y) {
 	while (this.nextY && this.y > this.nextY.y) {
 		var next = this.nextY;
 		if (this.prevY) {
-			this.prevY.nextY = next; 
+			this.prevY.nextY = next;
 		}
 		if (next.nextY) {
 			next.nextY.prevY = this;
@@ -340,7 +340,7 @@ Bound.prototype.setValue = function (value) {
 	while (this.prev && value < this.prev.value) {
 		var prev = this.prev;
 		if (this.next) {
-			this.next.prev = prev; 
+			this.next.prev = prev;
 		}
 		if (prev.prev) {
 			prev.prev.next = this;
@@ -353,7 +353,7 @@ Bound.prototype.setValue = function (value) {
 	while (this.next && value > this.next.value) {
 		var next = this.next;
 		if (this.prev) {
-			this.prev.next = next; 
+			this.prev.next = next;
 		}
 		if (next.next) {
 			next.next.prev = this;
@@ -803,10 +803,6 @@ SweepBall7.tick = function () {
 // TileBall //
 //////////////
 
-var tileShift = 6; /* was: 6 */
-var tileYShift = 16;
-var tiles = {};
-
 function TileBall(x, y, dX, dY, radius, idx) {
 	this.x = 4000000;
 	this.y = 4000000;
@@ -817,9 +813,19 @@ function TileBall(x, y, dX, dY, radius, idx) {
 	this.setPosition(x, y);
 }
 
+TileBall.init = function () {
+	tileShift = 6;
+	tileYShift = 6;
+	tileArray = [];
+	for (var i = 0; i < 1 << tileYShift << tileYShift; ++i) {
+		tileArray.push([]);
+	}
+};
+
 TileBall.prototype.setPosition = function (x, y) {
-	var oldIdx = (this.x >> tileShift) + ((this.y >> tileShift) << tileYShift),
-		newIdx = (x >> tileShift) + ((y >> tileShift) << tileYShift);
+	var oldIdx = (this.x >> tileShift) + ((this.y >> tileShift) << tileYShift);
+	var newIdx = (x >> tileShift) + ((y >> tileShift) << tileYShift);
+	var tiles = tileArray;
 	if (oldIdx != newIdx) {
 		var tile = tiles[oldIdx];
 		if (tile) {
@@ -829,11 +835,9 @@ TileBall.prototype.setPosition = function (x, y) {
 			}
 		}
 		tile = tiles[newIdx];
-		if (!tile) {
-			tile = [];
-			tiles[newIdx] = tile;
+		if (tile) {
+			tile.push(this);
 		}
-		tile.push(this);
 	}
 	this.x = x;
 	this.y = y;
@@ -843,18 +847,22 @@ TileBall.prototype.collides = PairwiseBall.prototype.collides;
 
 TileBall.tick = function () {
 	var balls = ballArray;
+	var tiles = tileArray;
 	for (var i = 0; i < balls.length; ++i) {
 		var ball = balls[i];
 		ball.setPosition(ball.x + ball.dX, ball.y + ball.dY);
 	}
 	var collided = {};
-	for (var tileIdx in tiles) {
+	for (var tileIdx = 0; tileIdx < tiles.length; ++tileIdx) {
 		var tile = tiles[tileIdx];
 		for (var i = 0; i < tile.length; ++i) {
 			var actor1 = tile[i];
 			for (var j = 0; j < tile.length; ++j) {
 				var actor2 = tile[j];
-				if (i != j && Math.pow(actor1.x - actor2.x, 2) + Math.pow(actor1.y - actor2.y, 2) < Math.pow(actor1.radius + actor2.radius, 2)) {
+				var dx = actor1.x - actor2.x;
+				var dy = actor1.y - actor2.y;
+				var radii = actor1.radius + actor2.radius;
+				if (i != j && dx*dx + dy*dy <= radii*radii) {
 					collided[actor1.idx] = true;
 					collided[actor2.idx] = true;
 				}
@@ -863,7 +871,10 @@ TileBall.tick = function () {
 			if (tile2) {
 				for (var j = 0; j < tile2.length; ++j) {
 					var actor2 = tile2[j];
-					if (Math.pow(actor1.x - actor2.x, 2) + Math.pow(actor1.y - actor2.y, 2) < Math.pow(actor1.radius + actor2.radius, 2)) {
+					var dx = actor1.x - actor2.x;
+					var dy = actor1.y - actor2.y;
+					var radii = actor1.radius + actor2.radius;
+					if (dx*dx + dy*dy <= radii*radii) {
 						collided[actor1.idx] = true;
 						collided[actor2.idx] = true;
 					}
@@ -873,14 +884,124 @@ TileBall.tick = function () {
 			if (tile2) {
 				for (var j = 0; j < tile2.length; ++j) {
 					var actor2 = tile2[j];
-					if (Math.pow(actor1.x - actor2.x, 2) + Math.pow(actor1.y - actor2.y, 2) < Math.pow(actor1.radius + actor2.radius, 2)) {
+					var dx = actor1.x - actor2.x;
+					var dy = actor1.y - actor2.y;
+					var radii = actor1.radius + actor2.radius;
+					if (dx*dx + dy*dy <= radii*radii) {
+						collided[actor1.idx] = true;
+						collided[actor2.idx] = true;
+					}
+				}
+			}
+			var tile2 = tiles[tileIdx - 1 - (1 << tileYShift)];
+			if (tile2) {
+				for (var j = 0; j < tile2.length; ++j) {
+					var actor2 = tile2[j];
+					var dx = actor1.x - actor2.x;
+					var dy = actor1.y - actor2.y;
+					var radii = actor1.radius + actor2.radius;
+					if (dx*dx + dy*dy <= radii*radii) {
 						collided[actor1.idx] = true;
 						collided[actor2.idx] = true;
 					}
 				}
 			}
 		}
-	}	
+	}
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		if (collided[ball.idx]) {
+			ball.dX *= -1;
+			ball.dY *= -1;
+		} else {
+			if (ball.x < 0) {
+				if (ball.dX < 0) {
+					ball.dX *= -1;
+				}
+			} else if (ball.x > fieldWidth) {
+				if (ball.dX > 0) {
+					ball.dX *= -1;
+				}
+			}
+			if (ball.y < 0) {
+				if (ball.dY < 0) {
+					ball.dY *= -1;
+				}
+			} else if (ball.y > fieldHeight) {
+				if (ball.dY > 0) {
+					ball.dY *= -1;
+				}
+			}
+		}
+	}
+};
+
+////////////////
+// TileBall2 //
+//////////////
+
+function TileBall2(x, y, dX, dY, radius, idx) {
+	this.x = 4000000;
+	this.y = 4000000;
+	this.dX = dX;
+	this.dY = dY;
+	this.radius = radius;
+	this.idx = idx;
+	this.setPosition(x, y);
+}
+
+TileBall2.init = function () {
+	tiles = [];
+	for (var i = 0; i < 6067; ++i) {
+		tiles.push([]);
+	}
+};
+
+TileBall2.prototype.setPosition = function (x, y) {
+	var oldIdx = ((this.x >> 5) ^ (this.y >> 5)) % tiles.length;
+	var newIdx = ((x >> 5) ^ (y >> 5)) % tiles.length;
+	if (oldIdx != newIdx) {
+		var tile = tiles[oldIdx];
+		if (tile) {
+			var idx = tile.indexOf(this);
+			if (idx >= 0) {
+				tile.splice(idx, 1);
+			}
+		}
+		tile = tiles[newIdx];
+		if (tile) {
+			tile.push(this);
+		}
+	}
+	this.x = x;
+	this.y = y;
+};
+
+TileBall2.prototype.collides = PairwiseBall.prototype.collides;
+
+TileBall2.tick = function () {
+	var balls = ballArray;
+	for (var i = 0; i < balls.length; ++i) {
+		var ball = balls[i];
+		ball.setPosition(ball.x + ball.dX, ball.y + ball.dY);
+	}
+	var collided = {};
+	for (var i = 0; i < balls.length; ++i) {
+		var actor1 = balls[i];
+		for (var j = -1; j <= 1; ++j) {
+			for (var k = -1; k <= 1; ++k) {
+				var tile = tiles[(((actor1.x + j) >> 5) ^ ((actor1.y + k) >> 5)) % tiles.length];
+				if (tile) {
+					for (var l = 0; l < tile.length; ++l) {
+						var actor2 = tile[l];
+						if (actor1 != actor2 && Math.pow(actor1.x - actor2.x, 2) + Math.pow(actor1.y - actor2.y, 2) < Math.pow(actor1.radius + actor2.radius, 2)) {
+							collided[actor2.idx] = true;
+						}
+					}
+				}
+			}
+		}
+	}
 	for (var i = 0; i < balls.length; ++i) {
 		var ball = balls[i];
 		if (collided[ball.idx]) {
@@ -945,65 +1066,32 @@ function drawBalls(ctx) {
 	}
 }
 
-function setupLoop(ctx, type, tickFunc) {
+function setupLoop(ctx, type) {
 	var timeNode = document.getElementById('time').firstChild;
 	var doDraw = document.getElementById('draw').checked;
+	if (type.init) {
+		type.init();
+	}
 	initBalls(type);
 	window.setInterval(function () {
 		if (doDraw) {
 			drawBalls(ctx);
 		}
 		var atStart = new Date();
-		tickFunc();
+		type.tick();
 		var atEnd = new Date();
 		timeNode.nodeValue = 'Time : ' + (atEnd - atStart) + ' ms';
 	}, 10);
 }
 
-function pairwise(ctx) {
-	setupLoop(ctx, PairwiseBall, PairwiseBall.tick);
-}
-
-function sweepprune(ctx) {
-	setupLoop(ctx, SweepBall, SweepBall.tick);
-}
-
-function sweepprune2(ctx) {
-	setupLoop(ctx, SweepBall2, SweepBall2.tick);
-}
-
-function sweepprune3(ctx) {
-	setupLoop(ctx, SweepBall3, SweepBall3.tick);
-}
-
-function sweepprune4(ctx) {
-	setupLoop(ctx, SweepBall4, SweepBall4.tick);
-}
-
-function sweepprune5(ctx) {
-	setupLoop(ctx, SweepBall5, SweepBall5.tick);
-}
-
-function sweepprune6(ctx) {
-	setupLoop(ctx, SweepBall6, SweepBall6.tick);
-}
-
-function sweepprune7(ctx) {
-	setupLoop(ctx, SweepBall7, SweepBall7.tick);
-}
-
-function tile(ctx) {
-	setupLoop(ctx, TileBall, TileBall.tick);
-}
-
 function init() {
 	var canvas = document.getElementById('screen');
 	var ctx = canvas.getContext('2d');
-	
+
 	var elms = document.getElementsByTagName('button');
 	for (var i = 0; i < elms.length; ++i) {
 		elms[i].addEventListener('click', function () {
-			window[this.value](ctx);
+			setupLoop(ctx, window[this.value]);
 		}, false);
 	}
 }
@@ -1018,23 +1106,25 @@ window.addEventListener('load', init, false);
 
 <div style="position : absolute; top : 20px; left : 920px;">
 
-<p><button value="pairwise">Pairwise</button></p>
+<p><button value="PairwiseBall">Pairwise</button></p>
 
-<p><button value="sweepprune">Sweep&amp;Prune</button></p>
+<p><button value="SweepBall">Sweep&amp;Prune</button></p>
 
-<p><button value="sweepprune2">S&amp;P 2</button></p>
+<p><button value="SweepBall2">S&amp;P 2</button></p>
 
-<p><button value="sweepprune3">S&amp;P 3</button></p>
+<p><button value="SweepBall3">S&amp;P 3</button></p>
 
-<p><button value="sweepprune4">S&amp;P 4</button></p>
+<p><button value="SweepBall4">S&amp;P 4</button></p>
 
-<p><button value="sweepprune5">S&amp;P 5</button></p>
+<p><button value="SweepBall5">S&amp;P 5</button></p>
 
-<p><button value="sweepprune6">S&amp;P 6</button></p>
+<p><button value="SweepBall6">S&amp;P 6</button></p>
 
-<p><button value="sweepprune7">S&amp;P 7</button></p>
+<p><button value="SweepBall7">S&amp;P 7</button></p>
 
-<p><button value="tile">Tile</button></p>
+<p><button value="TileBall">Tile</button></p>
+
+<p><button value="TileBall2">Tile 2</button></p>
 
 <p><label>Count:<br><input type="text" size="5" value="100" id="count"></label></p>
 
