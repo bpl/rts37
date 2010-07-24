@@ -26,6 +26,7 @@ var options = {
 	'collisionDistance': 10,
 	'separationDistance': 15,
 	'goalReachedDistance': 20,
+	'lookAheadTicks': 40,
 	'speed': 2,
 	'rotationSpeed': Math.PI / 10,
 	'size': 5
@@ -39,6 +40,7 @@ var options = {
 	'collisionDistance': 13,
 	'separationDistance': 20,
 	'goalReachedDistance': 20,
+	'lookAheadTicks': 40,
 	'speed': 0.5,
 	'rotationSpeed': Math.PI / 80,
 	'size': 5
@@ -49,6 +51,20 @@ var groupColors = [
 	'#000',
 	'#900',
 	'#090',
+	'#009'
+];
+
+var STEERING_METHODS = {
+	'STATIONARY': 0,
+	'HARD_COLLISION': 1,
+	'AVOID_COLLISION': 2,
+	'SEEK_GOAL': 3
+};
+
+var METHOD_COLORS = [
+	'#ff0',
+	'#f00',
+	'#0f0',
 	'#009'
 ];
 
@@ -74,6 +90,79 @@ function scale(dx, dy, speed) {
 	var rad = Math.atan2(dy, dx);
 	return [speed * Math.cos(rad), speed * Math.sin(rad)];
 }
+
+function subtract(a, b) {
+	return {'x': a.x - b.x, 'y': a.y - b.y};
+}
+
+function dot(a, b) {
+	return a.x * b.x + a.y * b.y;
+}
+
+function distance(a, b) {
+	var dx = a.x - b.x;
+	var dy = a.y - b.y;
+	return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Returns the shortest distance between two line segments (p1, p2), (p3, p4),
+// and points on the nearest approach, or null if there is no solution.
+// Adapted from http://local.wasp.uwa.edu.au/~pbourke/geometry/lineline3d/
+function lineSegmentDistance(p1, p2, p3, p4) {
+	var EPS = 0.0000001;
+
+	var p13 = {'x': p1.x - p3.x, 'y': p1.y - p3.y};
+	var p43 = {'x': p4.x - p3.x, 'y': p4.y - p3.y};
+	if (Math.abs(p43.x) < EPS && Math.abs(p43.y) < EPS) {
+		return null;
+	}
+
+	var p21 = {'x': p2.x - p1.x, 'y': p2.y - p1.y};
+	if (Math.abs(p21.x) < EPS && Math.abs(p21.y) < EPS) {
+		return null;
+	}
+
+	var d1343 = p13.x * p43.x + p13.y * p43.y;
+	var d4321 = p43.x * p21.x + p43.y * p21.y;
+	var d1321 = p13.x * p21.x + p13.y * p21.y;
+	var d4343 = p43.x * p43.x + p43.y * p43.y;
+	var d2121 = p21.x * p21.x + p21.y * p21.y;
+
+	var denom = d2121 * d4343 - d4321 * d4321;
+	if (Math.abs(denom) < EPS) {
+		return null;
+	}
+	var numer = d1343 * d4321 - d1321 * d4343;
+
+	var mua = numer / denom;
+	var mub = (d1343 + d4321 * mua) / d4343;
+
+	if (mua < 0 || mub < 0) {
+		return;
+	}
+
+	var result = {};
+
+	if (mua > 1) {
+		result.a = {'x': p2.x, 'y': p2.y};
+	} else {
+		result.a = {'x': p1.x + mua * p21.x, 'y': p1.y + mua * p21.y};
+	}
+
+	if (mub > 1) {
+		result.b = {'x': p4.x, 'y': p4.y};
+	} else {
+		result.b = {'x': p3.x + mub * p43.x, 'y': p3.y + mub * p43.y};
+	}
+
+	result.d = Math.sqrt(
+		Math.pow(result.a.x - result.b.x, 2) +
+		Math.pow(result.a.y - result.b.y, 2)
+	);
+
+	return result;
+}
+
 
 ///////////
 // Boid //
@@ -457,6 +546,164 @@ Boid5.prototype.tick = function () {
 	this.y = newY;
 };
 
+////////////
+// Boid6 //
+//////////
+
+function Boid6(x, y, group) {
+	Boid2.call(this, x, y, group);
+	this.method = 0;
+	this.steer = null;
+};
+
+Boid6.prototype.setTarget = Boid2.prototype.setTarget;
+
+Boid6.prototype.getMates = Boid.prototype.getMates;
+
+Boid6.prototype.getLocation = function () {
+	return {'x': this.x, 'y': this.y};
+};
+
+Boid6.prototype.getLookAheadPoint = function () {
+	if (this.goalReached) {
+		return {'x': this.x, 'y': this.y};
+	} else {
+		return {
+			'x': this.x + this.speed * options.lookAheadTicks * Math.cos(this.heading),
+			'y': this.y + this.speed * options.lookAheadTicks * Math.sin(this.heading)
+		};
+	}
+};
+
+Boid6.prototype.steerFromHardCollision = function (mates) {
+	var resX = 0;
+	var resY = 0;
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		if (mate[1] <= options.collisionDistance) {
+			resX += this.x - mate[0].x;
+			resY += this.y - mate[0].y;
+		}
+	}
+	if (resX || resY) {
+		return [resX, resY];
+	}
+	return null;
+};
+
+// Derived from the OpenSteer approach
+Boid6.prototype.steerToAvoidCollision = function (mates) {
+	var minDistance = Infinity;
+	var threat = null;
+	var collision = null;
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		// Collision avoidance (threat finding phase)
+		var potentialCollision = lineSegmentDistance(this.getLocation(), this.getLookAheadPoint(), mate[0].getLocation(), mate[0].getLookAheadPoint());
+		if (potentialCollision && potentialCollision.d <= options.collisionDistance) {
+			var dist = distance(this, potentialCollision.a);
+			if (dist < minDistance) {
+				minDistance = dist;
+				threat = mate[0];
+				collision = potentialCollision;
+			}
+		}
+	}
+
+	if (!threat) {
+		return null;
+	}
+
+	// Collision avoidance (steering phase)
+
+	// Parallel: +1, perpendicular: 0, anti-parallel: -1
+	var parallelness = Math.cos(this.heading) * Math.cos(threat.heading) +
+			Math.sin(this.heading) * Math.sin(threat.heading);
+	var angle = 0.707;
+
+	// If a potential collision was found, compute steering to avoid
+	var steer = 0;
+
+	var side = {
+		'x': -(Math.sin(this.heading)),
+		'y': Math.cos(this.heading)
+	};
+
+	if (parallelness < -angle) {
+		// Anti-parallel "head on" paths: steer away from future threat position
+		var offset = subtract(collision.b, this);
+		steer = dot(offset, side) > 0 ? -1 : 1;
+	} else if (parallelness > angle) {
+		// Parallel paths: steer away from threat
+		var offset = subtract(threat, this);
+		steer = dot(offset, side) > 0 ? -1 : 1;
+	} else {
+		// Perpendicular paths: steer behind threat (only the slower of two does
+		// this).
+		// FIXME: Does this make sense
+		if (threat.speed <= this.speed) {
+			var threatVelocity = {
+				'x': Math.cos(threat.heading),
+				'y': Math.sin(threat.heading)
+			};
+			steer = dot(side, threatVelocity) > 0 ? -1 : 1;
+		}
+	}
+
+	if (steer === 0) {
+		return null;
+	} else if (steer > 0) {
+		return [side.x, side.y];
+	} else {
+		return [-side.x, -side.y];
+	}
+};
+
+Boid6.prototype.steerTowardsGoal = function () {
+	if (!this.goalReached) {
+		if (Math.pow(this.targetX - this.x, 2) + Math.pow(this.targetY - this.y, 2)
+				<= Math.pow(options.goalReachedDistance, 2)) {
+			this.goalReached = true;
+		} else {
+			return [this.targetX - this.x, this.targetY - this.y];
+		}
+	}
+	return null;
+};
+
+// See http://www.red3d.com/cwr/steer/gdc99/
+Boid6.prototype.tick = function () {
+	var mates = this.getMates();
+	var steer = null;
+	if (!steer) {
+		steer = this.steerFromHardCollision(mates);
+		this.method = STEERING_METHODS.HARD_COLLISION;
+	}
+	if (!steer) {
+		steer = this.steerToAvoidCollision(mates);
+		this.method = STEERING_METHODS.AVOID_COLLISION;
+	}
+	if (!steer) {
+		steer = this.steerTowardsGoal();
+		this.method = STEERING_METHODS.SEEK_GOAL;
+	}
+	// Apply combined
+	this.steer = steer;
+	if (!steer) {
+		this.method = STEERING_METHODS.STATIONARY;
+		return;
+	}
+	var targetHeading = Math.atan2(steer[1], steer[0]);
+	var angleDelta = MathUtil.angleDelta(this.heading, targetHeading);
+	if (Math.abs(angleDelta) > this.rotationSpeed) {
+		this.heading = MathUtil.normalizeAngle(this.heading + angleDelta / Math.abs(angleDelta) * this.rotationSpeed);
+	} else {
+		this.heading = targetHeading;
+	}
+	this.x = this.x + this.speed * Math.cos(this.heading);
+	this.y = this.y + this.speed * Math.sin(this.heading);
+};
+
 ////////////////
 // Main loop //
 //////////////
@@ -469,7 +716,7 @@ function init() {
 	fieldWidth = parseInt(canvas.width);
 	fieldHeight = parseInt(canvas.height);
 
-	var boidType = Boid5;
+	var boidType = Boid6;
 
 	boids.push(new boidType(100, 100, 1));
 	boids.push(new boidType(100, 110, 1));
@@ -487,6 +734,7 @@ function init() {
 		if (!paint) {
 			ctx.fillStyle = '#fff';
 		}
+		ctx.strokeStyle = '#00f';
 		for (var i = 0; i < boids.length; ++i) {
 			var boid = boids[i];
 			ctx.save();
@@ -499,6 +747,25 @@ function init() {
 			}
 			ctx.fillRect(-size, -size, size * 2 + 1, size * 2 + 1);
 			ctx.restore();
+			if (boid.steer) {
+				ctx.save();
+				if (boid.getLookAheadPoint) {
+					var lap = boid.getLookAheadPoint();
+					ctx.beginPath();
+					ctx.moveTo(boid.x, boid.y);
+					ctx.lineTo(lap.x, lap.y);
+					ctx.stroke();
+				}
+				if (boid.method) {
+					ctx.strokeStyle = METHOD_COLORS[boid.method];
+					ctx.beginPath();
+					ctx.moveTo(boid.x, boid.y);
+					var scaledSteer = scale(boid.steer[0], boid.steer[1], 20);
+					ctx.lineTo(boid.x + scaledSteer[0], boid.y + scaledSteer[1]);
+					ctx.stroke();
+				}
+				ctx.restore();
+			}
 		}
 		ctx.restore();
 	}
@@ -508,7 +775,7 @@ function init() {
 			return;
 		}
 		setInterval(function () {
-			drawScreen(false, options.size + 1);
+			drawScreen(false, options.size + options.lookAheadTicks * options.speed * 1);
 			var atStart = new Date();
 			for (var i = 0; i < boids.length; ++i) {
 				boids[i].tick();
