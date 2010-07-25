@@ -24,6 +24,7 @@ var creationCounter = 0;
 var options = {
 	'visualDistance': 20,
 	'collisionDistance': 10,
+	'avoidDistance': 20,
 	'separationDistance': 15,
 	'goalReachedDistance': 20,
 	'lookAheadTicks': 40,
@@ -36,11 +37,12 @@ var options = {
 ///*
 // Slower, more tank-like behavior
 var options = {
-	'visualDistance': 20,
+	'visualDistance': 30,
 	'collisionDistance': 13,
+	'avoidDistance': 15,
 	'separationDistance': 20,
 	'goalReachedDistance': 20,
-	'lookAheadTicks': 40,
+	'lookAheadTicks': 80,
 	'speed': 0.5,
 	'rotationSpeed': Math.PI / 80,
 	'size': 5
@@ -163,6 +165,91 @@ function lineSegmentDistance(p1, p2, p3, p4) {
 	return result;
 }
 
+// Returns the shortest distance between two points p1, p2, travelling
+// distance v1, v2, and when the nearest approach occurs, or null if will not be
+// any collision.
+// See http://www.flipcode.com/archives/Theory_Practice-Issue_01_Collision_Detection.shtml
+function nearestApproach(p1, v1, p2, v2) {
+	// t_1 = -(ax + by) / (a^2 + b^2)
+	// where a is the X component of the relative velocity of p2
+	//       b is the Y component of the relative velocity of p2
+	//       x is the X component of the relative location of p2
+	//       y is the Y component of the relative location of p2
+
+	var a = v2.x - v1.x;
+	var b = v2.y - v1.y;
+	var x = p2.x - p1.x;
+	var y = p2.y - p1.y;
+
+	var denom = (a * a + b * b);
+	if (denom === 0) {
+		return null;
+	}
+	var t = -(a * x + b * y) / denom;
+
+	console.log(t);
+
+	if (t < 0 || t > 1) {
+		return null;
+	}
+
+	return {
+		'a': {'x': p1.x + v1.x * t, 'y': p1.y + v1.y * t},
+		'b': {'x': p2.x + v2.x * t, 'y': p2.y + v2.y * t},
+		't': t
+	};
+}
+
+// Returns the first collision between two circles p1, p2, travelling distances
+// v1, v2 at uniform speed, when the combined radii are r. Returns null if there
+// will not be such collision.
+// See http://www.flipcode.com/archives/Theory_Practice-Issue_01_Collision_Detection.shtml
+function firstCollision(p1, v1, p2, v2, r) {
+	// (x + a*t)^2 + (y + b*t)^2 = r^2
+	// Where x = p1.x - p2.x
+	//       y = p1.y - p2.y
+	//       a = v1.x - v2.x
+	//       b = v1.y - v2.y
+	// Solved for t
+	// http://www.wolframalpha.com/input/?i=%28x+%2B+a*t%29^2+%2B+%28y+%2B+b*t%29^2+%3D+r^2+solve+for+t
+
+	var x = p1.x - p2.x;
+	var y = p1.y - p2.y;
+	var a = v1.x - v2.x;
+	var b = v1.y - v2.y;
+
+	var denom = (a*a + b*b);
+	if (denom === 0) {
+		return null;
+	}
+
+	var numera = Math.sqrt(a*a*r*r + b*b*r*r - b*b*x*x + 2*a*b*x*y - a*a*y*y);
+	var numerb = -a*x - b*y;
+
+	var roota = (-numera + numerb) / denom;
+	var rootb = (numera + numerb) / denom;
+
+	var t = 1;
+	var success = false;
+	if (roota >= 0 && roota <= t) {
+		t = roota;
+		success = true;
+	}
+	if (rootb >= 0 && rootb <= t) {
+		t = rootb;
+		success = true;
+	}
+
+	if (!success) {
+		return null;
+	}
+
+	return {
+		'a': {'x': p1.x + v1.x * t, 'y': p1.y + v1.y * t},
+		'b': {'x': p2.x + v2.x * t, 'y': p2.y + v2.y * t},
+		't': t
+	};
+}
 
 ///////////
 // Boid //
@@ -564,15 +651,20 @@ Boid6.prototype.getLocation = function () {
 	return {'x': this.x, 'y': this.y};
 };
 
-Boid6.prototype.getLookAheadPoint = function () {
+Boid6.prototype.getLookAheadVector = function () {
 	if (this.goalReached) {
-		return {'x': this.x, 'y': this.y};
+		return {'x': 0, 'y': 0};
 	} else {
 		return {
-			'x': this.x + this.speed * options.lookAheadTicks * Math.cos(this.heading),
-			'y': this.y + this.speed * options.lookAheadTicks * Math.sin(this.heading)
+			'x': this.speed * options.lookAheadTicks * Math.cos(this.heading),
+			'y': this.speed * options.lookAheadTicks * Math.sin(this.heading)
 		};
 	}
+};
+
+Boid6.prototype.getLookAheadPoint = function () {
+	var vector = this.getLookAheadVector();
+	return {'x': this.x + vector.x, 'y': this.y + vector.y};
 };
 
 Boid6.prototype.steerFromHardCollision = function (mates) {
@@ -593,20 +685,17 @@ Boid6.prototype.steerFromHardCollision = function (mates) {
 
 // Derived from the OpenSteer approach
 Boid6.prototype.steerToAvoidCollision = function (mates) {
-	var minDistance = Infinity;
+	var minTime = 2;
 	var threat = null;
 	var collision = null;
 	for (var i = 0; i < mates.length; ++i) {
 		var mate = mates[i];
 		// Collision avoidance (threat finding phase)
-		var potentialCollision = lineSegmentDistance(this.getLocation(), this.getLookAheadPoint(), mate[0].getLocation(), mate[0].getLookAheadPoint());
-		if (potentialCollision && potentialCollision.d <= options.collisionDistance) {
-			var dist = distance(this, potentialCollision.a);
-			if (dist < minDistance) {
-				minDistance = dist;
-				threat = mate[0];
-				collision = potentialCollision;
-			}
+		var potentialCollision = firstCollision(this.getLocation(), this.getLookAheadVector(), mate[0].getLocation(), mate[0].getLookAheadVector(), options.avoidDistance);
+		if (potentialCollision && potentialCollision.t < minTime) {
+			minTime = potentialCollision.t;
+			threat = mate[0];
+			collision = potentialCollision;
 		}
 	}
 
@@ -700,8 +789,20 @@ Boid6.prototype.tick = function () {
 	} else {
 		this.heading = targetHeading;
 	}
-	this.x = this.x + this.speed * Math.cos(this.heading);
-	this.y = this.y + this.speed * Math.sin(this.heading);
+	var newX = this.x + this.speed * Math.cos(this.heading);
+	var newY = this.y + this.speed * Math.sin(this.heading);
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		if (Math.pow(mate[0].x - this.x, 2) + Math.pow(mate[0].y - this.y, 2)
+				<= Math.pow(options.collisionDistance, 2)) {
+			var mateDirection = Math.atan2(mate[0].y - this.y, mate[0].x - this.x);
+			if (Math.abs(MathUtil.angleDelta(this.heading, mateDirection)) <= Math.PI / 2) {
+				return;
+			}
+		}
+	}
+	this.x = newX;
+	this.y = newY;
 };
 
 ////////////////
@@ -718,14 +819,16 @@ function init() {
 
 	var boidType = Boid6;
 
+	var initialSeparation = 40;
+
 	boids.push(new boidType(100, 100, 1));
-	boids.push(new boidType(100, 110, 1));
-	boids.push(new boidType(110, 100, 1));
-	boids.push(new boidType(110, 110, 1));
-	boids.push(new boidType(120, 100, 1));
-	boids.push(new boidType(120, 110, 1));
-	boids.push(new boidType(100, 120, 1));
-	boids.push(new boidType(110, 120, 1));
+	boids.push(new boidType(100, 100 + initialSeparation, 1));
+	boids.push(new boidType(100 + initialSeparation, 100, 1));
+	boids.push(new boidType(100 + initialSeparation, 100 + initialSeparation, 1));
+	boids.push(new boidType(100 + initialSeparation * 2, 100, 1));
+	boids.push(new boidType(100 + initialSeparation * 2, 100 + initialSeparation, 1));
+	boids.push(new boidType(100, 100 + initialSeparation * 2, 1));
+	boids.push(new boidType(100 + initialSeparation, 100 + initialSeparation * 2, 1));
 
 	var loopStarted = false;
 
