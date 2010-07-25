@@ -1,0 +1,158 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Integer Square Root Approximation Experiment</title>
+	<script type="text/javascript">
+
+// See http://supp.iar.com/FilesPublic/SUPPORT/000419/AN-G-002.pdf
+function sqrtApprox(x) {
+	var b = x;
+	var a = x = 0x3f;
+
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	// 1,0 % error at 157 000
+	// Maximum absolute error when x <= 1 000 is 2
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	// 1,0 % error at 610 000
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	// 1,0 % error at 2 390 000
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	// 1, 0 % error at 9 400 000
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	// 1,0 % error at 37 000 000
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	// 1,0 % error at 151 000 000
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	// 1,0 % error at 583 000 000
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	// 0,6 % error at 2 000 000 000
+	x = (b / x) >> 0;
+	a = x = (x + a) >> 1;
+
+	x = (b / x) >> 0;
+	return (x + a) >> 1;
+}
+
+function speedTest() {
+	var iterations = 1000000;
+
+	var approxStart = new Date();
+	for (var i = iterations; i > 0; --i) {
+		sqrtApprox(i);
+	}
+	var approxEnd = new Date();
+
+	var exactStart = new Date();
+	for (var i = iterations; i > 0; --i) {
+		Math.sqrt(i);
+	}
+	var exactEnd = new Date();
+
+	var approxMs = approxEnd.getTime() - approxStart.getTime();
+	var exactMs = exactEnd.getTime() - exactStart.getTime();
+
+	alert(
+		'Iterations: ' + iterations + '\n' +
+		'sqrtApprox: ' + approxMs + ' ms, ' + (iterations / approxMs).toFixed(0) + ' itrs/ms\n' +
+		'Math.sqrt: ' + exactMs + ' ms, ' + (iterations / exactMs).toFixed(0) + ' itrs/ms\n' +
+		'Math.sqrt is ' + (approxMs / exactMs).toFixed(1) + 'x faster'
+	);
+}
+
+function addRow(table, values) {
+	var row = document.createElement('tr');
+	for (var i = 0; i < values.length; ++i) {
+		var cell = document.createElement('td');
+		cell.appendChild(document.createTextNode(values[i]));
+		row.appendChild(cell);
+	}
+	table.appendChild(row);
+}
+
+function accuracyTest() {
+	var maxValue = 1000;
+	var step = 1;
+	/*
+	var maxValue = 2000000000;
+	var step = 1000000;
+	*/
+	var table = document.getElementById('results');
+	for (var i = 1; i <= maxValue; i += step) {
+		var approx = sqrtApprox(i);
+		var exact = Math.round(Math.sqrt(i));
+		var error = (approx - exact) / exact;
+		addRow(table, [i, approx, exact, (error * 100).toFixed(1), (approx - exact)]);
+	}
+}
+
+function accuracyTest2() {
+	var maxValue = 1000000;
+	var displayStep = 1000;
+	var verifyStep = 1;
+	var table = document.getElementById('results');
+	for (var i = 1; i <= maxValue; i += displayStep) {
+		var maxError = 0;
+		var maxErrorAbs = 0;
+		for (var j = i; j < i + displayStep; j += verifyStep) {
+			var approx = sqrtApprox(j);
+			var exact = Math.round(Math.sqrt(j));
+			var error = Math.abs((approx - exact) / exact);
+			var errorAbs = Math.abs(approx - exact);
+			if (error > maxError) {
+				maxError = error;
+			}
+			if (errorAbs > maxErrorAbs) {
+				maxErrorAbs = errorAbs;
+			}
+		}
+		addRow(table, [
+			i + '-' + (i + displayStep - 1),
+			approx,
+			exact,
+			(maxError * 100).toFixed(1),
+			maxErrorAbs
+		]);
+	}
+}
+
+	</script>
+</head>
+<body>
+
+<p><input type="button" value="speedTest" onclick="speedTest();"></p>
+
+<p><input type="button" value="accuracyTest" onclick="accuracyTest();"></p>
+
+<p><input type="button" value="accuracyTest2" onclick="accuracyTest2();"></p>
+
+<table id="results">
+	<tr>
+		<td>x</td>
+		<td>sqrtApprox(x)</td>
+		<td>Math.sqrt(x)</td>
+		<td>Error%</td>
+		<td>Error</td>
+	</tr>
+</table>
+
+</body>
+</html>
