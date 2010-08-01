@@ -60,14 +60,18 @@ var STEERING_METHODS = {
 	'STATIONARY': 0,
 	'HARD_COLLISION': 1,
 	'AVOID_COLLISION': 2,
-	'SEEK_GOAL': 3
+	'SEEK_GOAL': 3,
+	'SEPARATION': 4,
+	'AVOID_PLOW': 5
 };
 
 var METHOD_COLORS = [
 	'#ff0',
 	'#f00',
 	'#0f0',
-	'#009'
+	'#009',
+	'#090',
+	'#099'
 ];
 
 function getMode() {
@@ -247,6 +251,15 @@ function firstCollision(p1, v1, p2, v2, r) {
 		'b': {'x': p2.x + v2.x * t, 'y': p2.y + v2.y * t},
 		't': t
 	};
+}
+
+//////////
+// Vec //
+////////
+
+function Vec(x, y) {
+	this.x = x || 0;
+	this.y = y || 0;
 }
 
 ///////////
@@ -641,6 +654,107 @@ function Boid6(x, y, group) {
 	this.steer = null;
 };
 
+Boid6.init = function () {
+	// Initialize the plowfield
+	plowfieldShift = 5;   // 5: 32
+	plowfieldSize = 1 << plowfieldShift;
+	plowfieldWidth = fieldWidth >> plowfieldShift;
+	plowfieldHeight = fieldHeight >> plowfieldShift;
+	plowfield = [];
+	for (var i = 0; i < plowfieldWidth * plowfieldHeight; ++i) {
+		plowfield.push(new Vec(0, 0));
+	}
+};
+
+Boid6.resetPlowfield = function () {
+	for (var i = 0; i < plowfield.length; ++i) {
+		var tile = plowfield[i];
+		tile.x = 0;
+		tile.y = 0;
+	}
+};
+
+Boid6.extendPlowfield = function () {
+	var newTiles = {};
+	for (var y = 0; y < plowfieldHeight; ++y) {
+		for (var x = 0; x < plowfieldWidth; ++x) {
+			var tile = plowfield[y * plowfieldWidth + x];
+			var newTile = null;
+			if (tile.x == 0 && tile.y == 0) {
+				for (var xd = -1; xd <= 1; ++xd) {
+					for (var yd = -1; yd <= 1; ++yd) {
+						if (xd || yd) {
+							var tile2 = plowfield[(y + yd) * plowfieldWidth + x + xd];
+							if (tile2 && (tile2.x || tile2.y)) {
+								var scaled = scale(tile2.x, tile2.y, 1);
+								var parallelness = scaled[0] * -xd + scaled[1] * -yd;
+								var angle = 0.7;
+								if (parallelness > angle) {
+									if (!newTile) {
+										newTile = new Vec(0, 0);
+									}
+									/*
+									newTile.x -= Math.abs(tile2.x) * xd;
+									newTile.y -= Math.abs(tile2.y) * yd;
+									*/
+									var scaling = (parallelness - angle) / (1 - angle);
+									newTile.x += tile2.x * scaling;
+									newTile.y += tile2.y * scaling;
+								}
+							}
+						}
+					}
+				}
+			}
+			if (newTile) {
+				newTiles[y * plowfieldWidth + x] = newTile;
+			}
+		}
+	}
+	for (var idx in newTiles) {
+		plowfield[parseInt(idx)] = newTiles[idx];
+	}
+};
+
+Boid6.tick = function () {
+	this.resetPlowfield();
+	for (var i = 0; i < boids.length; ++i) {
+		var boid = boids[i];
+		if (boid.group == 1) {
+			boid.addToPlowfield();
+		}
+	}
+	for (var i = 1; i <= 3; ++i) {
+		this.extendPlowfield();
+	}
+	for (var i = 0; i < boids.length; ++i) {
+		boids[i].tick();
+	}
+};
+
+Boid6.drawPlowfield = function (ctx) {
+	for (var i = 0; i < plowfield.length; ++i) {
+		var tile = plowfield[i];
+		if (tile.x != 0 || tile.y != 0) {
+			var tileX = i % plowfieldWidth;
+			var tileY = Math.floor(i / plowfieldWidth);
+			var cornerX = tileX * plowfieldSize;
+			var cornerY = tileY * plowfieldSize;
+			var originX = cornerX + (plowfieldSize / 2);
+			var originY = cornerY + (plowfieldSize / 2);
+			ctx.beginPath();
+			ctx.moveTo(originX, originY);
+			ctx.lineTo(originX + tile.x * 10, originY + tile.y * 10);
+			ctx.stroke();
+			ctx.strokeRect(cornerX, cornerY, plowfieldSize, plowfieldSize);
+		}
+	}
+};
+
+Boid6.drawScreen = function (ctx) {
+	this.drawPlowfield(ctx);
+}
+
 Boid6.prototype.setTarget = Boid2.prototype.setTarget;
 
 Boid6.prototype.getMates = Boid.prototype.getMates;
@@ -669,6 +783,17 @@ Boid6.prototype.getLookAheadPoint = function () {
 	return {'x': this.x + vector.x, 'y': this.y + vector.y};
 };
 
+Boid6.prototype.addToPlowfield = function () {
+	// FIXME: Continuous splatting
+	var tileX = this.x >> plowfieldShift;
+	var tileY = this.y >> plowfieldShift;
+	var tile = plowfield[tileY * plowfieldWidth + tileX];
+	if (tile) {
+		tile.x += Math.cos(this.heading);
+		tile.y += Math.sin(this.heading);
+	}
+};
+
 Boid6.prototype.steerFromHardCollision = function (mates) {
 	var resX = 0;
 	var resY = 0;
@@ -681,6 +806,43 @@ Boid6.prototype.steerFromHardCollision = function (mates) {
 	}
 	if (resX || resY) {
 		return [resX, resY];
+	}
+	return null;
+};
+
+Boid6.prototype.steerForSeparation = function (mates) {
+	var resX = 0;
+	var resY = 0;
+	for (var i = 0; i < mates.length; ++i) {
+		var mate = mates[i];
+		if (mate[1] <= options.separationDistance && !mate[0].goalReached/* && mate[0].group <= this.group*/) {
+			resX += this.x - mate[0].x;
+			resY += this.y - mate[0].y;
+		}
+	}
+	if (resX || resY) {
+		return [resX, resY];
+	}
+	return null;
+};
+
+Boid6.prototype.steerToAvoidPlow = function () {
+	if (this.group <= 1) {
+		return;
+	}
+	// FIXME: Continuous sampling
+	var tileX = this.x >> plowfieldShift;
+	var tileY = this.y >> plowfieldShift;
+	var tile = plowfield[tileY * plowfieldWidth + tileX];
+	if (tile && (tile.x || tile.y)) {
+		// Parallel: +1, perpendicular: 0, anti-parallel: -1
+		var parallelness = Math.cos(this.heading) * tile.x + Math.sin(this.heading) * tile.y;
+		var angle = 0.707;
+
+		if (/*parallelness < -angle*/true) {
+			// If anti-parallel to the field, steer perpendicular to the field's flow
+			return [-tile.y, tile.x];
+		}
 	}
 	return null;
 };
@@ -817,9 +979,19 @@ Boid6.prototype.tick = function () {
 		this.method = STEERING_METHODS.HARD_COLLISION;
 	}
 	if (!steer) {
+		steer = this.steerForSeparation(mates);
+		this.method = STEERING_METHODS.SEPARATION;
+	}
+	if (!steer) {
+		steer = this.steerToAvoidPlow(mates);
+		this.method = STEERING_METHODS.AVOID_PLOW;
+	}
+	/*
+	if (!steer) {
 		steer = this.steerToAvoidCollision(mates);
 		this.method = STEERING_METHODS.AVOID_COLLISION;
 	}
+	*/
 	if (!steer) {
 		steer = this.steerTowardsGoal();
 		this.method = STEERING_METHODS.SEEK_GOAL;
@@ -866,6 +1038,10 @@ function init() {
 	fieldHeight = parseInt(canvas.height);
 
 	var boidType = Boid6;
+
+	if (boidType.init) {
+		boidType.init();
+	}
 
 	var initialSeparation = 40;
 
@@ -918,6 +1094,11 @@ function init() {
 				ctx.restore();
 			}
 		}
+		// Finally, draw any fields or additional information
+		ctx.strokeStyle = '#0ff';
+		if (boidType.drawScreen) {
+			boidType.drawScreen(ctx);
+		}
 		ctx.restore();
 	}
 
@@ -926,10 +1107,15 @@ function init() {
 			return;
 		}
 		setInterval(function () {
-			drawScreen(false, options.size + options.lookAheadTicks * options.speed * 1);
+			/*drawScreen(false, options.size + options.lookAheadTicks * options.speed * 1);*/
+			ctx.clearRect(0, 0, fieldWidth, fieldHeight);
 			var atStart = new Date();
-			for (var i = 0; i < boids.length; ++i) {
-				boids[i].tick();
+			if (boidType.tick) {
+				boidType.tick();
+			} else {
+				for (var i = 0; i < boids.length; ++i) {
+					boids[i].tick();
+				}
 			}
 			var atEnd = new Date();
 			drawScreen(true, options.size);
