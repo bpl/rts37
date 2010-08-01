@@ -125,3 +125,12 @@ MathUtil.div = function (a, b) {
 	// FIXME: Check precedence
 	return Math.round(a << 10 / b);
 };
+
+//////////
+// Vec //
+////////
+
+function Vec(x, y) {
+	this.x = x || 0;
+	this.y = y || 0;
+}

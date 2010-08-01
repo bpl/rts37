@@ -40,6 +40,11 @@ Actor.prototype.clickTest = function (x, y, factor) {
 	return false;
 };
 
+// Returns true if this actor is selectable by the local player
+Actor.prototype.isSelectable = function () {
+	return false;
+};
+
 /////////////
 // Player //
 ///////////
@@ -107,7 +112,7 @@ CollisionBound.prototype.setPosition = function (x, y) {
 	while (this.prev && x < this.prev.x) {
 		var prev = this.prev;
 		if (this.next) {
-			this.next.prev = prev; 
+			this.next.prev = prev;
 		}
 		if (prev.prev) {
 			prev.prev.next = this;
@@ -120,7 +125,7 @@ CollisionBound.prototype.setPosition = function (x, y) {
 	while (this.next && x > this.next.x) {
 		var next = this.next;
 		if (this.prev) {
-			this.prev.next = next; 
+			this.prev.next = next;
 		}
 		if (next.next) {
 			next.next.prev = this;

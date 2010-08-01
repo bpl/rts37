@@ -303,6 +303,11 @@ Ship.prototype.clickTest = function (x, y, factor) {
 	) <= 20480;
 };
 
+// Returns true if this actor is selectable by the local player
+Ship.prototype.isSelectable = function () {
+	return true;
+};
+
 Ship.prototype.projectileHitTest = function (x, y) {
 	return MathUtil.distance(this.x, this.y, x, y) <= 15360;
 };
@@ -331,6 +336,19 @@ Ship.prototype.isInRadarRadiusOf = function (player) {
 	return false;
 };
 
+Ship.prototype.validateMove = function (x, y) {
+	return this.player == this.game.localPlayer;
+};
+
+Ship.prototype.issueMove = function (x, y) {
+	this.game.issueCommand(['GO', this.id, x, y]);
+};
+
+Ship.prototype.performMove = function (x, y) {
+	this.targetX = x;
+	this.targetY = y;
+};
+
 Ship.prototype.fireAtPos = function (x, y) {
 	for (var gunIndex = 0; gunIndex < this.currentReloadMsecs.length; ++gunIndex) {
 		if (this.currentReloadMsecs[gunIndex] <= 0) {
@@ -355,7 +373,9 @@ Ship.prototype.issueFireAtPos = function (x, y) {
 	if (this.reloadingCount < this.currentReloadMsecs.length &&
 			MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
 		this.game.issueCommand(['FR', this.id, x, y]);
+		return true;
 	}
+	return false;
 };
 
 /////////////
@@ -576,9 +596,9 @@ MyGame.prototype.handleCommand = function (player, cmd) {
 			// [2] is the target X coordinate
 			// [3] is the target Y coordinate
 			var actor = this.actorWithId(cmd[1]);
-			assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
-			actor.targetX = cmd[2];
-			actor.targetY = cmd[3];
+			if (actor.validateMove && actor.validateMove(cmd[2], cmd[3])) {
+				actor.performMove(cmd[2], cmd[3]);
+			}
 			break;
 		case 'FR':
 			// Fire order
