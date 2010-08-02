@@ -252,7 +252,7 @@ function Client(game, canvas, uiContext) {
 		self.handleMouseMove(evt);
 	}, false);
 
-	this.canvas.addEventListener('keypress', function (evt) {
+	document.addEventListener('keypress', function (evt) {
 		self.handleKeyPress(evt);
 	}, false);
 }
