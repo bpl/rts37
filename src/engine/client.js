@@ -56,6 +56,10 @@ Viewport.prototype.tick = function () {
 	}
 };
 
+Viewport.prototype.draw = function (ctx, uiCtx) {
+	// To be overridden in a subclass
+};
+
 Viewport.prototype.viewToWorld = function (x, y) {
 	return [(x - this.viewportX) * this.viewZoom + this.viewX - this.viewportWidth / 2 * this.viewZoom << 10,
 			(y - this.viewportY) * this.viewZoom + this.viewY - this.viewportHeight / 2 * this.viewZoom << 10];
@@ -101,6 +105,29 @@ Viewport.prototype.handleMouseMove = function (x, y) {
 	if (this.autoScrollRegion > 0) {
 		this.autoScrollX = this._autoScrollDimension(x, this.viewportX, this.viewportWidth);
 		this.autoScrollY = this._autoScrollDimension(y, this.viewportY, this.viewportHeight);
+	}
+};
+
+Viewport.prototype.handleKeyPress = function (key) {
+	switch (key) {
+		case 'e':
+			this.zoomBy(0.5);
+			break;
+		case 'f':
+			this.zoomBy(2);
+			break;
+		case 'w':
+			this.translate(0, -50);
+			break;
+		case 's':
+			this.translate(0, 50);
+			break;
+		case 'a':
+			this.translate(-50, 0);
+			break;
+		case 'd':
+			this.translate(50, 0);
+			break;
 	}
 };
 

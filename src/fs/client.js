@@ -1,11 +1,16 @@
 // Firing Solution  //
 // Client Main File //
 
-//////////////////////
-// Viewport extras //
-////////////////////
+/////////////////
+// MyViewport //
+///////////////
 
-Viewport.prototype.draw = function (ctx, uiCtx) {
+inherits(MyViewport, Viewport);
+function MyViewport(client) {
+	Viewport.call(this, client);
+}
+
+MyViewport.prototype.draw = function (ctx, uiCtx) {
 	ctx.save();
 	ctx.translate(this.viewportX, this.viewportY);
 	// Set clipping area and clear the background
@@ -82,33 +87,18 @@ Viewport.prototype.draw = function (ctx, uiCtx) {
 	ctx.restore();
 };
 
-Viewport.prototype.handleKeyPress = function (key) {
+MyViewport.prototype.handleKeyPress = function (key) {
 	switch (key) {
-		case 'e':
-			this.zoomBy(0.5);
-			break;
-		case 'f':
-			this.zoomBy(2);
-			break;
-		case 'w':
-			this.translate(0, -50);
-			break;
-		case 's':
-			this.translate(0, 50);
-			break;
-		case 'a':
-			this.translate(-50, 0);
-			break;
-		case 'd':
-			this.translate(50, 0);
-			break;
 		case 'x':
 			this.fireWithSelected();
+			break;
+		default:
+			Viewport.prototype.handleKeyPress.call(this, key);
 			break;
 	}
 };
 
-Viewport.prototype.fireWithSelected = function () {
+MyViewport.prototype.fireWithSelected = function () {
 	for (var idx in this.client.uiContext.selectedActors) {
 		var actor = this.client.uiContext.selectedActors[idx];
 		if (actor.player == this.game.localPlayer
@@ -132,7 +122,7 @@ function initGame(isLocal) {
 	game.setCappedToFps(30);
 	var uiContext = new UIContext(game);
 	var client = new Client(game, canvas, uiContext);
-	client.add(new Viewport(client));
+	client.add(new MyViewport(client));
 	client.add(new PerformanceIndicator(client));
 	return game;
 }
