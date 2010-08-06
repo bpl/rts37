@@ -624,6 +624,9 @@ function UIContext(game) {
 	this.game = game;
 	this.selectionStyle = 'rgba(0, 255, 255, 0.5)';
 	this.indicatorStyle = 'rgba(0, 255, 255, 0.5)';
+	this.buttonBorderStyle = 'rgba(0, 255, 255, 0.5)';
+	this.buttonFillStyle = 'rgba(0, 255, 255, 0.1)';
+	this.buttonTextStyle = 'rgb(0, 255, 255)';
 	this.blipColor = new Color(0, 255, 0, 0.5);
 	this.spinnerAngle = 0;
 	this.selectedActors = [];

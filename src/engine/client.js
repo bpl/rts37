@@ -5,25 +5,37 @@
 // Widget //
 ///////////
 
-function Widget(client) {
+function Widget(client, opt /* x, y, width, height */) {
+	if (!opt) {
+		opt = {};
+	}
 	assert(instanceOf(client, Client), 'Viewport: client must be a Client');
 	this.client = client;
-	this.viewportX = 0;
-	this.viewportY = 0;
-	this.viewportWidth = 800;
-	this.viewportHeight = 600;
+	this.x = opt.x || 0;
+	this.y = opt.y || 0;
+	this.width = opt.width || 0;
+	this.height = opt.height || 0;
 }
 
+// Called by client when a click is registered on the area of the widget.
+// Return false to indicate that this widget did not process the event and that
+// the next event handler should be called instead.
 Widget.prototype.handleClick = function (x, y) {
-	// By default, do nothing
+	return false;
 };
 
+// Called by client when the mouse pointer is repositioned over the area of the
+// widget. Return false to indicate that this widget did not process the event
+// and that the next event handler should be called instead.
 Widget.prototype.handleMouseMove = function (x, y) {
-	// By default, do nothing
+	return false;
 };
 
+// Called by client when a key is pressed. Return false to indicate that this
+// widget did not process the event and that the next event handler should be
+// called instead.
 Widget.prototype.handleKeyPress = function (key) {
-	// By default, do nothing
+	return false;
 };
 
 ///////////////
@@ -31,8 +43,8 @@ Widget.prototype.handleKeyPress = function (key) {
 /////////////
 
 inherits(Viewport, Widget);
-function Viewport(client) {
-	Widget.call(this, client);
+function Viewport(client, opt /* x, y, width, height */) {
+	Widget.call(this, client, opt);
 	this.game = this.client.game;
 	this.autoScrollRegion = 100;
 	this.autoScrollMultiplier = 0.5;
@@ -61,8 +73,8 @@ Viewport.prototype.draw = function (ctx, uiCtx) {
 };
 
 Viewport.prototype.viewToWorld = function (x, y) {
-	return [(x - this.viewportX) * this.viewZoom + this.viewX - this.viewportWidth / 2 * this.viewZoom << 10,
-			(y - this.viewportY) * this.viewZoom + this.viewY - this.viewportHeight / 2 * this.viewZoom << 10];
+	return [(x - this.x) * this.viewZoom + this.viewX - this.width / 2 * this.viewZoom << 10,
+			(y - this.y) * this.viewZoom + this.viewY - this.height / 2 * this.viewZoom << 10];
 };
 
 Viewport.prototype._autoScrollDimension = function (mousePos, viewportPos, viewportSize) {
@@ -103,8 +115,8 @@ Viewport.prototype.handleMouseMove = function (x, y) {
 	// If the mouse pointer is near the boundary of the viewport, scroll
 	// the viewport automatically.
 	if (this.autoScrollRegion > 0) {
-		this.autoScrollX = this._autoScrollDimension(x, this.viewportX, this.viewportWidth);
-		this.autoScrollY = this._autoScrollDimension(y, this.viewportY, this.viewportHeight);
+		this.autoScrollX = this._autoScrollDimension(x, this.x, this.width);
+		this.autoScrollY = this._autoScrollDimension(y, this.y, this.height);
 	}
 };
 
@@ -128,6 +140,8 @@ Viewport.prototype.handleKeyPress = function (key) {
 		case 'd':
 			this.translate(50, 0);
 			break;
+		default:
+			return false;
 	}
 };
 
@@ -145,9 +159,9 @@ Viewport.prototype._constrainDimension = function (value, viewport, field) {
 
 Viewport.prototype.translate = function (x, y) {
 	this.viewX = this._constrainDimension(this.viewX + x * this.viewZoom,
-			this.viewportWidth * this.viewZoom, this.game.fieldWidth);
+			this.width * this.viewZoom, this.game.fieldWidth);
 	this.viewY = this._constrainDimension(this.viewY + y * this.viewZoom,
-			this.viewportHeight * this.viewZoom, this.game.fieldHeight);
+			this.height * this.viewZoom, this.game.fieldHeight);
 };
 
 Viewport.prototype.zoomBy = function (factor) {
@@ -155,13 +169,50 @@ Viewport.prototype.zoomBy = function (factor) {
 	this.translate(0, 0);
 };
 
+/////////////
+// Button //
+///////////
+
+inherits(Button, Widget);
+function Button(client, opt /* x, y, width, height, caption, callback */) {
+	Widget.call(this, client, opt);
+	this.caption = opt.caption || '';
+	this.onClick = new Event();
+	if (opt.callback) {
+		this.onClick.register(opt.callback);
+	}
+}
+
+Button.prototype.handleClick = function (x, y) {
+	this.onClick.emit();
+};
+
+Button.prototype.draw = function (ctx, uiCtx) {
+	ctx.save();
+	if (uiCtx.buttonFillStyle) {
+		ctx.fillStyle = uiCtx.buttonFillStyle;
+		ctx.fillRect(this.x + 1, this.y + 1, this.width - 2, this.height - 2);
+	}
+	if (uiCtx.buttonBorderStyle) {
+		ctx.strokeStyle = uiCtx.buttonBorderStyle;
+		ctx.strokeRect(this.x, this.y, this.width, this.height);
+	}
+	if (this.caption && uiCtx.buttonTextStyle) {
+		ctx.fillStyle = uiCtx.buttonTextStyle;
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(this.caption, this.x + this.width / 2, this.y + this.height / 2, this.width);
+	}
+	ctx.restore();
+};
+
 ///////////////////////////
 // PerformanceIndicator //
 /////////////////////////
 
 inherits(PerformanceIndicator, Widget);
-function PerformanceIndicator(client) {
-	Widget.call(this, client);
+function PerformanceIndicator(client, opt) {
+	Widget.call(this, client, opt);
 }
 
 PerformanceIndicator.prototype.draw = function (ctx, uiCtx) {
@@ -293,11 +344,13 @@ Client.prototype.handleClick = function (evt) {
 	var offset = this.normalizedOffset(evt);
 	for (var i = this.widgets.length - 1; i >= 0; --i) {
 		var widget = this.widgets[i];
-		if (offset.x >= widget.viewportX
-				&& offset.x < widget.viewportX + widget.viewportWidth
-				&& offset.y >= widget.viewportY
-				&& offset.y < widget.viewportY + widget.viewportHeight) {
-			widget.handleClick(offset.x, offset.y);
+		if (offset.x >= widget.x
+				&& offset.x < widget.x + widget.width
+				&& offset.y >= widget.y
+				&& offset.y < widget.y + widget.height) {
+			if (widget.handleClick(offset.x, offset.y) !== false) {
+				return;
+			}
 		}
 	}
 };
@@ -307,11 +360,13 @@ Client.prototype.handleMouseMove = function (evt) {
 	var offset = this.normalizedOffset(evt);
 	for (var i = this.widgets.length - 1; i >= 0; --i) {
 		var widget = this.widgets[i];
-		if (offset.x >= widget.viewportX
-				&& offset.x < widget.viewportX + widget.viewportWidth
-				&& offset.y >= widget.viewportY
-				&& offset.y < widget.viewportY + widget.viewportHeight) {
-			widget.handleMouseMove(offset.x, offset.y);
+		if (offset.x >= widget.x
+				&& offset.x < widget.x + widget.width
+				&& offset.y >= widget.y
+				&& offset.y < widget.y + widget.height) {
+			if (widget.handleMouseMove(offset.x, offset.y) !== false) {
+				return;
+			}
 		}
 	}
 };
@@ -327,6 +382,8 @@ Client.prototype.handleKeyPress = function (evt) {
 		return;
 	}
 	for (var i = this.widgets.length - 1; i >= 0; --i) {
-		this.widgets[i].handleKeyPress(letter);
+		if (this.widgets[i].handleKeyPress(letter) !== false) {
+			return;
+		}
 	}
 };

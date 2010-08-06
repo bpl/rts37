@@ -6,26 +6,26 @@
 ///////////////
 
 inherits(MyViewport, Viewport);
-function MyViewport(client) {
-	Viewport.call(this, client);
+function MyViewport(client, opt /* x, y, width, height */) {
+	Viewport.call(this, client, opt);
 }
 
 MyViewport.prototype.draw = function (ctx, uiCtx) {
 	ctx.save();
-	ctx.translate(this.viewportX, this.viewportY);
+	ctx.translate(this.x, this.y);
 	// Set clipping area and clear the background
 	ctx.beginPath();
 	ctx.moveTo(0, 0);
-	ctx.lineTo(this.viewportWidth, 0);
-	ctx.lineTo(this.viewportWidth, this.viewportHeight);
-	ctx.lineTo(0, this.viewportHeight);
+	ctx.lineTo(this.width, 0);
+	ctx.lineTo(this.width, this.height);
+	ctx.lineTo(0, this.height);
 	ctx.clip();
 	ctx.fillStyle = '#000';
-	ctx.fillRect(0, 0, this.viewportWidth, this.viewportHeight);
+	ctx.fillRect(0, 0, this.width, this.height);
 	ctx.scale(1 / this.viewZoom, 1 / this.viewZoom);
 	ctx.lineWidth = (this.viewZoom > 1 ? this.viewZoom : 1);
-	ctx.translate(-this.viewX + this.viewportWidth / 2 * this.viewZoom,
-			-this.viewY + this.viewportHeight / 2 * this.viewZoom);
+	ctx.translate(-this.viewX + this.width / 2 * this.viewZoom,
+			-this.viewY + this.height / 2 * this.viewZoom);
 	// Draw firing range spheres
 	ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
 	ctx.beginPath();
@@ -122,8 +122,21 @@ function initGame(isLocal) {
 	game.setCappedToFps(30);
 	var uiContext = new UIContext(game);
 	var client = new Client(game, canvas, uiContext);
-	client.add(new MyViewport(client));
+
+	client.add(new MyViewport(client, {
+		'x': 0, 'y': 0,
+		'width': 800, 'height': 600
+	}));
 	client.add(new PerformanceIndicator(client));
+	client.add(new Button(client, {
+		'x': 10, 'y': 550,
+		'width': 40, 'height': 40,
+		'caption': 'Test',
+		'callback': function () {
+			alert('Leave me alone!');
+		}
+	}));
+
 	return game;
 }
 
