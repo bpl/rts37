@@ -15,6 +15,8 @@ var sys = require('sys'),
 // Manager //
 ////////////
 
+// Keeps track of active games on this server and when they need to be woken up
+// to do whatever periodical processing they need to do.
 function Manager() {
 	// Games by game ID
 	this.games = {};
@@ -25,16 +27,25 @@ function Manager() {
 	this.emptySpace = 0;
 }
 
+// Returns the active game with the specified id, or null, if no such game
+// exists on this server.
 Manager.prototype.gameWithId = function (id) {
-	return this.games[id] || null;
+	if (this.games.hasOwnProperty(id)) {
+		return this.games[id] || null;
+	}
+	return null;
 };
 
+// Adds a game to the list of active games and enqueues it to wake up when it
+// wants.
 Manager.prototype.add = function (game) {
-	assert(!this.games[game.id], 'Manager.addGame: duplicate game ID');
+	assert(!this.games.hasOwnProperty(game.id), 'Manager.add: duplicate game ID');
 	this.games[game.id] = game;
 	this.enqueue(game);
 };
 
+// Enqueues a game to the wake queue, a priority queue of games sorted by the
+// time they want to wake up the next time, starting from the earliest.
 Manager.prototype.enqueue = function (game) {
 	if (game.wakeAt > 0) {
 		for (var i = this.wakeQueue.length - 1; i >= this.emptySpace; --i) {
@@ -52,6 +63,9 @@ Manager.prototype.enqueue = function (game) {
 	}
 };
 
+// If there are one or more games that want to wake up at or after the current
+// time (passed in as the 'now' parameter), returns the first such game.
+// Otherwise, returns null.
 Manager.prototype.tryDequeue = function (now) {
 	if (this.emptySpace >= this.wakeQueue.length ||
 			this.wakeQueue[this.emptySpace].wakeAt > now) {
