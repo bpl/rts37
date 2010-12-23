@@ -40,12 +40,10 @@ function Ship(opt /* id, player, x, y */) {
 		firingRadius: 300 * 1024,
 		radarRadius: 200 * 1024,
 		visualRadius: 100 * 1024,
-		radarScanMsecs: 1000,
 		reloadMsecs: 4000,
 		projectileSpeed: 90 * 1024,
 		currentReloadMsecs: [0, 0, 0, 0],
-		reloadingCount: 0,
-		currentRadarAngle: 0
+		reloadingCount: 0
 	});
 	this.radiusStyle = this.player.color.withAlpha(0.4).toString();
 	this.shipStyle = this.player.color.withAlpha(1).toString();
@@ -122,63 +120,15 @@ Ship.prototype.tick = function () {
 		}
 	}
 	// Radar handling
-	var radarWedge = Math.PI * 2 / (this.radarScanMsecs / this.game.msecsPerTick);
-	// Rotate radar
-	if (this.game.radarMode == this.game.RADAR_MODE_SPINNING ||
-			this.game.showRadarAsSpinning) {
-		this.currentRadarAngle = MathUtil.normalizeAngle(this.currentRadarAngle + radarWedge);
-	}
-	// If we are in an active mode (server or local-only game)
-	// Do something with the radar
-	if (this.game.radarMode == this.game.RADAR_MODE_SPINNING) {
-		// Show blips when radar hits the target if we are the human player,
-		// fire at target if we are a computer player.
+	if (this.reloadingCount < this.currentReloadMsecs.length) {
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
-			if (instanceOf(actor, Ship)) {
-				if (actor.player != this.player
-					&& MathUtil.distance(actor.x, actor.y, this.x, this.y) <= this.radarRadius
-					&& MathUtil.isInsideArc(this.currentRadarAngle, radarWedge, MathUtil.angle(this.x, this.y, actor.x, actor.y)))
-				{
-					if (actor.player != this.game.localPlayer) {
-						if (!actor.isInVisualRadiusOf(this.player)) {
-							// FIXME: Add uncertainty
-							this.game.addActor(Blip, {
-								'x': actor.x, 'y': actor.y,
-								'radius': 20
-							});
-						}
-					} else if (instanceOf(this, AIShip)) {
-						this.fireAtPos(actor.x, actor.y);
-					}
-				}
-			} else if (instanceOf(actor, Projectile)) {
-				if (actor.player != this.player
-					&& actor.player != this.game.localPlayer
-					&& MathUtil.distance(actor.x, actor.y, this.x, this.y) <= this.radarRadius
-					&& MathUtil.isInsideArc(this.currentRadarAngle, radarWedge, MathUtil.angle(this.x, this.y, actor.x, actor.y))
-					&& !actor.isInVisualRadiusOf(this.player))
-				{
-					// FIXME: Add uncertainty
-					this.game.addActor(Blip, {
-						'x': actor.x, 'y': actor.y,
-						'radius': 4
-					});
-				}
-			}
-		}
-	} else {
-		// Look for targets and fire at them
-		if (this.reloadingCount < this.currentReloadMsecs.length) {
-			for (var idx in this.game.actors) {
-				var actor = this.game.actors[idx];
-				if (actor.player != this.player
-						&& instanceOf(actor, Ship)
-						&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
-						&& actor.isInRadarRadiusOf(this.player)) {
-					this.fireAtPos(actor.x, actor.y);
-					break;
-				}
+			if (actor.player != this.player
+					&& instanceOf(actor, Ship)
+					&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
+					&& actor.isInRadarRadiusOf(this.player)) {
+				this.fireAtPos(actor.x, actor.y);
+				break;
 			}
 		}
 	}
@@ -187,9 +137,7 @@ Ship.prototype.tick = function () {
 Ship.prototype.draw = function (ctx, uiCtx, factor) {
 	if (this.player == this.game.localPlayer
 			|| (this.game.radarMode == this.game.RADAR_MODE_SIMPLE
-			&& this.isInRadarRadiusOf(this.game.localPlayer))
-			|| (this.game.radarMode == this.game.RADAR_MODE_SPINNING
-			&& this.isInVisualRadiusOf(this.game.localPlayer))) {
+			&& this.isInRadarRadiusOf(this.game.localPlayer))) {
 		ctx.save();
 		ctx.translate(
 			(this.x - this.dflX * factor) / 1024,
@@ -283,14 +231,7 @@ Ship.prototype.addRadarArc = function (ctx, expand, factor) {
 	if (this.player == this.game.localPlayer) {
 		var centerX = (this.x - this.dflX * factor) / 1024;
 		var centerY = (this.y - this.dflY * factor) / 1024;
-		if (this.game.showRadarAsSpinning) {
-			var radarWedge = Math.PI * 2 / (this.radarScanMsecs / this.game.msecsPerTick);
-			ctx.moveTo(centerX, centerY);
-			ctx.arc(centerX, centerY, (this.radarRadius >> 10) + expand, this.currentRadarAngle - Math.PI / 2, this.currentRadarAngle + radarWedge - Math.PI / 2, false);
-			ctx.lineTo(centerX, centerY);
-		} else {
-			ctx.arc(centerX, centerY, (this.radarRadius >> 10) + expand, 0, Math.PI * 2, false);
-		}
+		ctx.arc(centerX, centerY, (this.radarRadius >> 10) + expand, 0, Math.PI * 2, false);
 	}
 };
 
@@ -450,9 +391,7 @@ Projectile.prototype.tick = function () {
 Projectile.prototype.draw = function (ctx, uiCtx, factor) {
 	if (this.player == this.game.localPlayer
 			|| (this.game.radarMode == this.game.RADAR_MODE_SIMPLE
-			&& this.isInRadarRadiusOf(this.game.localPlayer))
-			|| (this.game.radarMode == this.game.RADAR_MODE_SPINNING
-			&& this.isInVisualRadiusOf(this.game.localPlayer))) {
+			&& this.isInRadarRadiusOf(this.game.localPlayer))) {
 		ctx.save();
 		ctx.translate((this.x - this.dflX * factor) / 1024, (this.y - this.dflY * factor) / 1024);
 		ctx.rotate(this.angle);
@@ -578,11 +517,6 @@ function MyGame(isLocal) {
 	this.fieldWidth = this.map.width * this.map.tileSize;
 	this.fieldHeight = this.map.height * this.map.tileSize;
 	this.surfaceContext = new CollisionContext(this);
-	// Gameplay modes
-	this.RADAR_MODE_SIMPLE = 1;
-	this.RADAR_MODE_SPINNING = 2;
-	this.radarMode = this.RADAR_MODE_SPINNING;
-	this.showRadarAsSpinning = false;
 }
 
 MyGame.prototype.handleCommand = function (player, cmd) {

@@ -45,36 +45,25 @@ MyViewport.prototype.draw = function (ctx, uiCtx) {
 		}
 	}
 	ctx.fill();
-	// Draw radar spheres or wedges
-	if (this.game.showRadarAsSpinning) {
-		ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
-		ctx.beginPath();
-		for (var idx in this.game.actors) {
-			if (typeof this.game.actors[idx].addRadarArc == 'function') {
-				this.game.actors[idx].addRadarArc(ctx, 0, this.game.factor);
-			}
+	// Draw radar spheres
+	ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
+	ctx.beginPath();
+	for (var idx in this.game.actors) {
+		if (typeof this.game.actors[idx].addRadarArc == 'function') {
+			this.game.actors[idx].addRadarArc(ctx, 0, this.game.factor);
+			ctx.closePath();
 		}
-		ctx.fill();
-	} else {
-		ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
-		ctx.beginPath();
-		for (var idx in this.game.actors) {
-			if (typeof this.game.actors[idx].addRadarArc == 'function') {
-				this.game.actors[idx].addRadarArc(ctx, 0, this.game.factor);
-				ctx.closePath();
-			}
-		}
-		ctx.fill();
-		ctx.fillStyle = '#000';
-		ctx.beginPath();
-		for (var idx in this.game.actors) {
-			if (typeof this.game.actors[idx].addRadarArc == 'function') {
-				this.game.actors[idx].addRadarArc(ctx, -1, this.game.factor);
-				ctx.closePath();
-			}
-		}
-		ctx.fill();
 	}
+	ctx.fill();
+	ctx.fillStyle = '#000';
+	ctx.beginPath();
+	for (var idx in this.game.actors) {
+		if (typeof this.game.actors[idx].addRadarArc == 'function') {
+			this.game.actors[idx].addRadarArc(ctx, -1, this.game.factor);
+			ctx.closePath();
+		}
+	}
+	ctx.fill();
 	// Draw the boundaries of the playfield
 	ctx.strokeStyle = '#fff';
 	ctx.strokeRect(0, 0, this.game.fieldWidth, this.game.fieldHeight);
