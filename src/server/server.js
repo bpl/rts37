@@ -522,7 +522,7 @@ Server.prototype.handleClientError = function (exception) {
 };
 
 Server.prototype.handleListening = function () {
-	sys.log('Listening for connections');
+	sys.log('Listening for connections on port ' + this.options.listenPort);
 };
 
 // WebSocket request handling
