@@ -1,9 +1,13 @@
 html, body {
 	margin : 0;
 	padding : 0;
+	overflow: hidden;
+	background: #666;
 }
 
-.hidden { display : none; }
+.hidden {
+	display : none;
+}
 
 #splash {
 	font-family : "Lucida Grande", "Droid Sans", Verdana, sans-serif;
@@ -79,4 +83,10 @@ button:active {
 	background : #333;
 	padding : 5px 10px 5px 10px;
 	border : 1px solid #777;
+}
+
+#screen {
+	position: absolute;
+	top: 0;
+	left: 0;
 }

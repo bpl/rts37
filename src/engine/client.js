@@ -17,6 +17,18 @@ function Widget(client, opt /* x, y, width, height */) {
 	this.height = opt.height || 0;
 }
 
+// Move the widget to the specified location
+Widget.prototype.move = function (x, y) {
+	this.x = x;
+	this.y = y;
+};
+
+// Resize the widget to the specified size
+Widget.prototype.resize = function (width, height) {
+	this.width = width;
+	this.height = height;
+};
+
 // Called by client when a click is registered on the area of the widget.
 // Return false to indicate that this widget did not process the event and that
 // the next event handler should be called instead.
@@ -286,6 +298,7 @@ function Client(game, canvas, uiContext) {
 	this.context = this.canvas.getContext('2d');
 	this.uiContext = uiContext;
 	this.widgets = [];
+	this.onresizewindow = null;
 
 	this.game.onDraw.register(function () {
 		self.handleDraw();
@@ -305,6 +318,13 @@ function Client(game, canvas, uiContext) {
 
 	document.addEventListener('keypress', function (evt) {
 		self.handleKeyPress(evt);
+	}, false);
+
+	window.addEventListener('resize', function (evt) {
+		var func = self.onresizewindow;
+		if (func) {
+			func.call(self, evt);
+		}
 	}, false);
 }
 

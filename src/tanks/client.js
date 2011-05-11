@@ -112,19 +112,32 @@ function initGame(isLocal) {
 	var uiContext = new UIContext(game);
 	var client = new Client(game, canvas, uiContext);
 
-	client.add(new MyViewport(client, {
+	var viewport = new MyViewport(client, {
 		'x': 0, 'y': 0,
-		'width': 800, 'height': 600
-	}));
+		'width': 500, 'height': 500
+	});
+	client.add(viewport);
+
 	client.add(new PerformanceIndicator(client));
-	client.add(new Button(client, {
-		'x': 10, 'y': 550,
+
+	var testButton = new Button(client, {
 		'width': 40, 'height': 40,
 		'caption': 'Test',
 		'callback': function () {
 			alert('Leave me alone!');
 		}
-	}));
+	});
+	client.add(testButton);
+
+	client.onresizewindow = function (evt) {
+		var nw = window.innerWidth;
+		var nh = window.innerHeight;
+		canvas.width = nw;
+		canvas.height = nh;
+		viewport.resize(nw, nh);
+		testButton.move(10, nh - testButton.height - 10);
+	};
+	client.onresizewindow();
 
 	return game;
 }
