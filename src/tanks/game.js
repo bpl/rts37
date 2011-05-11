@@ -136,8 +136,7 @@ Ship.prototype.tick = function () {
 
 Ship.prototype.draw = function (ctx, uiCtx, factor) {
 	if (this.player == this.game.localPlayer
-			|| (this.game.radarMode == this.game.RADAR_MODE_SIMPLE
-			&& this.isInRadarRadiusOf(this.game.localPlayer))) {
+			|| this.isInRadarRadiusOf(this.game.localPlayer)) {
 		ctx.save();
 		ctx.translate(
 			(this.x - this.dflX * factor) / 1024,
@@ -390,8 +389,7 @@ Projectile.prototype.tick = function () {
 
 Projectile.prototype.draw = function (ctx, uiCtx, factor) {
 	if (this.player == this.game.localPlayer
-			|| (this.game.radarMode == this.game.RADAR_MODE_SIMPLE
-			&& this.isInRadarRadiusOf(this.game.localPlayer))) {
+			|| this.isInRadarRadiusOf(this.game.localPlayer)) {
 		ctx.save();
 		ctx.translate((this.x - this.dflX * factor) / 1024, (this.y - this.dflY * factor) / 1024);
 		ctx.rotate(this.angle);
@@ -427,39 +425,6 @@ Projectile.prototype.isInRadarRadiusOf = function (player) {
 		}
 	}
 	return false;
-};
-
-///////////
-// Blip //
-/////////
-
-register('Blip', Blip);
-inherits(Blip, MyActor);
-function Blip(opt /* x, y, radius */) {
-	MyActor.call(this, opt);
-	this.defaults(opt, {
-		radius: Number,
-		lifetimeMsecs: 2000,
-		currentMsecs: 2000
-	});
-}
-
-Blip.prototype.tick = function () {
-	this.currentMsecs -= this.game.msecsPerTick;
-	if (this.currentMsecs <= 0) {
-		this.game.removeActor(this);
-	}
-};
-
-Blip.prototype.draw = function (ctx, uiCtx, factor) {
-	var multiplier = (this.currentMsecs + this.game.msecsPerTick * factor) / this.lifetimeMsecs;
-	if (multiplier > 1) {
-		multiplier = 1;
-	}
-	ctx.fillStyle = uiCtx.blipColor.withAlphaMul(multiplier).toString();
-	ctx.beginPath();
-	ctx.arc(this.x / 1024, this.y / 1024, this.radius, 0, Math.PI * 2, false);
-	ctx.fill();
 };
 
 ////////////////
@@ -561,7 +526,6 @@ function UIContext(game) {
 	this.buttonBorderStyle = 'rgba(0, 255, 255, 0.5)';
 	this.buttonFillStyle = 'rgba(0, 255, 255, 0.1)';
 	this.buttonTextStyle = 'rgb(0, 255, 255)';
-	this.blipColor = new Color(0, 255, 0, 0.5);
 	this.spinnerAngle = 0;
 	this.selectedActors = [];
 }
