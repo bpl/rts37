@@ -21,13 +21,13 @@ function MyActor(opt /* x, y */) {
 	Actor.prototype.constructor.call(this, opt.x, opt.y);
 }
 
-///////////
-// Ship //
-/////////
+//////////////
+// Vehicle //
+////////////
 
-register('Ship', Ship);
-inherits(Ship, MyActor);
-function Ship(opt /* id, player, x, y */) {
+register('Vehicle', Vehicle);
+inherits(Vehicle, MyActor);
+function Vehicle(opt /* id, player, x, y */) {
 	MyActor.call(this, opt);
 	this.defaults(opt, {
 		id: Number,
@@ -46,19 +46,19 @@ function Ship(opt /* id, player, x, y */) {
 		reloadingCount: 0
 	});
 	this.radiusStyle = this.player.color.withAlpha(0.4).toString();
-	this.shipStyle = this.player.color.withAlpha(1).toString();
+	this.vehicleStyle = this.player.color.withAlpha(1).toString();
 	this.dflAngle = 0;
 	this.surfaceLowBound = null;
 	this.surfaceHighBound = null;
 }
 
-Ship.prototype.setGame = function (game) {
+Vehicle.prototype.setGame = function (game) {
 	Actor.prototype.setGame.call(this, game);
 	this.surfaceLowBound = this.game.surfaceContext.getLowBound(this, 15 * 1024);
 	this.surfaceHighBound = this.game.surfaceContext.getHighBound(this, 15 * 1024);
 };
 
-Ship.prototype.afterRemove = function () {
+Vehicle.prototype.afterRemove = function () {
 	if (this.surfaceLowBound) {
 		this.surfaceLowBound.remove();
 	}
@@ -67,13 +67,13 @@ Ship.prototype.afterRemove = function () {
 	}
 };
 
-Ship.prototype.afterCollision = function (context, actor) {
+Vehicle.prototype.afterCollision = function (context, actor) {
 	if (context == this.game.surfaceContext) {
 		this.setPosition(this.x - this.dflX, this.y - this.dflY);
 	}
 };
 
-Ship.prototype.setPosition = function (x, y) {
+Vehicle.prototype.setPosition = function (x, y) {
 	this.dflX += x - this.x;
 	this.dflY += y - this.y;
 	this.x = x;
@@ -82,7 +82,7 @@ Ship.prototype.setPosition = function (x, y) {
 	this.surfaceHighBound.setPosition(x, y);
 };
 
-Ship.prototype.tick = function () {
+Vehicle.prototype.tick = function () {
 	this.dflAngle = 0;
 	this.dflX = 0;
 	this.dflY = 0;
@@ -124,7 +124,7 @@ Ship.prototype.tick = function () {
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
 			if (actor.player != this.player
-					&& instanceOf(actor, Ship)
+					&& instanceOf(actor, Vehicle)
 					&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
 					&& actor.isInRadarRadiusOf(this.player)) {
 				this.fireAtPos(actor.x, actor.y);
@@ -134,7 +134,7 @@ Ship.prototype.tick = function () {
 	}
 };
 
-Ship.prototype.draw = function (ctx, uiCtx, factor) {
+Vehicle.prototype.draw = function (ctx, uiCtx, factor) {
 	if (this.player == this.game.localPlayer
 			|| this.isInRadarRadiusOf(this.game.localPlayer)) {
 		ctx.save();
@@ -143,7 +143,7 @@ Ship.prototype.draw = function (ctx, uiCtx, factor) {
 			(this.y - this.dflY * factor) / 1024
 		);
 		ctx.rotate(this.angle - this.dflAngle * factor);
-		ctx.strokeStyle = this.shipStyle;
+		ctx.strokeStyle = this.vehicleStyle;
 		ctx.beginPath();
 		ctx.moveTo(0, -15);
 		ctx.lineTo(10, 15);
@@ -215,7 +215,7 @@ Ship.prototype.draw = function (ctx, uiCtx, factor) {
 	}
 };
 
-Ship.prototype.addFiringArc = function (ctx, expand, factor) {
+Vehicle.prototype.addFiringArc = function (ctx, expand, factor) {
 	if (this.player == this.game.localPlayer) {
 		ctx.arc(
 			(this.x - this.dflX * factor) / 1024,
@@ -226,7 +226,7 @@ Ship.prototype.addFiringArc = function (ctx, expand, factor) {
 	}
 };
 
-Ship.prototype.addRadarArc = function (ctx, expand, factor) {
+Vehicle.prototype.addRadarArc = function (ctx, expand, factor) {
 	if (this.player == this.game.localPlayer) {
 		var centerX = (this.x - this.dflX * factor) / 1024;
 		var centerY = (this.y - this.dflY * factor) / 1024;
@@ -234,7 +234,7 @@ Ship.prototype.addRadarArc = function (ctx, expand, factor) {
 	}
 };
 
-Ship.prototype.clickTest = function (x, y, factor) {
+Vehicle.prototype.clickTest = function (x, y, factor) {
 	return MathUtil.distance(
 		this.x - this.dflX * factor,
 		this.y - this.dflY * factor,
@@ -244,18 +244,18 @@ Ship.prototype.clickTest = function (x, y, factor) {
 };
 
 // Returns true if this actor is selectable by the local player
-Ship.prototype.isSelectable = function () {
+Vehicle.prototype.isSelectable = function () {
 	return true;
 };
 
-Ship.prototype.projectileHitTest = function (x, y) {
+Vehicle.prototype.projectileHitTest = function (x, y) {
 	return MathUtil.distance(this.x, this.y, x, y) <= 15360;
 };
 
-Ship.prototype.isInVisualRadiusOf = function (player) {
+Vehicle.prototype.isInVisualRadiusOf = function (player) {
 	for (var idx in this.game.actors) {
 		var actor = this.game.actors[idx];
-		if (actor.player == player && instanceOf(actor, Ship)) {
+		if (actor.player == player && instanceOf(actor, Vehicle)) {
 			if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
 				return true;
 			}
@@ -264,10 +264,10 @@ Ship.prototype.isInVisualRadiusOf = function (player) {
 	return false;
 };
 
-Ship.prototype.isInRadarRadiusOf = function (player) {
+Vehicle.prototype.isInRadarRadiusOf = function (player) {
 	for (var idx in this.game.actors) {
 		var actor = this.game.actors[idx];
-		if (actor.player == player && instanceOf(actor, Ship)) {
+		if (actor.player == player && instanceOf(actor, Vehicle)) {
 			if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
 				return true;
 			}
@@ -276,20 +276,20 @@ Ship.prototype.isInRadarRadiusOf = function (player) {
 	return false;
 };
 
-Ship.prototype.validateMove = function (x, y) {
+Vehicle.prototype.validateMove = function (x, y) {
 	return this.player == this.game.localPlayer;
 };
 
-Ship.prototype.issueMove = function (x, y) {
+Vehicle.prototype.issueMove = function (x, y) {
 	this.game.issueCommand(['GO', this.id, x, y]);
 };
 
-Ship.prototype.performMove = function (x, y) {
+Vehicle.prototype.performMove = function (x, y) {
 	this.targetX = x;
 	this.targetY = y;
 };
 
-Ship.prototype.fireAtPos = function (x, y) {
+Vehicle.prototype.fireAtPos = function (x, y) {
 	for (var gunIndex = 0; gunIndex < this.currentReloadMsecs.length; ++gunIndex) {
 		if (this.currentReloadMsecs[gunIndex] <= 0) {
 			break;
@@ -309,7 +309,7 @@ Ship.prototype.fireAtPos = function (x, y) {
 	}
 };
 
-Ship.prototype.issueFireAtPos = function (x, y) {
+Vehicle.prototype.issueFireAtPos = function (x, y) {
 	if (this.reloadingCount < this.currentReloadMsecs.length &&
 			MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
 		this.game.issueCommand(['FR', this.id, x, y]);
@@ -318,14 +318,14 @@ Ship.prototype.issueFireAtPos = function (x, y) {
 	return false;
 };
 
-/////////////
-// AIShip //
-///////////
+////////////////
+// AIVehicle //
+//////////////
 
-register('AIShip', AIShip);
-inherits(AIShip, Ship);
-function AIShip(opt /* id, player, x, y, waypoints */) {
-	Ship.call(this, opt);
+register('AIVehicle', AIVehicle);
+inherits(AIVehicle, Vehicle);
+function AIVehicle(opt /* id, player, x, y, waypoints */) {
+	Vehicle.call(this, opt);
 	this.defaults(opt, {
 		waypoints: [],
 		currentWaypoint: 0
@@ -336,7 +336,7 @@ function AIShip(opt /* id, player, x, y, waypoints */) {
 	}
 }
 
-AIShip.prototype.tick = function () {
+AIVehicle.prototype.tick = function () {
 	if (!this.targetX && !this.targetY) {
 		this.currentWaypoint++;
 		if (this.currentWaypoint >= this.waypoints.length) {
@@ -347,7 +347,7 @@ AIShip.prototype.tick = function () {
 			this.targetY = this.waypoints[this.currentWaypoint][1];
 		}
 	}
-	Ship.prototype.tick.call(this);
+	Vehicle.prototype.tick.call(this);
 };
 
 /////////////////
@@ -379,7 +379,7 @@ Projectile.prototype.tick = function () {
 	} else {
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
-			if (instanceOf(actor, Ship) && actor.projectileHitTest(this.x, this.y)) {
+			if (instanceOf(actor, Vehicle) && actor.projectileHitTest(this.x, this.y)) {
 				this.game.addActor(HitMarker, {'x': this.x, 'y': this.y});
 			}
 		}
@@ -406,7 +406,7 @@ Projectile.prototype.draw = function (ctx, uiCtx, factor) {
 Projectile.prototype.isInVisualRadiusOf = function (player) {
 	for (var idx in this.game.actors) {
 		var actor = this.game.actors[idx];
-		if (actor.player == player && instanceOf(actor, Ship)) {
+		if (actor.player == player && instanceOf(actor, Vehicle)) {
 			if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
 				return true;
 			}
@@ -418,7 +418,7 @@ Projectile.prototype.isInVisualRadiusOf = function (player) {
 Projectile.prototype.isInRadarRadiusOf = function (player) {
 	for (var idx in this.game.actors) {
 		var actor = this.game.actors[idx];
-		if (actor.player == player && instanceOf(actor, Ship)) {
+		if (actor.player == player && instanceOf(actor, Vehicle)) {
 			if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
 				return true;
 			}

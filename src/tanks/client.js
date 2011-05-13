@@ -91,7 +91,7 @@ MyViewport.prototype.fireWithSelected = function () {
 	for (var idx in this.client.uiContext.selectedActors) {
 		var actor = this.client.uiContext.selectedActors[idx];
 		if (actor.player == this.game.localPlayer
-				&& instanceOf(actor, Ship)) {
+				&& instanceOf(actor, Vehicle)) {
 			actor.issueFireAtPos(this.lastMouseX, this.lastMouseY);
 		}
 	}
