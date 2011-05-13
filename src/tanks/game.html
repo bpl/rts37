@@ -3,6 +3,12 @@
 <head>
 	<title>Firing Solution</title>
 	<link href="game.css" rel="stylesheet">
+	<script>
+	var require = {
+		'baseUrl': '/'
+	};
+	</script>
+	<script src="../dep/require-jquery/require-jquery.js"></script>
 	<script src="../engine/util.js"></script>
 	<script src="../engine/ooputil.js"></script>
 	<script src="../engine/mathutil.js"></script>
@@ -12,6 +18,10 @@
 	<script src="../engine/tilemap.js"></script>
 	<script src="game.js"></script>
 	<script src="client.js"></script>
+	<script>
+	// TODO: Use data-main when all the above have been converted
+	require(['tanks/main']);
+	</script>
 </head>
 <body>
 
@@ -41,7 +51,7 @@
 
 <p><label for="f-create-playerId">Player ID</label><input type="text" name="playerId" id="f-create-playerId" value="p1"></p>
 
-<p><button onclick="createRemoteGame();">Create remote game</button></p>
+<p><button id="create-remote-game">Create remote game</button></p>
 
 </div>
 
@@ -51,7 +61,7 @@
 
 <p><label for="f-join-playerId">Player ID</label><input type="text" name="playerId" id="f-join-playerId" value="p2"></p>
 
-<p><button onclick="joinRemoteGame();">Join remote game</button></p>
+<p><button id="join-remote-game">Join remote game</button></p>
 
 </div>
 
@@ -67,7 +77,7 @@
 
 <p><label for="f-local-playerId">Player ID</label><input type="text" name="playerId" id="f-local-playerId" value="p1"></p>
 
-<p><button onclick="localGame();">Start local game</button></p>
+<p><button id="start-local-game">Start local game</button></p>
 
 </div>
 
