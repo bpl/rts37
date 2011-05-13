@@ -2,7 +2,12 @@
 // Bootstrap //
 //////////////
 
-define(['jquery', 'engine/Connection'], function ($, Connection) {
+define(['jquery', 'engine/clientlib', 'tanks/MyViewport'], function ($, clientlib, MyViewport) {
+
+	var Button = clientlib.Button,
+		Client = clientlib.Client,
+		Connection = clientlib.Connection,
+		PerformanceIndicator = clientlib.PerformanceIndicator;
 
 	function initGame(isLocal) {
 		var splash = document.getElementById('splash');
