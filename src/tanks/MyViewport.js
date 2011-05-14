@@ -90,7 +90,7 @@ define(['engine/client/Viewport'], function (Viewport) {
 		for (var idx in this.client.uiContext.selectedActors) {
 			var actor = this.client.uiContext.selectedActors[idx];
 			if (actor.player == this.game.localPlayer
-					&& instanceOf(actor, Vehicle)) {
+					&& 'issueFireAtPos' in actor) {
 				actor.issueFireAtPos(this.lastMouseX, this.lastMouseY);
 			}
 		}

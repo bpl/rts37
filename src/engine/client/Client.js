@@ -6,7 +6,7 @@ define(function () {
 
 	function Client(game, canvas, uiContext) {
 		var self = this;
-		assert(instanceOf(game, Game), 'Client: game must be a Game');
+		assert(game && typeof game === 'object', 'Client: game must be an object');
 		assert(canvas, 'Client: canvas is required');
 		assert(uiContext, 'Client: uiContext is required');
 		this.game = game;

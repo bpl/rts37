@@ -1,0 +1,302 @@
+//////////////
+// Vehicle //
+////////////
+
+define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile'], function (MyActor, Commander, Projectile) {
+
+	register('Vehicle', Vehicle);
+	inherits(Vehicle, MyActor);
+	function Vehicle(opt /* id, player, x, y */) {
+		MyActor.call(this, opt);
+		this.defaults(opt, {
+			id: Number,
+			player: Commander,
+			angle: 0,
+			rotationSpeed: 3,
+			speed: 30 * 1024,
+			targetX: null,
+			targetY: null,
+			firingRadius: 300 * 1024,
+			radarRadius: 200 * 1024,
+			visualRadius: 100 * 1024,
+			reloadMsecs: 4000,
+			projectileSpeed: 90 * 1024,
+			currentReloadMsecs: [0, 0, 0, 0],
+			reloadingCount: 0
+		});
+		this.radiusStyle = this.player.color.withAlpha(0.4).toString();
+		this.vehicleStyle = this.player.color.withAlpha(1).toString();
+		this.dflAngle = 0;
+		this.surfaceLowBound = null;
+		this.surfaceHighBound = null;
+	}
+
+	Vehicle.prototype.setGame = function (game) {
+		MyActor.prototype.setGame.call(this, game);
+		this.surfaceLowBound = this.game.surfaceContext.getLowBound(this, 15 * 1024);
+		this.surfaceHighBound = this.game.surfaceContext.getHighBound(this, 15 * 1024);
+	};
+
+	Vehicle.prototype.afterRemove = function () {
+		if (this.surfaceLowBound) {
+			this.surfaceLowBound.remove();
+		}
+		if (this.surfaceHighBound) {
+			this.surfaceHighBound.remove();
+		}
+	};
+
+	Vehicle.prototype.afterCollision = function (context, actor) {
+		if (context == this.game.surfaceContext) {
+			this.setPosition(this.x - this.dflX, this.y - this.dflY);
+		}
+	};
+
+	Vehicle.prototype.setPosition = function (x, y) {
+		this.dflX += x - this.x;
+		this.dflY += y - this.y;
+		this.x = x;
+		this.y = y;
+		this.surfaceLowBound.setPosition(x, y);
+		this.surfaceHighBound.setPosition(x, y);
+	};
+
+	Vehicle.prototype.tick = function () {
+		this.dflAngle = 0;
+		this.dflX = 0;
+		this.dflY = 0;
+		if (this.targetX && this.targetY) {
+			// Orient towards a waypoint if we have not reached it yet
+			var angle = MathUtil.angle(this.x, this.y, this.targetX, this.targetY);
+			var angleDelta = MathUtil.angleDelta(this.angle, angle);
+			var rotationPerTick = this.rotationSpeed / this.game.ticksPerSecond;
+			if (Math.abs(angleDelta) > rotationPerTick) {
+				var lastAngle = this.angle;
+				this.angle = MathUtil.normalizeAngle(this.angle + angleDelta / Math.abs(angleDelta) * rotationPerTick);
+				this.dflAngle = MathUtil.angleDelta(lastAngle, this.angle);
+			} else {
+				this.dflAngle = MathUtil.angleDelta(this.angle, angle);
+				this.angle = angle;
+			}
+			var delta = MathUtil.anglePoint(this.angle, Math.round(this.speed / this.game.ticksPerSecond));
+			if (this.game.map.getTileAt(this.x + delta[0], this.y + delta[1]) === 0) {
+				this.setPosition(this.x + delta[0], this.y + delta[1]);
+			}
+			if (MathUtil.manhattanDistance(this.x, this.y, this.targetX, this.targetY) <= 5120) {
+				this.targetX = null;
+				this.targetY = null;
+			}
+		}
+		// Continue reloading if not reloaded already
+		if (this.reloadingCount > 0) {
+			for (var i = 0; i < this.currentReloadMsecs.length; ++i) {
+				if (this.currentReloadMsecs[i] > 0) {
+					this.currentReloadMsecs[i] -= this.game.msecsPerTick;
+					if (this.currentReloadMsecs[i] <= 0) {
+						--this.reloadingCount;
+					}
+				}
+			}
+		}
+		// Radar handling
+		if (this.reloadingCount < this.currentReloadMsecs.length) {
+			for (var idx in this.game.actors) {
+				var actor = this.game.actors[idx];
+				if (actor.player != this.player
+						&& instanceOf(actor, Vehicle)
+						&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
+						&& actor.isInRadarRadiusOf(this.player)) {
+					this.fireAtPos(actor.x, actor.y);
+					break;
+				}
+			}
+		}
+	};
+
+	Vehicle.prototype.draw = function (ctx, uiCtx, factor) {
+		if (this.player == this.game.localPlayer
+				|| this.isInRadarRadiusOf(this.game.localPlayer)) {
+			ctx.save();
+			ctx.translate(
+				(this.x - this.dflX * factor) / 1024,
+				(this.y - this.dflY * factor) / 1024
+			);
+			ctx.rotate(this.angle - this.dflAngle * factor);
+			ctx.strokeStyle = this.vehicleStyle;
+			ctx.beginPath();
+			ctx.moveTo(0, -15);
+			ctx.lineTo(10, 15);
+			ctx.lineTo(-10, 15);
+			ctx.closePath();
+			ctx.stroke();
+			ctx.rotate(-(this.angle - this.dflAngle * factor));
+			// If reloading, draw the reload indicator
+			if (this.reloadingCount > 0 && this.player == this.game.localPlayer) {
+				for (var i = 0; i < this.currentReloadMsecs.length; ++i) {
+					if (this.currentReloadMsecs[i] > 0) {
+						ctx.fillStyle = uiCtx.indicatorStyle;
+						ctx.fillRect(-15, -35 - 6 * i, 30 * this.currentReloadMsecs[i] / this.reloadMsecs, 4);
+						ctx.strokeStyle = uiCtx.indicatorStyle;
+						ctx.strokeRect(-15, -35 - 6 * i, 30, 4);
+					}
+				}
+			}
+			// If there is a target, draw the target indicator
+			if (this.targetX && this.targetY && this.player == this.game.localPlayer) {
+				var distance = MathUtil.distance(
+					this.x - this.dflX * factor,
+					this.y - this.dflY * factor,
+					this.targetX,
+					this.targetY
+				);
+				ctx.strokeStyle = uiCtx.indicatorStyle;
+				if (distance > 49152) {
+					ctx.beginPath();
+					var angle = MathUtil.angle(
+						this.x - this.dflX * factor,
+						this.y - this.dflY * factor,
+						this.targetX,
+						this.targetY
+					);
+					var delta = MathUtil.anglePoint(angle, 35);
+					ctx.moveTo(delta[0], delta[1]);
+					delta = MathUtil.anglePoint(angle - Math.PI, 13);
+					ctx.lineTo(
+						(this.targetX - (this.x - this.dflX * factor)) / 1024 + delta[0],
+						(this.targetY - (this.y - this.dflY * factor)) / 1024 + delta[1]
+					);
+					ctx.stroke();
+				}
+				ctx.beginPath();
+				ctx.arc(
+					(this.targetX - (this.x - this.dflX * factor)) / 1024,
+					(this.targetY - (this.y - this.dflY * factor)) / 1024,
+					5, 0, Math.PI * 2, false
+				);
+				ctx.stroke();
+			}
+			// If selected, draw the selection indicator
+			if (uiCtx.selectedActors.indexOf(this) >= 0) {
+				ctx.rotate(uiCtx.spinnerAngle);
+				ctx.strokeStyle = uiCtx.selectionStyle;
+				ctx.lineWidth *= 3;
+				ctx.beginPath();
+				ctx.arc(0, 0, 25, 0, Math.PI * 0.33, false);
+				ctx.stroke();
+				ctx.beginPath();
+				ctx.arc(0, 0, 25, Math.PI * 0.66, Math.PI, false);
+				ctx.stroke();
+				ctx.beginPath();
+				ctx.arc(0, 0, 25, Math.PI * 1.33, Math.PI * 1.66, false);
+				ctx.stroke();
+			}
+			ctx.restore();
+		}
+	};
+
+	Vehicle.prototype.addFiringArc = function (ctx, expand, factor) {
+		if (this.player == this.game.localPlayer) {
+			ctx.arc(
+				(this.x - this.dflX * factor) / 1024,
+				(this.y - this.dflY * factor) / 1024,
+				(this.firingRadius >> 10) + expand,
+				0, Math.PI * 2, false
+			);
+		}
+	};
+
+	Vehicle.prototype.addRadarArc = function (ctx, expand, factor) {
+		if (this.player == this.game.localPlayer) {
+			var centerX = (this.x - this.dflX * factor) / 1024;
+			var centerY = (this.y - this.dflY * factor) / 1024;
+			ctx.arc(centerX, centerY, (this.radarRadius >> 10) + expand, 0, Math.PI * 2, false);
+		}
+	};
+
+	Vehicle.prototype.clickTest = function (x, y, factor) {
+		return MathUtil.distance(
+			this.x - this.dflX * factor,
+			this.y - this.dflY * factor,
+			x,
+			y
+		) <= 20480;
+	};
+
+	// Returns true if this actor is selectable by the local player
+	Vehicle.prototype.isSelectable = function () {
+		return true;
+	};
+
+	Vehicle.prototype.projectileHitTest = function (x, y) {
+		return MathUtil.distance(this.x, this.y, x, y) <= 15360;
+	};
+
+	Vehicle.prototype.isInVisualRadiusOf = function (player) {
+		for (var idx in this.game.actors) {
+			var actor = this.game.actors[idx];
+			if (actor.player == player && instanceOf(actor, Vehicle)) {
+				if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+
+	Vehicle.prototype.isInRadarRadiusOf = function (player) {
+		for (var idx in this.game.actors) {
+			var actor = this.game.actors[idx];
+			if (actor.player == player && instanceOf(actor, Vehicle)) {
+				if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+
+	Vehicle.prototype.validateMove = function (x, y) {
+		return this.player == this.game.localPlayer;
+	};
+
+	Vehicle.prototype.issueMove = function (x, y) {
+		this.game.issueCommand(['GO', this.id, x, y]);
+	};
+
+	Vehicle.prototype.performMove = function (x, y) {
+		this.targetX = x;
+		this.targetY = y;
+	};
+
+	Vehicle.prototype.fireAtPos = function (x, y) {
+		for (var gunIndex = 0; gunIndex < this.currentReloadMsecs.length; ++gunIndex) {
+			if (this.currentReloadMsecs[gunIndex] <= 0) {
+				break;
+			}
+		}
+		if (gunIndex < this.currentReloadMsecs.length &&
+				MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
+			this.game.createActor(Projectile, {
+				'player': this.player,
+				'x': this.x, 'y': this.y,
+				'angle': MathUtil.angle(this.x, this.y, x, y),
+				'range': MathUtil.distance(this.x, this.y, x, y),
+				'speed': this.projectileSpeed
+			});
+			this.currentReloadMsecs[gunIndex] = this.reloadMsecs;
+			++this.reloadingCount;
+		}
+	};
+
+	Vehicle.prototype.issueFireAtPos = function (x, y) {
+		if (this.reloadingCount < this.currentReloadMsecs.length &&
+				MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
+			this.game.issueCommand(['FR', this.id, x, y]);
+			return true;
+		}
+		return false;
+	};
+
+	return Vehicle;
+
+});

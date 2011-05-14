@@ -2,7 +2,7 @@
 // Bootstrap //
 //////////////
 
-define(['jquery', 'engine/clientlib', 'tanks/MyViewport'], function ($, clientlib, MyViewport) {
+define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/MyGame', 'tanks/world/UIContext', 'tanks/world/Commander', 'tanks/world/Vehicle', 'tanks/world/AIVehicle'], function ($, clientlib, MyViewport, MyGame, UIContext) {
 
 	var Button = clientlib.Button,
 		Client = clientlib.Client,

@@ -2,7 +2,7 @@
 // Button //
 ///////////
 
-define(['engine/client/Widget'], function (Widget) {
+define(['engine/client/Widget', 'engine/world/Event'], function (Widget, Event) {
 
 	inherits(Button, Widget);
 	function Button(client, opt /* x, y, width, height, caption, callback */) {
