@@ -82,9 +82,10 @@ define(function () {
 	};
 
 	Client.prototype.normalizedOffset = function (evt) {
+		var bounds = this.canvas.getBoundingClientRect();
 		return new Vec(
-			evt.clientX - this.canvas.offsetLeft + document.body.scrollLeft,
-			evt.clientY - this.canvas.offsetTop + document.body.scrollTop
+			evt.clientX - bounds.left,
+			evt.clientY - bounds.top
 		);
 	};
 
