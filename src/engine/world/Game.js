@@ -156,7 +156,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 	};
 
 	// The main game loop. This should be called repeatedly from a timer.
-	Game.prototype.process = function () {
+	Game.prototype.gameLoop = function () {
 		// FIXME: Handle client lagging behind the server
 		// FIXME: Soft adjustment for situations where the client has a tendency to
 		// speed past the server.
@@ -213,7 +213,11 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 				}
 			}
 		}
-		// Finally, do the drawing
+	};
+
+	// Drawing loop. This should be called repeatedly, preferably using
+	// requestAnimationFrame to remove unnecessary updates.
+	Game.prototype.drawLoop = function () {
 		if (this.reallyRunning) {
 			this.factor = 1 - this.msecsSinceTick / this.msecsPerTick;
 			if (this.factor < 0) {

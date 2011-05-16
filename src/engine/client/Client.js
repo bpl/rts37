@@ -36,6 +36,16 @@ define(function () {
 		}
 		*/
 
+		// requestAnimationFrame is still under development, so try various
+		// vendor-prefixed versions.
+		var requestAnimationFrame =
+				window.requestAnimationFrame ||
+				window.mozRequestAnimationFrame ||
+				window.webkitRequestAnimationFrame ||
+				function (callback, elm) {
+					setTimeout(callback, 10);
+				};
+
 		// If contexts are available, set up event handlers
 
 		this.game.onDraw.register(function () {
@@ -43,8 +53,13 @@ define(function () {
 		});
 
 		window.setInterval(function () {
-			self.game.process();
+			self.game.gameLoop();
 		}, 10);
+
+		requestAnimationFrame.call(window, function handleAnimationFrame() {
+			requestAnimationFrame.call(window, handleAnimationFrame, canvas);
+			self.game.drawLoop();
+		}, canvas);
 
 		this.canvas.addEventListener('click', function (evt) {
 			self.handleClick(evt);
