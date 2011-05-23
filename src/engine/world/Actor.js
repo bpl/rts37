@@ -31,7 +31,7 @@ define(function () {
 		// This function intentionally left blank
 	};
 
-	Actor.prototype.draw = function (ctx, uiCtx, factor) {
+	Actor.prototype.draw = function (gl, uiCtx, factor) {
 		// This function intentionally left blank
 	};
 

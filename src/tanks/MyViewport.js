@@ -9,7 +9,17 @@ define(['engine/client/Viewport'], function (Viewport) {
 		Viewport.call(this, client, opt);
 	}
 
-	MyViewport.prototype.draw = function (ctx, uiCtx) {
+	MyViewport.prototype.draw = function (gl, uiCtx) {
+		// M_model->screen =
+		//    M_ndc->screen * M_projection * M_world->view * M_model->world
+
+		gl.viewport(this.x, this.y, this.width, this.height);
+
+		for (var idx in this.game.actors) {
+			this.game.actors[idx].draw(gl, uiCtx, this.game.factor);
+		}
+
+		/*
 		ctx.save();
 		ctx.translate(this.x, this.y);
 		// Set clipping area and clear the background
@@ -73,6 +83,7 @@ define(['engine/client/Viewport'], function (Viewport) {
 			this.game.actors[idx].draw(ctx, uiCtx, this.game.factor);
 		}
 		ctx.restore();
+		*/
 	};
 
 	MyViewport.prototype.handleKeyPress = function (key) {

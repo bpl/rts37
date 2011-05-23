@@ -2,7 +2,7 @@
 // Vehicle //
 ////////////
 
-define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile'], function (MyActor, Commander, Projectile) {
+define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (MyActor, Commander, Projectile, Program, vertexShader, fragmentShader) {
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, MyActor);
@@ -30,6 +30,16 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile'
 		this.surfaceLowBound = null;
 		this.surfaceHighBound = null;
 	}
+
+	Vehicle.TRIANGLE_VERTICES = new Float32Array([
+		0, -15, 0,
+		10, 15, 0,
+		-10, 15, 0
+	]);
+
+	Vehicle.triangleBuffer = null;
+
+	Vehicle.shaderProgram = new Program(vertexShader, fragmentShader);
 
 	Vehicle.prototype.setGame = function (game) {
 		MyActor.prototype.setGame.call(this, game);
@@ -113,7 +123,37 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile'
 		}
 	};
 
-	Vehicle.prototype.draw = function (ctx, uiCtx, factor) {
+	Vehicle.prototype.draw = function (gl, uiCtx, factor) {
+		if (this.player !== this.game.localPlayer
+				&& !this.isInRadarRadiusOf(this.game.localPlayer)) {
+			return;
+		}
+
+		// FIXME: Put this somewhere else. This must be recreated if the WebGL
+		// context is lost.
+		var triangleBuffer = Vehicle.triangleBuffer;
+		if (!triangleBuffer) {
+			triangleBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, Vehicle.TRIANGLE_VERTICES, gl.STATIC_DRAW);
+			gl.bindBuffer(gl.ARRAY_BUFFER, null);
+			Vehicle.triangleBuffer = triangleBuffer;
+		}
+
+		var program = Vehicle.shaderProgram;
+
+		gl.useProgram(program.prepare(gl));
+		gl.enableVertexAttribArray(program.vertexPosition);
+		gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
+		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+
+		gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.disableVertexAttribArray(program.vertexPosition);
+		gl.useProgram(null);
+
+		/*
 		if (this.player == this.game.localPlayer
 				|| this.isInRadarRadiusOf(this.game.localPlayer)) {
 			ctx.save();
@@ -192,6 +232,7 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile'
 			}
 			ctx.restore();
 		}
+		*/
 	};
 
 	Vehicle.prototype.addFiringArc = function (ctx, expand, factor) {

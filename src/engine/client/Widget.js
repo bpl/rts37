@@ -28,6 +28,11 @@ define(function () {
 		this.height = height;
 	};
 
+	// Called by client when the widget needs to be drawn on the canvas
+	Widget.prototype.draw = function (gl, uiCtx) {
+		// Provided here for documentation purposes
+	};
+
 	// Called by client when a click is registered on the area of the widget.
 	// Return false to indicate that this widget did not process the event and that
 	// the next event handler should be called instead.

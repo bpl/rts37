@@ -11,14 +11,13 @@ define(function () {
 		assert(uiContext, 'Client: uiContext is required');
 		this.game = game;
 		this.canvas = canvas;
-		this.context = this.canvas.getContext('2d');
+		this.gl = null;
 		this.uiContext = uiContext;
 		this.widgets = [];
 		this.onresizewindow = null;
 
 		// Acquire drawing context
-		/*
-		this.gl = null;
+
 		try {
 			this.gl = this.canvas.getContext('webgl');
 			if (!this.gl) {
@@ -34,7 +33,6 @@ define(function () {
 			alert('Could not initialize WebGL context. Try a better browser?');
 			return;
 		}
-		*/
 
 		// requestAnimationFrame is still under development, so try various
 		// vendor-prefixed versions.
@@ -104,15 +102,13 @@ define(function () {
 		);
 	};
 
+	// Called by the game when the client should redraw itself
+	// TODO: Now that the draw "loop" is separate from the game "loop", is this
+	// level of indirection really necessary?
 	Client.prototype.handleDraw = function () {
 		this.uiContext.update();
-		this.context.save();
-		try {
-			for (var i = 0; i < this.widgets.length; ++i) {
-				this.widgets[i].draw(this.context, this.uiContext);
-			}
-		} finally {
-			this.context.restore();
+		for (var i = 0; i < this.widgets.length; ++i) {
+			this.widgets[i].draw(this.gl, this.uiContext);
 		}
 	};
 

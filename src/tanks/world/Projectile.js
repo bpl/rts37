@@ -37,7 +37,9 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/HitMarker']
 		}
 	};
 
-	Projectile.prototype.draw = function (ctx, uiCtx, factor) {
+	Projectile.prototype.draw = function (gl, uiCtx, factor) {
+		/*
+		FIXME
 		if (this.player == this.game.localPlayer
 				|| this.isInRadarRadiusOf(this.game.localPlayer)) {
 			ctx.save();
@@ -51,6 +53,7 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/HitMarker']
 			ctx.stroke();
 			ctx.restore();
 		}
+		*/
 	};
 
 	Projectile.prototype.isInVisualRadiusOf = function (player) {

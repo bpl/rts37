@@ -20,13 +20,15 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 		var uiContext = new UIContext(game);
 		var client = new Client(game, canvas, uiContext);
 
+		// User interface controls
+
 		var viewport = new MyViewport(client, {
 			'x': 0, 'y': 0,
 			'width': 500, 'height': 500
 		});
 		client.add(viewport);
 
-		client.add(new PerformanceIndicator(client));
+		/*client.add(new PerformanceIndicator(client));
 
 		var testButton = new Button(client, {
 			'width': 40, 'height': 40,
@@ -35,7 +37,9 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 				alert('Leave me alone!');
 			}
 		});
-		client.add(testButton);
+		client.add(testButton);*/
+
+		// Resize canvas and viewport to match window size
 
 		client.onresizewindow = function (evt) {
 			var nw = window.innerWidth;
@@ -43,7 +47,7 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 			canvas.width = nw;
 			canvas.height = nh;
 			viewport.resize(nw, nh);
-			testButton.move(10, nh - testButton.height - 10);
+//			testButton.move(10, nh - testButton.height - 10);
 		};
 		client.onresizewindow();
 

@@ -22,7 +22,9 @@ define(['tanks/world/MyActor'], function (MyActor) {
 		}
 	};
 
-	HitMarker.prototype.draw = function (ctx, uiCtx, factor) {
+	HitMarker.prototype.draw = function (gl, uiCtx, factor) {
+		/*
+		FIXME
 		ctx.save();
 		ctx.translate(this.x / 1024, this.y / 1024);
 		var multiplier = (this.currentMsecs + this.game.msecsPerTick * factor) / this.lifetimeMsecs;
@@ -37,6 +39,7 @@ define(['tanks/world/MyActor'], function (MyActor) {
 		ctx.lineTo(-this.radius * multiplier, 0);
 		ctx.fill();
 		ctx.restore();
+		*/
 	};
 
 	return HitMarker;
