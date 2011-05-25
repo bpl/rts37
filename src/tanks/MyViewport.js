@@ -18,10 +18,10 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		gl.viewport(this.x, this.y, this.width, this.height);
 
-		wtc[0] = 1 / this.width;     // X scale
-		wtc[5] = -1 / this.height;   // Y scale
-//		wtc[12] = -this.game.fieldWidth / this.width / 2;    // X translation
-//		wtc[13] = this.game.fieldHeight / this.height / 2;   // Y translation
+		wtc[0] = 2 / this.width;     // X scale
+		wtc[5] = -2 / this.height;   // Y scale
+		wtc[12] = -this.viewX / this.width * 2;    // X translation
+		wtc[13] = this.viewY / this.height * 2;   // Y translation
 
 		for (var idx in this.game.actors) {
 			// FIXME: Pass the matrix in some other way
