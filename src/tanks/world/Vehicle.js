@@ -2,7 +2,7 @@
 // Vehicle //
 ////////////
 
-define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (MyActor, Commander, Projectile, Program, vertexShader, fragmentShader) {
+define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (glmatrix, MyActor, Commander, Projectile, Program, vertexShader, fragmentShader) {
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, MyActor);
@@ -29,6 +29,7 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile'
 		this.dflAngle = 0;
 		this.surfaceLowBound = null;
 		this.surfaceHighBound = null;
+		this.modelToWorld = glmatrix.Mat4.identity(glmatrix.Mat4.create());
 	}
 
 	Vehicle.TRIANGLE_VERTICES = new Float32Array([
@@ -123,7 +124,8 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile'
 		}
 	};
 
-	Vehicle.prototype.draw = function (gl, uiCtx, factor) {
+	// FIXME: Pass the matrix in some other way
+	Vehicle.prototype.draw = function (gl, uiCtx, factor, worldToClip) {
 		if (this.player !== this.game.localPlayer
 				&& !this.isInRadarRadiusOf(this.game.localPlayer)) {
 			return;
@@ -140,12 +142,19 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile'
 			Vehicle.triangleBuffer = triangleBuffer;
 		}
 
+		var mtw = this.modelToWorld;
+		mtw[12] = (this.x - this.dflX * factor) / 1024;   // X translation
+		mtw[13] = (this.y - this.dflY * factor) / 1024;   // Y translation
+
 		var program = Vehicle.shaderProgram;
 
 		gl.useProgram(program.prepare(gl));
 		gl.enableVertexAttribArray(program.vertexPosition);
 		gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
 		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+
+		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
+		gl.uniformMatrix4fv(program.worldToClip, false, worldToClip);
 
 		gl.drawArrays(gl.TRIANGLES, 0, 3);
 

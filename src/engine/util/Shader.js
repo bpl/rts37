@@ -20,6 +20,7 @@ define(function () {
 		this.attributes = {};
 		this.uniforms = {};
 		this.varyings = {};
+		this._getParameters();
 	}
 
 	// Redefine here for independence from the WebGL context
@@ -40,9 +41,9 @@ define(function () {
 	// Find parameter names and types from the shader source. Each parameter
 	// must be declared on a single line.
 	Shader.prototype._getParameters = function () {
-		var matches = this._shaderSource.match(GET_PARAMETERS_REGEX);
-		for (var i = 0; i < matches.length; i++) {
-			var match = matches[i];
+		var match;
+		GET_PARAMETERS_REGEX.lastIndex = 0;
+		while (match = GET_PARAMETERS_REGEX.exec(this._shaderSource)) {
 			switch (match[1].toLowerCase()) {
 				case 'attribute':
 					this.attributes[match[3]] = match[2];

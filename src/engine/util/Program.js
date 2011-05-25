@@ -36,13 +36,13 @@ define(function () {
 				}
 				this.program = program;
 				this._context = gl;
-				this._createLocationProperties();
+				this._createLocationProperties(gl);
 			}
 		}
 		return this.program;
 	};
 
-	Program.prototype._createLocationProperties = function () {
+	Program.prototype._createLocationProperties = function (gl) {
 		var inputs = this._collectInputs('attributes');
 		for (var name in inputs) {
 			if (name in Program._NULL_PROGRAM) {
@@ -71,7 +71,7 @@ define(function () {
 			var inputs = this.shaders[i][propertyName];
 			for (var name in inputs) {
 				// Any type mismatches should already be a link error
-				result[name] = shader[inputs[name]];
+				result[name] = inputs[name];
 			}
 		}
 		return result;

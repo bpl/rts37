@@ -2,21 +2,30 @@
 // MyViewport //
 ///////////////
 
-define(['engine/client/Viewport'], function (Viewport) {
+define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, Viewport) {
 
 	inherits(MyViewport, Viewport);
 	function MyViewport(client, opt /* x, y, width, height */) {
 		Viewport.call(this, client, opt);
+		this.worldToClip = glmatrix.Mat4.identity(glmatrix.Mat4.create());
 	}
 
 	MyViewport.prototype.draw = function (gl, uiCtx) {
 		// M_model->screen =
 		//    M_ndc->screen * M_projection * M_world->view * M_model->world
 
+		var wtc = this.worldToClip;
+
 		gl.viewport(this.x, this.y, this.width, this.height);
 
+		wtc[0] = 1 / this.width;     // X scale
+		wtc[5] = -1 / this.height;   // Y scale
+//		wtc[12] = -this.game.fieldWidth / this.width / 2;    // X translation
+//		wtc[13] = this.game.fieldHeight / this.height / 2;   // Y translation
+
 		for (var idx in this.game.actors) {
-			this.game.actors[idx].draw(gl, uiCtx, this.game.factor);
+			// FIXME: Pass the matrix in some other way
+			this.game.actors[idx].draw(gl, uiCtx, this.game.factor, wtc);
 		}
 
 		/*
