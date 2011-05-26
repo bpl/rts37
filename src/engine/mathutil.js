@@ -3,6 +3,8 @@
 
 var MathUtil = {};
 
+MathUtil.HALF_PI = Math.PI / 2;
+
 // Calculates the angle between two points. The result is in radians, as follows:
 //        1/2 PI
 //          |
@@ -76,15 +78,11 @@ MathUtil.isInsideArc = function (arcStart, arcWidth, angle) {
 	return angle >= arcStart && angle < arcStart + arcWidth;
 };
 
-// Convert an angle in radians to degrees
-MathUtil.radToDeg = function (rad) {
-	return rad * 180 / Math.PI;
-};
+// Multiply an angle in radians by this to convert it to degrees
+MathUtil.RAD_TO_DEG = 180 / Math.PI;
 
-// Convert an angle in degrees to radians
-MathUtil.degToRad = function (deg) {
-	return deg * Math.PI / 180;
-};
+// Multiply an angle in degrees by this to convert it to radians
+MathUtil.DEG_TO_RAD = Math.PI / 180;
 
 // Calculates the distance between two points
 MathUtil.distance = function (ax, ay, bx, by) {

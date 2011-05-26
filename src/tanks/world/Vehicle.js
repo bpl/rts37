@@ -143,8 +143,15 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 		}
 
 		var mtw = this.modelToWorld;
-		mtw[12] = (this.x - this.dflX * factor) / 1024;   // X translation
-		mtw[13] = (this.y - this.dflY * factor) / 1024;   // Y translation
+		var angleRad = (this.angle - this.dflAngle * factor);
+		// Rotation
+		mtw[0] = Math.cos(angleRad);
+		mtw[4] = -Math.sin(angleRad);
+		mtw[1] = Math.sin(angleRad);
+		mtw[5] = Math.cos(angleRad);
+		// Translation
+		mtw[12] = (this.x - this.dflX * factor) / 1024;
+		mtw[13] = (this.y - this.dflY * factor) / 1024;
 
 		var program = Vehicle.shaderProgram;
 
