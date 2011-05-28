@@ -2,7 +2,7 @@
 // Client //
 ///////////
 
-define(function () {
+define(['engine/client/UIRenderer'], function (UIRenderer) {
 
 	function Client(game, canvas) {
 		var self = this;
@@ -12,6 +12,7 @@ define(function () {
 		this.canvas = canvas;
 		this.gl = null;
 		this.widgets = [];
+		this.uiRenderer = new UIRenderer();
 		this.onresizewindow = null;
 		// User interface state
 		this.selectedActors = [];
@@ -112,8 +113,9 @@ define(function () {
 	// level of indirection really necessary?
 	Client.prototype.handleDraw = function () {
 		for (var i = 0; i < this.widgets.length; ++i) {
-			this.widgets[i].draw(this.gl, this.uiContext);
+			this.widgets[i].draw(this.gl);
 		}
+		this.uiRenderer.draw(this.gl);
 	};
 
 	Client.prototype.handleClick = function (evt) {

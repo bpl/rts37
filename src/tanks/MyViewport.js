@@ -24,37 +24,17 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		wtc[12] = -this.viewX / this.width * 2;    // X translation
 		wtc[13] = this.viewY / this.height * 2;   // Y translation
 
+		// Draw the actors
 		for (var idx in this.game.actors) {
-			// FIXME: Pass the matrix in some other way
 			this.game.actors[idx].draw(gl, client, this);
 		}
 
-		/*
-		ctx.save();
-		ctx.translate(this.x, this.y);
-		// Set clipping area and clear the background
-		ctx.beginPath();
-		ctx.moveTo(0, 0);
-		ctx.lineTo(this.width, 0);
-		ctx.lineTo(this.width, this.height);
-		ctx.lineTo(0, this.height);
-		ctx.clip();
-		ctx.fillStyle = '#000';
-		ctx.fillRect(0, 0, this.width, this.height);
-		ctx.scale(1 / this.viewZoom, 1 / this.viewZoom);
-		ctx.lineWidth = (this.viewZoom > 1 ? this.viewZoom : 1);
-		ctx.translate(-this.viewX + this.width / 2 * this.viewZoom,
-				-this.viewY + this.height / 2 * this.viewZoom);
 		// Draw the boundaries of the playfield
-		ctx.strokeStyle = '#fff';
-		ctx.strokeRect(0, 0, this.game.fieldWidth, this.game.fieldHeight);
+		this.client.uiRenderer.addRectWorld(wtc, 0, 0, this.game.fieldWidth, this.game.fieldHeight);
+
+		/*
 		// Draw map tiles
 		this.game.map.draw(ctx, uiCtx, this.game.factor);
-		// Draw everything else
-		for (var idx in this.game.actors) {
-			this.game.actors[idx].draw(ctx, uiCtx, this.game.factor);
-		}
-		ctx.restore();
 		*/
 	};
 

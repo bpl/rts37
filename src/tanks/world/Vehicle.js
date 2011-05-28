@@ -130,6 +130,8 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 			return;
 		}
 
+		// FIXME: Color according to player color
+
 		// FIXME: Put this somewhere else. This must be recreated if the WebGL
 		// context is lost.
 		var triangleBuffer = Vehicle.triangleBuffer;
@@ -141,6 +143,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 			Vehicle.triangleBuffer = triangleBuffer;
 		}
 
+		var wtc = viewport.worldToClip;
 		var mtw = this.modelToWorld;
 		var factor = client.game.factor;
 		var angleRad = (this.angle - this.dflAngle * factor);
@@ -159,33 +162,22 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 		gl.enableVertexAttribArray(program.vertexPosition);
 		gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
 		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
 		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
-		gl.uniformMatrix4fv(program.worldToClip, false, viewport.worldToClip);
+		gl.uniformMatrix4fv(program.worldToClip, false, wtc);
 
 		gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.disableVertexAttribArray(program.vertexPosition);
 		gl.useProgram(null);
 
+		// If selected, draw the selection indicator
+		if (client.selectedActors.indexOf(this) >= 0) {
+			client.uiRenderer.addRectModel(wtc, mtw, 30, 30);
+		}
+
 		/*
-		if (this.player == this.game.localPlayer
-				|| this.isInRadarRadiusOf(this.game.localPlayer)) {
-			ctx.save();
-			ctx.translate(
-				(this.x - this.dflX * factor) / 1024,
-				(this.y - this.dflY * factor) / 1024
-			);
-			ctx.rotate(this.angle - this.dflAngle * factor);
-			ctx.strokeStyle = this.vehicleStyle;
-			ctx.beginPath();
-			ctx.moveTo(0, -15);
-			ctx.lineTo(10, 15);
-			ctx.lineTo(-10, 15);
-			ctx.closePath();
-			ctx.stroke();
-			ctx.rotate(-(this.angle - this.dflAngle * factor));
 			// If reloading, draw the reload indicator
 			if (this.reloadingCount > 0 && this.player == this.game.localPlayer) {
 				for (var i = 0; i < this.currentReloadMsecs.length; ++i) {
@@ -231,23 +223,6 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 				);
 				ctx.stroke();
 			}
-			// If selected, draw the selection indicator
-			if (client.selectedActors.indexOf(this) >= 0) {
-				ctx.rotate(uiCtx.spinnerAngle);
-				ctx.strokeStyle = uiCtx.selectionStyle;
-				ctx.lineWidth *= 3;
-				ctx.beginPath();
-				ctx.arc(0, 0, 25, 0, Math.PI * 0.33, false);
-				ctx.stroke();
-				ctx.beginPath();
-				ctx.arc(0, 0, 25, Math.PI * 0.66, Math.PI, false);
-				ctx.stroke();
-				ctx.beginPath();
-				ctx.arc(0, 0, 25, Math.PI * 1.33, Math.PI * 1.66, false);
-				ctx.stroke();
-			}
-			ctx.restore();
-		}
 		*/
 	};
 
