@@ -29,7 +29,7 @@ define(function () {
 	};
 
 	// Called by client when the widget needs to be drawn on the canvas
-	Widget.prototype.draw = function (gl, uiCtx) {
+	Widget.prototype.draw = function (gl) {
 		// Provided here for documentation purposes
 	};
 

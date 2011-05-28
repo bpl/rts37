@@ -4,17 +4,17 @@
 
 define(function () {
 
-	function Client(game, canvas, uiContext) {
+	function Client(game, canvas) {
 		var self = this;
 		assert(game && typeof game === 'object', 'Client: game must be an object');
 		assert(canvas, 'Client: canvas is required');
-		assert(uiContext, 'Client: uiContext is required');
 		this.game = game;
 		this.canvas = canvas;
 		this.gl = null;
-		this.uiContext = uiContext;
 		this.widgets = [];
 		this.onresizewindow = null;
+		// User interface state
+		this.selectedActors = [];
 
 		// Acquire drawing context
 
@@ -79,6 +79,11 @@ define(function () {
 		}, false);
 	}
 
+	// Set the currently selected actors to certain array
+	Client.prototype.setSelection = function (arr) {
+		this.selectedActors = arr;
+	};
+
 	Client.prototype.add = function (widget) {
 		assert(
 			widget.handleClick && widget.handleMouseMove && widget.handleKeyPress,
@@ -106,7 +111,6 @@ define(function () {
 	// TODO: Now that the draw "loop" is separate from the game "loop", is this
 	// level of indirection really necessary?
 	Client.prototype.handleDraw = function () {
-		this.uiContext.update();
 		for (var i = 0; i < this.widgets.length; ++i) {
 			this.widgets[i].draw(this.gl, this.uiContext);
 		}

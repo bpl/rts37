@@ -30,7 +30,7 @@ define(['engine/client/Widget'], function (Widget) {
 		}
 	};
 
-	Viewport.prototype.draw = function (ctx, uiCtx) {
+	Viewport.prototype.draw = function (gl) {
 		// To be overridden in a subclass
 	};
 
@@ -54,13 +54,13 @@ define(['engine/client/Widget'], function (Widget) {
 		var target = this.viewToWorld(x, y);
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
-			if (actor.isSelectable() && actor.clickTest(target[0], target[1], this.game.factor)) {
-				this.client.uiContext.setSelection([actor]);
+			if (actor.isSelectable() && actor.clickTest(target[0], target[1], this.client)) {
+				this.client.setSelection([actor]);
 				return;
 			}
 		}
-		for (var idx in this.client.uiContext.selectedActors) {
-			var actor = this.client.uiContext.selectedActors[idx];
+		for (var idx in this.client.selectedActors) {
+			var actor = this.client.selectedActors[idx];
 			if (actor.validateMove && actor.validateMove(target[0], target[1])) {
 				actor.issueMove(target[0], target[1]);
 			}

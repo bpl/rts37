@@ -2,7 +2,7 @@
 // Bootstrap //
 //////////////
 
-define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/MyGame', 'tanks/world/UIContext', 'tanks/world/Commander', 'tanks/world/Vehicle', 'tanks/world/AIVehicle'], function ($, clientlib, MyViewport, MyGame, UIContext) {
+define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/MyGame', 'tanks/world/Commander', 'tanks/world/Vehicle', 'tanks/world/AIVehicle'], function ($, clientlib, MyViewport, MyGame) {
 
 	var Button = clientlib.Button,
 		Client = clientlib.Client,
@@ -17,8 +17,7 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 		var game = new MyGame(isLocal);
 		game.setTicksPerSecond(5);
 		game.setCappedToFps(30);
-		var uiContext = new UIContext(game);
-		var client = new Client(game, canvas, uiContext);
+		var client = new Client(game, canvas);
 
 		// User interface controls
 

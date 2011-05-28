@@ -124,8 +124,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 		}
 	};
 
-	// FIXME: Pass the matrix in some other way
-	Vehicle.prototype.draw = function (gl, uiCtx, factor, worldToClip) {
+	Vehicle.prototype.draw = function (gl, client, viewport) {
 		if (this.player !== this.game.localPlayer
 				&& !this.isInRadarRadiusOf(this.game.localPlayer)) {
 			return;
@@ -143,6 +142,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 		}
 
 		var mtw = this.modelToWorld;
+		var factor = client.game.factor;
 		var angleRad = (this.angle - this.dflAngle * factor);
 		// Rotation
 		mtw[0] = Math.cos(angleRad);
@@ -161,7 +161,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 0, 0);
 
 		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
-		gl.uniformMatrix4fv(program.worldToClip, false, worldToClip);
+		gl.uniformMatrix4fv(program.worldToClip, false, viewport.worldToClip);
 
 		gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -232,7 +232,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 				ctx.stroke();
 			}
 			// If selected, draw the selection indicator
-			if (uiCtx.selectedActors.indexOf(this) >= 0) {
+			if (client.selectedActors.indexOf(this) >= 0) {
 				ctx.rotate(uiCtx.spinnerAngle);
 				ctx.strokeStyle = uiCtx.selectionStyle;
 				ctx.lineWidth *= 3;
@@ -270,7 +270,8 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 		}
 	};
 
-	Vehicle.prototype.clickTest = function (x, y, factor) {
+	Vehicle.prototype.clickTest = function (x, y, client) {
+		var factor = client.game.factor;
 		return MathUtil.distance(
 			this.x - this.dflX * factor,
 			this.y - this.dflY * factor,

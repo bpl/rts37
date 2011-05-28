@@ -10,11 +10,12 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		this.worldToClip = glmatrix.Mat4.identity(glmatrix.Mat4.create());
 	}
 
-	MyViewport.prototype.draw = function (gl, uiCtx) {
+	MyViewport.prototype.draw = function (gl) {
 		// M_model->screen =
 		//    M_ndc->screen * M_projection * M_world->view * M_model->world
 
 		var wtc = this.worldToClip;
+		var client = this.client;
 
 		gl.viewport(this.x, this.y, this.width, this.height);
 
@@ -25,7 +26,7 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		for (var idx in this.game.actors) {
 			// FIXME: Pass the matrix in some other way
-			this.game.actors[idx].draw(gl, uiCtx, this.game.factor, wtc);
+			this.game.actors[idx].draw(gl, client, this);
 		}
 
 		/*
@@ -44,44 +45,6 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		ctx.lineWidth = (this.viewZoom > 1 ? this.viewZoom : 1);
 		ctx.translate(-this.viewX + this.width / 2 * this.viewZoom,
 				-this.viewY + this.height / 2 * this.viewZoom);
-		// Draw firing range spheres
-		ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-		ctx.beginPath();
-		for (var idx in this.game.actors) {
-			if (typeof this.game.actors[idx].addFiringArc == 'function') {
-				this.game.actors[idx].addFiringArc(ctx, 0, this.game.factor);
-				ctx.closePath();
-			}
-		}
-		ctx.fill();
-		ctx.fillStyle = '#000';
-		ctx.beginPath();
-		for (var idx in this.game.actors) {
-			if (typeof this.game.actors[idx].addFiringArc == 'function') {
-				this.game.actors[idx].addFiringArc(ctx, -1, this.game.factor);
-				ctx.closePath();
-			}
-		}
-		ctx.fill();
-		// Draw radar spheres
-		ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
-		ctx.beginPath();
-		for (var idx in this.game.actors) {
-			if (typeof this.game.actors[idx].addRadarArc == 'function') {
-				this.game.actors[idx].addRadarArc(ctx, 0, this.game.factor);
-				ctx.closePath();
-			}
-		}
-		ctx.fill();
-		ctx.fillStyle = '#000';
-		ctx.beginPath();
-		for (var idx in this.game.actors) {
-			if (typeof this.game.actors[idx].addRadarArc == 'function') {
-				this.game.actors[idx].addRadarArc(ctx, -1, this.game.factor);
-				ctx.closePath();
-			}
-		}
-		ctx.fill();
 		// Draw the boundaries of the playfield
 		ctx.strokeStyle = '#fff';
 		ctx.strokeRect(0, 0, this.game.fieldWidth, this.game.fieldHeight);
@@ -107,8 +70,8 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 	};
 
 	MyViewport.prototype.fireWithSelected = function () {
-		for (var idx in this.client.uiContext.selectedActors) {
-			var actor = this.client.uiContext.selectedActors[idx];
+		for (var idx in this.client.selectedActors) {
+			var actor = this.client.selectedActors[idx];
 			if (actor.player == this.game.localPlayer
 					&& 'issueFireAtPos' in actor) {
 				actor.issueFireAtPos(this.lastMouseX, this.lastMouseY);

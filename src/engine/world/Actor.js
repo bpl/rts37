@@ -31,11 +31,11 @@ define(function () {
 		// This function intentionally left blank
 	};
 
-	Actor.prototype.draw = function (gl, uiCtx, factor) {
-		// This function intentionally left blank
+	Actor.prototype.draw = function (gl, client, viewport) {
+		// Provided here for documentation purposes
 	};
 
-	Actor.prototype.clickTest = function (x, y, factor) {
+	Actor.prototype.clickTest = function (x, y, client) {
 		return false;
 	};
 
