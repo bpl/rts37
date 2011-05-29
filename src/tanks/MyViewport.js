@@ -21,10 +21,10 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		gl.viewport(this.x, this.y, this.width, this.height);
 
-		wtc[0] = 2 / this.width;     // X scale
-		wtc[5] = -2 / this.height;   // Y scale
-		wtc[12] = -this.viewX / this.width * 2;    // X translation
-		wtc[13] = this.viewY / this.height * 2;   // Y translation
+		wtc[0] = 2 / this.width / this.viewZoom;     // X scale
+		wtc[5] = -2 / this.height / this.viewZoom;   // Y scale
+		wtc[12] = -this.viewX / this.width * 2 / this.viewZoom;    // X translation
+		wtc[13] = this.viewY / this.height * 2 / this.viewZoom;    // Y translation
 
 		// Draw the actors
 		for (var idx in this.game.actors) {
