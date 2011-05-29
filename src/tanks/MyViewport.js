@@ -34,7 +34,7 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		/*
 		// Draw map tiles
-		this.game.map.draw(ctx, uiCtx, this.game.factor);
+		this.game.map.draw(ctx, uiCtx, this.factor);
 		*/
 	};
 

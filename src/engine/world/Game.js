@@ -18,11 +18,6 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 		//
 		// Pacing information
 		//
-		// Interpolation factor. Value 0 means that the frame that is being rendered
-		// or that has been rendered reflects the current simulation state. Value -1
-		// means that the frame that is being rendered or has been rendered reflects
-		// the previous simulation state.
-		this.factor = 0;
 		// Should the game be running, according to the server or the user
 		this.running = false;
 		// Is the game really running (it might not be, even if it should, if
@@ -33,12 +28,9 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 		this.ticksPerSecond = 0;
 		this.msecsPerTick = 0;
 		this.cappedToFps = 0;
-		this.msecsPerFrameMin = 0;
 		// How far into the current tick we are
 		this.msecsSinceTick = 0;
-		this.msecsSinceDrawn = 0;
 		this.lastConsideredTick = 0;
-		this.lastDrawn = 0;
 		this.lastTickAt = 0;
 		this.setTicksPerSecond(5);
 		//
@@ -57,8 +49,6 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 		//
 		// Emitted after a tick has been processed
 		this.onTick = new Event();
-		// Emitted when a frame should be drawn
-		this.onDraw = new Event();
 	}
 
 	Game.prototype.setLocalPlayer = function (player) {
@@ -78,7 +68,6 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 
 	Game.prototype.setCappedToFps = function (value) {
 		this.cappedToFps = value;
-		this.msecsPerFrameMin = value > 0 ? 1000 / value : 0;
 	};
 
 	Game.prototype.setRunning = function (value) {
@@ -201,6 +190,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 						this.queueAcknowledgement();
 					}
 					this.msecsSinceTick -= this.msecsPerTick;
+					this.lastTickAt = timeNow;
 				} else {
 					// The scheduled time to process the next tick has passed, but
 					// we are missing the clearance to process it. We need to
@@ -214,31 +204,6 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 				}
 			}
 		}
-	};
-
-	// Drawing loop. This should be called repeatedly, preferably using
-	// requestAnimationFrame to remove unnecessary updates.
-	Game.prototype.drawLoop = function () {
-		if (this.reallyRunning) {
-			this.factor = 1 - this.msecsSinceTick / this.msecsPerTick;
-			if (this.factor < 0) {
-				this.factor = 0;
-			}
-		} else {
-			this.factor = 0;
-		}
-		var timeNow = (new Date()).getTime();
-		if (this.lastDrawn) {
-			var sinceDrawn = timeNow - this.lastDrawn;
-			if (this.cappedToFps > 0 && sinceDrawn < this.msecsPerFrameMin) {
-				return;
-			}
-			this.msecsSinceDrawn = sinceDrawn;
-		} else {
-			this.msecsSinceDrawn = 0;
-		}
-		this.lastDrawn = timeNow;
-		this.onDraw.emit();
 	};
 
 	Game.prototype.processCommandQueue = function () {

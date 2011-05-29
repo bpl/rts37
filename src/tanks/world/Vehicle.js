@@ -145,7 +145,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 
 		var wtc = viewport.worldToClip;
 		var mtw = this.modelToWorld;
-		var factor = client.game.factor;
+		var factor = client.factor;
 		var angleRad = (this.angle - this.dflAngle * factor);
 		// Rotation
 		mtw[0] = Math.cos(angleRad);
@@ -246,7 +246,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 	};
 
 	Vehicle.prototype.clickTest = function (x, y, client) {
-		var factor = client.game.factor;
+		var factor = client.factor;
 		return MathUtil.distance(
 			this.x - this.dflX * factor,
 			this.y - this.dflY * factor,

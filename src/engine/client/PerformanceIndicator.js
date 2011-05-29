@@ -16,7 +16,7 @@ define(['engine/client/Widget'], function(Widget) {
 			'permitted ' + game.lastPermittedTick +
 				', processed ' + game.lastProcessedTick +
 				', sinceTick ' + padToThree(game.msecsSinceTick) +
-				', sinceDrawn ' + padToThree(game.msecsSinceDrawn),
+				', sinceDrawn ' + padToThree(this.client.msecsSinceDrawn),
 			10, 10
 		);
 

@@ -15,8 +15,20 @@ define(['engine/client/UIRenderer'], function (UIRenderer) {
 		this.mouseOverWidget = null;
 		this.uiRenderer = new UIRenderer();
 		this.onresizewindow = null;
+		//
 		// User interface state
+		//
 		this.selectedActors = [];
+		//
+		// Pacing information
+		//
+		// Interpolation factor. Value 0 means that the frame that is being rendered
+		// or that has been rendered reflects the current simulation state. Value -1
+		// means that the frame that is being rendered or has been rendered reflects
+		// the previous simulation state.
+		this.factor = 0;
+		this.lastDrawn = 0;
+		this.msecsSinceDrawn = 0;
 
 		// Acquire drawing context
 
@@ -48,17 +60,13 @@ define(['engine/client/UIRenderer'], function (UIRenderer) {
 
 		// If contexts are available, set up event handlers
 
-		this.game.onDraw.register(function () {
-			self.handleDraw();
-		});
-
 		window.setInterval(function () {
 			self.game.gameLoop();
 		}, 10);
 
 		requestAnimationFrame.call(window, function handleAnimationFrame() {
 			requestAnimationFrame.call(window, handleAnimationFrame, canvas);
-			self.game.drawLoop();
+			self.drawLoop();
 		}, canvas);
 
 		this.canvas.addEventListener('click', function (evt) {
@@ -113,10 +121,29 @@ define(['engine/client/UIRenderer'], function (UIRenderer) {
 		);
 	};
 
-	// Called by the game when the client should redraw itself
-	// TODO: Now that the draw "loop" is separate from the game "loop", is this
-	// level of indirection really necessary?
-	Client.prototype.handleDraw = function () {
+	// Drawing loop. This should be called repeatedly, preferably using
+	// requestAnimationFrame to remove unnecessary updates.
+	Client.prototype.drawLoop = function () {
+		var timeNow = (new Date()).getTime();
+		if (this.game.reallyRunning) {
+			this.factor = 1 - (timeNow - this.game.lastTickAt) / this.game.msecsPerTick;
+			if (this.factor < 0) {
+				this.factor = 0;
+			}
+		} else {
+			this.factor = 0;
+		}
+		if (this.lastDrawn) {
+			var sinceDrawn = timeNow - this.lastDrawn;
+			if (this.game.cappedToFps > 0 && sinceDrawn < 1000 / this.game.cappedToFps) {
+				return;
+			}
+			this.msecsSinceDrawn = sinceDrawn;
+		} else {
+			this.msecsSinceDrawn = 0;
+		}
+		this.lastDrawn = timeNow;
+		// Do the actual drawing
 		for (var i = 0; i < this.widgets.length; ++i) {
 			this.widgets[i].draw(this.gl);
 		}
