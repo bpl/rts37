@@ -24,8 +24,6 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 			currentReloadMsecs: [0, 0, 0, 0],
 			reloadingCount: 0
 		});
-		this.radiusStyle = this.player.color.withAlpha(0.4).toString();
-		this.vehicleStyle = this.player.color.withAlpha(1).toString();
 		this.dflAngle = 0;
 		this.surfaceLowBound = null;
 		this.surfaceHighBound = null;
@@ -166,6 +164,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 
 		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
 		gl.uniformMatrix4fv(program.worldToClip, false, wtc);
+		gl.uniform4fv(program.fillColor, this.player.color);
 
 		gl.drawArrays(gl.TRIANGLES, 0, 3);
 

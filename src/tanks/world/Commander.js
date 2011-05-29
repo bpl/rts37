@@ -2,7 +2,7 @@
 // Commander //
 //////////////
 
-define(['engine/world/Player'], function (Player) {
+define(['engine/world/Player', 'engine/util/Color'], function (Player, Color) {
 
 	register('Commander', Commander);
 	inherits(Commander, Player);
