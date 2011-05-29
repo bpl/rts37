@@ -39,6 +39,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 		this.msecsSinceDrawn = 0;
 		this.lastConsideredTick = 0;
 		this.lastDrawn = 0;
+		this.lastTickAt = 0;
 		this.setTicksPerSecond(5);
 		//
 		// Server communication
@@ -175,7 +176,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 		// If the game loop is not running, check if we can start or resume it
 		if (!this.reallyRunning) {
 			if (this.running && (this.isLocal || this.lastPermittedTick > this.lastProcessedTick)) {
-				this.lastConsideredTick = new Date();
+				this.lastConsideredTick = (new Date()).getTime();
 				this.msecsSinceTick = 0;
 				this.reallyRunning = true;
 			}
@@ -183,8 +184,8 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 		// If the game loop is running, check if the projected time for the next
 		// tick has elapsed. If so, advance.
 		if (this.reallyRunning) {
-			var timeNow = new Date();
-			var elapsedMsecs = timeNow.getTime() - this.lastConsideredTick.getTime();
+			var timeNow = (new Date()).getTime();
+			var elapsedMsecs = timeNow - this.lastConsideredTick;
 			this.msecsSinceTick += elapsedMsecs;
 			this.lastConsideredTick = timeNow;
 			if (this.msecsSinceTick >= this.msecsPerTick) {
@@ -226,9 +227,9 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 		} else {
 			this.factor = 0;
 		}
-		var timeNow = new Date();
+		var timeNow = (new Date()).getTime();
 		if (this.lastDrawn) {
-			var sinceDrawn = timeNow.getTime() - this.lastDrawn.getTime();
+			var sinceDrawn = timeNow - this.lastDrawn;
 			if (this.cappedToFps > 0 && sinceDrawn < this.msecsPerFrameMin) {
 				return;
 			}
