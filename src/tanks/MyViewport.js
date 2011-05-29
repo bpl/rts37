@@ -11,6 +11,8 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 	}
 
 	MyViewport.prototype.draw = function (gl) {
+		Viewport.prototype.draw.call(this, gl);
+
 		// M_model->screen =
 		//    M_ndc->screen * M_projection * M_world->view * M_model->world
 

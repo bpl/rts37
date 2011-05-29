@@ -9,7 +9,7 @@ define(['engine/client/Widget'], function (Widget) {
 		Widget.call(this, client, opt);
 		this.game = this.client.game;
 		this.autoScrollRegion = 100;
-		this.autoScrollMultiplier = 0.5;
+		this.autoScrollMultiplier = 2.5;
 		this.viewX = this.game.fieldWidth / 2;
 		this.viewY = this.game.fieldHeight / 2;
 		this.viewZoom = 1;
@@ -17,21 +17,15 @@ define(['engine/client/Widget'], function (Widget) {
 		this.lastMouseY = 0;
 		this.autoScrollX = 0;
 		this.autoScrollY = 0;
-
-		var self = this;
-		this.game.onTick.register(function () {
-			self.tick();
-		});
-	};
-
-	Viewport.prototype.tick = function () {
-		if (this.autoScrollX != 0 || this.autoScrollY != 0) {
-			this.translate(this.autoScrollX, this.autoScrollY);
-		}
 	};
 
 	Viewport.prototype.draw = function (gl) {
-		// To be overridden in a subclass
+		// To make autoscrolling work, this should be called as the first thing
+		// in the overridden draw method.
+		if (this.autoScrollX || this.autoScrollY) {
+			var factor = this.client.msecsSinceDrawn / 1000;
+			this.translate(this.autoScrollX * factor, this.autoScrollY * factor);
+		}
 	};
 
 	Viewport.prototype.viewToWorld = function (x, y) {
