@@ -82,6 +82,12 @@ define(['engine/client/Widget'], function (Widget) {
 		}
 	};
 
+	Viewport.prototype.handleMouseOut = function () {
+		// Stop automatic scrolling if the mouse leaves the viewport
+		this.autoScrollX = 0;
+		this.autoScrollY = 0;
+	};
+
 	Viewport.prototype.handleKeyPress = function (key) {
 		switch (key) {
 			case 'e':

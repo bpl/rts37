@@ -47,6 +47,12 @@ define(function () {
 		return false;
 	};
 
+	// Called by client when the mouse pointer is moved outside the area of the
+	// widget.
+	Widget.prototype.handleMouseOut = function () {
+		// By default, do nothing
+	};
+
 	// Called by client when a key is pressed. Return false to indicate that this
 	// widget did not process the event and that the next event handler should be
 	// called instead.

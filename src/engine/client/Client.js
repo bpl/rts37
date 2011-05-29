@@ -12,6 +12,7 @@ define(['engine/client/UIRenderer'], function (UIRenderer) {
 		this.canvas = canvas;
 		this.gl = null;
 		this.widgets = [];
+		this.mouseOverWidget = null;
 		this.uiRenderer = new UIRenderer();
 		this.onresizewindow = null;
 		// User interface state
@@ -66,6 +67,10 @@ define(['engine/client/UIRenderer'], function (UIRenderer) {
 
 		this.canvas.addEventListener('mousemove', function (evt) {
 			self.handleMouseMove(evt);
+		}, false);
+
+		this.canvas.addEventListener('mouseout', function (evt) {
+			self.handleMouseOut(evt);
 		}, false);
 
 		document.addEventListener('keypress', function (evt) {
@@ -137,6 +142,16 @@ define(['engine/client/UIRenderer'], function (UIRenderer) {
 	Client.prototype.handleMouseMove = function (evt) {
 		evt.preventDefault();
 		var offset = this.normalizedOffset(evt);
+		if (this.mouseOverWidget) {
+			var widget = this.mouseOverWidget;
+			if (offset.x < widget.x
+					|| offset.x >= widget.x + widget.width
+					|| offset.y < widget.y
+					|| offset.y >= widget.y + widget.height) {
+				widget.handleMouseOut();
+				this.mouseOverWidget = null;
+			}
+		}
 		for (var i = this.widgets.length - 1; i >= 0; --i) {
 			var widget = this.widgets[i];
 			if (offset.x >= widget.x
@@ -144,9 +159,18 @@ define(['engine/client/UIRenderer'], function (UIRenderer) {
 					&& offset.y >= widget.y
 					&& offset.y < widget.y + widget.height) {
 				if (widget.handleMouseMove(offset.x, offset.y) !== false) {
+					this.mouseOverWidget = widget;
 					return;
 				}
 			}
+		}
+	};
+
+	Client.prototype.handleMouseOut = function (evt) {
+		evt.preventDefault();
+		if (this.mouseOverWidget) {
+			this.mouseOverWidget.handleMouseOut();
+			this.mouseOverWidget = null;
 		}
 	};
 
