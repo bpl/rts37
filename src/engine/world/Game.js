@@ -147,11 +147,10 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 
 	// The main game loop. This should be called repeatedly from a timer.
 	Game.prototype.gameLoop = function () {
-		// FIXME: Handle client lagging behind the server
+		// FIXME: Handle client lagging behind the server. Temporarily reduce
+		// tick duration to catch up discreetly.
 		// FIXME: Soft adjustment for situations where the client has a tendency to
 		// speed past the server.
-		// FIXME: If this is a local game and we have been paused for a really long
-		// time (over a second or so), don't do any catch-up.
 		//
 		// Acknowledgement handling. Send acknowledgement 100 msecs after receiving
 		// a message that has not been acknowledgement yet, and after processing a
@@ -177,7 +176,16 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 			var elapsedMsecs = timeNow - this.lastConsideredTick;
 			this.msecsSinceTick += elapsedMsecs;
 			this.lastConsideredTick = timeNow;
-			if (this.msecsSinceTick >= this.msecsPerTick) {
+			// If this a local game and we have been paused for a long time,
+			// don't do any catchup.
+			if (this.isLocal && this.msecsSinceTick > 500) {
+				this.msecsSinceTick = this.msecsPerTick;
+			}
+			// Only process a certain number of ticks per invocation to avoid
+			// locking up the browser after the script has been paused for a
+			// long time and then resumed.
+			var catchupTicks = 10;
+			while (this.msecsSinceTick >= this.msecsPerTick && catchupTicks > 0) {
 				if (this.isLocal || this.lastPermittedTick > this.lastProcessedTick) {
 					// We have a clearance to process the next tick, so process it
 					if (!this.isLocal) {
@@ -191,6 +199,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 					}
 					this.msecsSinceTick -= this.msecsPerTick;
 					this.lastTickAt = timeNow;
+					catchupTicks--;
 				} else {
 					// The scheduled time to process the next tick has passed, but
 					// we are missing the clearance to process it. We need to
@@ -201,6 +210,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 					// resynchronizing or reset all the delta values when it becomes
 					// clear that we must resynchronize.
 					this.reallyRunning = false;
+					catchupTicks = 0;
 				}
 			}
 		}
