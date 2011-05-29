@@ -148,6 +148,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!engi
 			gl.blendFunc(gl.SRC_ALPHA, gl.DST_COLOR);
 			gl.enableVertexAttribArray(vectorProgram.vertexPosition);
 			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+			gl.bufferSubData(gl.ARRAY_BUFFER, 0, lps);
 			gl.vertexAttribPointer(vectorProgram.vertexPosition, 2, gl.FLOAT, false, 0, 0);
 			gl.bindBuffer(gl.ARRAY_BUFFER, null);
 

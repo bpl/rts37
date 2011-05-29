@@ -174,7 +174,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 
 		// If selected, draw the selection indicator
 		if (client.selectedActors.indexOf(this) >= 0) {
-			client.uiRenderer.addRectModel(wtc, mtw, 30, 30);
+			client.uiRenderer.addRectModel(wtc, mtw, 40, 40);
 		}
 
 		/*
