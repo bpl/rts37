@@ -40,7 +40,7 @@ define(function () {
 		result[0] = red;
 		result[1] = green;
 		result[2] = blue;
-		result[3] = 1;
+		result[3] = alpha;
 		return result;
 	};
 

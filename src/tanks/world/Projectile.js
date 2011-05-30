@@ -1,10 +1,12 @@
-define(['engine/world/Actor', 'engine/world/Player', 'tanks/world/HitMarker', 'engine/util/mathlib'], function (Actor, Player, HitMarker, mathlib) {
+define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'engine/world/Player', 'tanks/world/HitMarker', 'engine/util/Color'], function (mathlib, Actor, SolidMesh, Player, HitMarker, Color) {
 
 	register('Projectile', Projectile);
 	inherits(Projectile, Actor);
+	inherits(Projectile, SolidMesh);
 	function Projectile(opt /* player, x, y, angle, range, speed */) {
 		assert(opt.player && typeof opt.player === 'object', 'Projectile: player must be an object');
 		Actor.call(this, opt);
+		SolidMesh.call(this, Projectile);
 		this.defaults(opt, {
 			player: Player,
 			angle: Number,
@@ -12,6 +14,18 @@ define(['engine/world/Actor', 'engine/world/Player', 'tanks/world/HitMarker', 'e
 			speed: Number
 		});
 	}
+
+	Projectile.TRIANGLE_VERTICES = new Float32Array([
+		0, -3, 0,
+		3, 3, 0,
+		-3, 3, 0
+	]);
+
+	Projectile.triangleBuffer = null;
+
+	Projectile.meshColor = Color.fromValues(1, 1, 1, 1);
+
+	Projectile.prototype.dflAngle = 0;
 
 	Projectile.prototype.tick = function () {
 		var speedPerTick = Math.round(this.speed / this.game.ticksPerSecond);
@@ -33,23 +47,11 @@ define(['engine/world/Actor', 'engine/world/Player', 'tanks/world/HitMarker', 'e
 		}
 	};
 
-	Projectile.prototype.draw = function (gl, uiCtx, factor) {
-		/*
-		FIXME
-		if (this.player == this.game.localPlayer
+	Projectile.prototype.draw = function (gl, client, viewport) {
+		if (this.player === this.game.localPlayer
 				|| this.isInRadarRadiusOf(this.game.localPlayer)) {
-			ctx.save();
-			ctx.translate((this.x - this.dflX * factor) / 1024, (this.y - this.dflY * factor) / 1024);
-			ctx.rotate(this.angle);
-			ctx.strokeStyle = '#fff';
-			ctx.beginPath();
-			ctx.moveTo(-3, 4);
-			ctx.lineTo(0, 0);
-			ctx.lineTo(3, 4);
-			ctx.stroke();
-			ctx.restore();
+			this.drawMesh(gl, client, viewport);
 		}
-		*/
 	};
 
 	Projectile.prototype.isInVisualRadiusOf = function (player) {
@@ -74,6 +76,10 @@ define(['engine/world/Actor', 'engine/world/Player', 'tanks/world/HitMarker', 'e
 			}
 		}
 		return false;
+	};
+
+	Projectile.prototype.getMeshColor = function (client) {
+		return Projectile.meshColor;
 	};
 
 	return Projectile;

@@ -1,9 +1,11 @@
-define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (glmatrix, mathlib, Actor, Player, Projectile, Program, vertexShader, fragmentShader) {
+define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'engine/world/Player', 'tanks/world/Projectile'], function (mathlib, Actor, SolidMesh, Player, Projectile) {
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, Actor);
+	inherits(Vehicle, SolidMesh);
 	function Vehicle(opt /* id, player, x, y */) {
 		Actor.call(this, opt);
+		SolidMesh.call(this, Vehicle);
 		this.defaults(opt, {
 			id: Number,
 			player: Player,
@@ -23,7 +25,6 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'e
 		this.dflAngle = 0;
 		this.surfaceLowBound = null;
 		this.surfaceHighBound = null;
-		this.modelToWorld = glmatrix.Mat4.identity(glmatrix.Mat4.create());
 	}
 
 	Vehicle.TRIANGLE_VERTICES = new Float32Array([
@@ -33,8 +34,6 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'e
 	]);
 
 	Vehicle.triangleBuffer = null;
-
-	Vehicle.shaderProgram = new Program(vertexShader, fragmentShader);
 
 	Vehicle.prototype.setGame = function (game) {
 		Actor.prototype.setGame.call(this, game);
@@ -107,8 +106,8 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'e
 		if (this.reloadingCount < this.currentReloadMsecs.length) {
 			for (var idx in this.game.actors) {
 				var actor = this.game.actors[idx];
-				if (actor.player != this.player
-						&& actor instanceof Vehicle
+				if (actor.player !== this.player
+						&& 'firingRadius' in actor   // FIXME: Use something more role-specific
 						&& mathlib.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
 						&& actor.isInRadarRadiusOf(this.player)) {
 					this.fireAtPos(actor.x, actor.y);
@@ -124,52 +123,11 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'e
 			return;
 		}
 
-		// FIXME: Color according to player color
-
-		// FIXME: Put this somewhere else. This must be recreated if the WebGL
-		// context is lost.
-		var triangleBuffer = Vehicle.triangleBuffer;
-		if (!triangleBuffer) {
-			triangleBuffer = gl.createBuffer();
-			gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
-			gl.bufferData(gl.ARRAY_BUFFER, Vehicle.TRIANGLE_VERTICES, gl.STATIC_DRAW);
-			gl.bindBuffer(gl.ARRAY_BUFFER, null);
-			Vehicle.triangleBuffer = triangleBuffer;
-		}
-
-		var wtc = viewport.worldToClip;
-		var mtw = this.modelToWorld;
-		var factor = client.factor;
-		var angleRad = (this.angle - this.dflAngle * factor);
-		// Rotation
-		mtw[0] = Math.cos(angleRad);
-		mtw[4] = -Math.sin(angleRad);
-		mtw[1] = Math.sin(angleRad);
-		mtw[5] = Math.cos(angleRad);
-		// Translation
-		mtw[12] = (this.x - this.dflX * factor) / 1024;
-		mtw[13] = (this.y - this.dflY * factor) / 1024;
-
-		var program = Vehicle.shaderProgram;
-
-		gl.useProgram(program.prepare(gl));
-		gl.enableVertexAttribArray(program.vertexPosition);
-		gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
-		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 0, 0);
-		gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
-		gl.uniformMatrix4fv(program.worldToClip, false, wtc);
-		gl.uniform4fv(program.fillColor, this.player.color);
-
-		gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-		gl.disableVertexAttribArray(program.vertexPosition);
-		gl.useProgram(null);
+		this.drawMesh(gl, client, viewport);
 
 		// If selected, draw the selection indicator
 		if (client.selectedActors.indexOf(this) >= 0) {
-			client.uiRenderer.addRectModel(wtc, mtw, 40, 40);
+			client.uiRenderer.addRectModel(viewport.worldToClip, this.modelToWorld, 40, 40);
 		}
 
 		/*
@@ -219,6 +177,10 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'e
 				ctx.stroke();
 			}
 		*/
+	};
+
+	Vehicle.prototype.getMeshColor = function (client) {
+		return this.player.color;
 	};
 
 	Vehicle.prototype.addFiringArc = function (ctx, expand, factor) {
