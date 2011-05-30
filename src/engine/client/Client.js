@@ -89,6 +89,13 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, U
 				func.call(self, evt);
 			}
 		}, false);
+
+		// WebGL context initialization
+		// FIXME: Must be done again if the context is lost and restored
+
+		var gl = this.gl;
+		gl.clearColor(0.0, 0.0, 0.0, 0.0);
+		gl.clearDepth(1.0);
 	}
 
 	// Set the currently selected actors to certain array
@@ -141,11 +148,15 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, U
 			this.msecsSinceDrawn = 0;
 		}
 		this.lastDrawn = timeNow;
+
 		// Do the actual drawing
+
+		var gl = this.gl;
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		for (var i = 0; i < this.widgets.length; ++i) {
-			this.widgets[i].draw(this.gl);
+			this.widgets[i].draw(gl);
 		}
-		this.uiRenderer.draw(this.gl);
+		this.uiRenderer.draw(gl);
 	};
 
 	Client.prototype.handleClick = function (evt) {
