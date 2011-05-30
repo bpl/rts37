@@ -247,8 +247,8 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 		return false;
 	};
 
-	Vehicle.prototype.validateMove = function (x, y) {
-		return this.player == this.game.localPlayer;
+	Vehicle.prototype.validateMove = function (player, x, y) {
+		return this.player === player;
 	};
 
 	Vehicle.prototype.issueMove = function (x, y) {

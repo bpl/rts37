@@ -28,7 +28,7 @@ define(['engine/world/Game', 'engine/world/CollisionContext', 'engine/world/Map'
 				// [2] is the target X coordinate
 				// [3] is the target Y coordinate
 				var actor = this.actorWithId(cmd[1]);
-				if (actor.validateMove && actor.validateMove(cmd[2], cmd[3])) {
+				if (actor.validateMove && actor.validateMove(player, cmd[2], cmd[3])) {
 					actor.performMove(cmd[2], cmd[3]);
 				}
 				break;

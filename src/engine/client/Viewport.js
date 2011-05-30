@@ -53,7 +53,7 @@ define(['engine/client/Widget'], function (Widget) {
 		}
 		for (var idx in this.client.selectedActors) {
 			var actor = this.client.selectedActors[idx];
-			if (actor.validateMove && actor.validateMove(target[0], target[1])) {
+			if (actor.validateMove && actor.validateMove(this.game.localPlayer, target[0], target[1])) {
 				actor.issueMove(target[0], target[1]);
 			}
 		}
