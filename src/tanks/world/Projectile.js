@@ -2,7 +2,7 @@
 // Projectile //
 ///////////////
 
-define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/HitMarker'], function (MyActor, Commander, HitMarker) {
+define(['tanks/world/MyActor', 'engine/world/Player', 'tanks/world/HitMarker'], function (MyActor, Player, HitMarker) {
 
 	register('Projectile', Projectile);
 	inherits(Projectile, MyActor);
@@ -10,7 +10,7 @@ define(['tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/HitMarker']
 		assert(opt.player && typeof opt.player === 'object', 'Projectile: player must be an object');
 		MyActor.call(this, opt);
 		this.defaults(opt, {
-			player: Commander,
+			player: Player,
 			angle: Number,
 			range: Number,
 			speed: Number

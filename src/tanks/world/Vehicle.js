@@ -2,7 +2,7 @@
 // Vehicle //
 ////////////
 
-define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (glmatrix, MyActor, Commander, Projectile, Program, vertexShader, fragmentShader) {
+define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (glmatrix, MyActor, Player, Projectile, Program, vertexShader, fragmentShader) {
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, MyActor);
@@ -10,7 +10,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'tanks/world/Commander',
 		MyActor.call(this, opt);
 		this.defaults(opt, {
 			id: Number,
-			player: Commander,
+			player: Player,
 			angle: 0,
 			rotationSpeed: 3,
 			speed: 30 * 1024,

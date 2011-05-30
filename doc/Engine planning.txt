@@ -35,8 +35,8 @@ SERVER> 2,"loadMap","http://localhost:8000/fs/maps/map.js"
 
 # The server tells the client who the players are
 
-SERVER> 3,"AC",{"$type": "Commander", "id": 1, "playerId": "tim", "color": "#ff0000"}
-SERVER> 4,"AC",{"$type": "Commander", "id": 2, "playerId": "tom", "color": "#0000ff"}
+SERVER> 3,"AC",{"$type": "Player", "id": 1, "playerId": "tim", "color": "#ff0000"}
+SERVER> 4,"AC",{"$type": "Player", "id": 2, "playerId": "tom", "color": "#0000ff"}
 SERVER> 5,"youAre",1
 
 # The client tells the server that it has loaded the map
