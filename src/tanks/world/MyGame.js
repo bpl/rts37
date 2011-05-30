@@ -2,7 +2,7 @@
 // MyGame //
 ///////////
 
-define(['engine/world/Game', 'engine/world/CollisionContext'], function (Game, CollisionContext) {
+define(['engine/world/Game', 'engine/world/CollisionContext', 'engine/world/Map'], function (Game, CollisionContext, Map) {
 
 	inherits(MyGame, Game);
 	function MyGame(isLocal) {
