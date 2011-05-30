@@ -560,7 +560,7 @@ Server.prototype.handleConnection = function (conn) {
 			'id': gameId,
 			'ticksPerSecond': 5,
 			'acceptedLagMsecs': this.options.acceptedLagMsecs,
-			'playerIds': ['p1']
+			'playerIds': ['p1', 'p2']
 		});
 		this.manager.add(game);
 		game.deliverInitialState(state);
