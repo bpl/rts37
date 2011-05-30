@@ -1,5 +1,6 @@
-// Alpha Site                        //
-// Configuration for a simple test server //
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
+// Configuration for a simple test server
 
 var sys = require('sys');
 var net = require('net');

@@ -1,5 +1,6 @@
-// Alpha Site                  //
-// Unit tests for the server module //
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
+// Unit tests for the server module
 
 var sys = require('sys');
 var assert = require('assert');

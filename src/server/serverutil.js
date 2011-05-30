@@ -1,5 +1,6 @@
-// Alpha Site          //
-// Server utility functions //
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
+// Server utility functions
 
 // Removes any part of the path that might refer to files below the initial scope of
 // the path or to hidden files or directories. In other words, the result will:

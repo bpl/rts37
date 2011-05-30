@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'engine/world/Player', 'tanks/world/Projectile'], function (mathlib, Actor, SolidMesh, Player, Projectile) {
 
 	register('Vehicle', Vehicle);

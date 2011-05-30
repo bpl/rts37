@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, Viewport) {
 
 	inherits(MyViewport, Viewport);

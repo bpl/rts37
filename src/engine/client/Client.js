@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, UIRenderer) {
 
 	function Client(game, canvas) {

@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['tanks/world/Vehicle'], function (Vehicle) {
 
 	register('AIVehicle', AIVehicle);

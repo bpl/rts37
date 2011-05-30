@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'engine/world/Player', 'tanks/world/HitMarker', 'engine/util/Color'], function (mathlib, Actor, SolidMesh, Player, HitMarker, Color) {
 
 	register('Projectile', Projectile);

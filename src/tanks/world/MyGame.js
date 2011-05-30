@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['engine/world/Game', 'engine/world/CollisionContext', 'engine/world/Map'], function (Game, CollisionContext, Map) {
 
 	inherits(MyGame, Game);

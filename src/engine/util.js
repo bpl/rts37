@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 // Utilies shared by server and client parts
 
 function assert(condition, error) {

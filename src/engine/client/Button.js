@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['engine/client/Widget', 'engine/world/Event'], function (Widget, Event) {
 
 	inherits(Button, Widget);

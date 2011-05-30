@@ -1,5 +1,7 @@
 /*global define: false, Image: false*/
 
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 // Image loading plugin for RequireJS. No functionality beyond the standard
 // Image object is provided.
 

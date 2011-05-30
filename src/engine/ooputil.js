@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 // Utilities for object-oriented programming in JavaScript
 
 function inherits(child, parent) {

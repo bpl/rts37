@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 // Shader loading plugin for RequireJS. Wraps the actual shader, because it will
 // need to be recreated if the context is lost.
 

@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/solid.vert', 'engine/util/Shader!tanks/shaders/solid.frag'], function (glmatrix, Program, vertexShader, fragmentShader) {
 
 	// To be used as a mixin

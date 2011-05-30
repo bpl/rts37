@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!engine/shaders/uivector.vert', 'engine/util/Shader!engine/shaders/uivector.frag'], function (glmatrix, Program, vectorVertexShader, vectorFragmentShader) {
 
 	function UIRenderer() {

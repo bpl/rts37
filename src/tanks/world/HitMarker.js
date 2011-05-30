@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['engine/world/Actor', 'tanks/world/SolidMesh', 'engine/util/Color'], function (Actor, SolidMesh, Color) {
 
 	register('HitMarker', HitMarker);

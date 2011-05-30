@@ -1,6 +1,6 @@
-////////////////
-// Bootstrap //
-//////////////
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
+// Bootstrap
 
 define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/MyGame', 'engine/world/Player', 'tanks/world/Vehicle', 'tanks/world/AIVehicle'], function ($, clientlib, MyViewport, MyGame) {
 

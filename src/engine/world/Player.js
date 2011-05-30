@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 define(['engine/world/Actor', 'engine/util/Color'], function (Actor, Color) {
 
 	register('Player', Player);

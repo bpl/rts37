@@ -1,5 +1,4 @@
-// Alpha Site                    //
-// Tiled map and pathfinding routines //
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
 //////////
 // Map //

@@ -1,5 +1,6 @@
-// Alpha Site     //
-// Generic server core //
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
+// Generic lock-step execution multiplayer server core
 
 var sys = require('sys'),
 	fs = require('fs'),

@@ -1,3 +1,5 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
 // Wraps a WebGL program to make it easier to work with parameters and to
 // recreate the program if the context is lost.
 

@@ -1,6 +1,3 @@
-// Alpha Site                         //
-// Experimenting with pathfinding routines //
-
 var Pathfinder = {};
 
 // Based on http://www.policyalmanac.org/games/aStarTutorial.htm
