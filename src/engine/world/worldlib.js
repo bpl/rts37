@@ -5,7 +5,6 @@ define(
 		'engine/world/Actor',
 		'engine/world/CollisionBound',
 		'engine/world/CollisionContext',
-		'engine/world/Event',
 		'engine/world/Game',
 		'engine/world/Player'
 	],
@@ -13,7 +12,6 @@ define(
 		Actor,
 		CollisionBound,
 		CollisionContext,
-		Event,
 		Game,
 		Player
 	) {
@@ -21,7 +19,6 @@ define(
 			'Actor': Actor,
 			'CollisionBound': CollisionBound,
 			'CollisionContext': CollisionContext,
-			'Event': Event,
 			'Game': Game,
 			'Player': Player
 		};

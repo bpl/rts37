@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, UIRenderer) {
+define(['engine/util/mathlib', 'engine/client/UIRenderer', 'engine/util/Event'], function (mathlib, UIRenderer, Event) {
 
 	function Client(game, canvas) {
 		var self = this;
@@ -13,6 +13,7 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, U
 		this.mouseOverWidget = null;
 		this.uiRenderer = new UIRenderer();
 		this.onresizewindow = null;
+		this.onDraw = new Event();
 		//
 		// User interface state
 		//
@@ -160,6 +161,7 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, U
 			this.widgets[i].draw(gl);
 		}
 		this.uiRenderer.draw(gl);
+		this.onDraw.emit();
 	};
 
 	Client.prototype.handleClick = function (evt) {

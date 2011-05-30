@@ -6,13 +6,14 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 
 	var Button = clientlib.Button,
 		Client = clientlib.Client,
-		Connection = clientlib.Connection,
-		PerformanceIndicator = clientlib.PerformanceIndicator;
+		Connection = clientlib.Connection;
 
 	function initGame(isLocal) {
 		var splash = document.getElementById('splash');
-		splash.parentNode.removeChild(splash);
 		var canvas = document.getElementById('screen');
+		var performanceIndicator = document.getElementById('performance');
+
+		splash.parentNode.removeChild(splash);
 		assert(canvas, 'initGame: canvas not found');
 		var game = new MyGame(isLocal);
 		game.setTicksPerSecond(5);
@@ -27,8 +28,15 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 		});
 		client.add(viewport);
 
-		/*client.add(new PerformanceIndicator(client));
+		client.onDraw.register(function () {
+			performanceIndicator.firstChild.nodeValue =
+					'permitted ' + game.lastPermittedTick +
+					', processed ' + game.lastProcessedTick +
+					', sinceTick ' + padToThree(game.msecsSinceTick) +
+					', sinceDrawn ' + padToThree(client.msecsSinceDrawn);
+		});
 
+		/*
 		var testButton = new Button(client, {
 			'width': 40, 'height': 40,
 			'caption': 'Test',
@@ -36,7 +44,8 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 				alert('Leave me alone!');
 			}
 		});
-		client.add(testButton);*/
+		client.add(testButton);
+		*/
 
 		// Resize canvas and viewport to match window size
 

@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/client/Widget', 'engine/world/Event'], function (Widget, Event) {
+define(['engine/client/Widget', 'engine/util/Event'], function (Widget, Event) {
 
 	inherits(Button, Widget);
 	function Button(client, opt /* x, y, width, height, caption, callback */) {

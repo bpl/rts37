@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
+define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 
 	function Game(isLocal) {
 		this.localPlayer = null;
