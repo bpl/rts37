@@ -8,11 +8,12 @@ define(['engine/world/Game', 'engine/world/CollisionContext'], function (Game, C
 	function MyGame(isLocal) {
 		Game.prototype.constructor.call(this, isLocal);
 		this.map = new Map(50, 37, 16);
-		// FIXME: Hardcoded map content
+		/*
 		this.map.setTile(30, 20, 1);
 		this.map.setTile(30, 21, 1);
 		this.map.setTile(30, 22, 1);
 		this.map.setTile(31, 22, 1);
+		*/
 		this.fieldWidth = this.map.width * this.map.tileSize;
 		this.fieldHeight = this.map.height * this.map.tileSize;
 		this.surfaceContext = new CollisionContext(this);
