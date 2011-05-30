@@ -30,10 +30,13 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, U
 
 		// Acquire drawing context
 
+		var glOptions = {
+		};
+
 		try {
-			this.gl = this.canvas.getContext('webgl');
+			this.gl = this.canvas.getContext('webgl', glOptions);
 			if (!this.gl) {
-				this.gl = this.canvas.getContext('experimental-webgl');
+				this.gl = this.canvas.getContext('experimental-webgl', glOptions);
 			}
 		} catch (e) {
 			// TODO: Better error message
