@@ -112,7 +112,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 			for (var idx in this.game.actors) {
 				var actor = this.game.actors[idx];
 				if (actor.player != this.player
-						&& instanceOf(actor, Vehicle)
+						&& actor instanceof Vehicle
 						&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
 						&& actor.isInRadarRadiusOf(this.player)) {
 					this.fireAtPos(actor.x, actor.y);
@@ -266,7 +266,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 	Vehicle.prototype.isInVisualRadiusOf = function (player) {
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
-			if (actor.player == player && instanceOf(actor, Vehicle)) {
+			if (actor.player == player && 'visualRadius' in actor) {
 				if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
 					return true;
 				}
@@ -278,7 +278,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 	Vehicle.prototype.isInRadarRadiusOf = function (player) {
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
-			if (actor.player == player && instanceOf(actor, Vehicle)) {
+			if (actor.player == player && 'radarRadius' in actor) {
 				if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
 					return true;
 				}

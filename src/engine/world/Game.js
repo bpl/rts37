@@ -136,7 +136,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 	Game.prototype.playerWithPlayerId = function (playerId) {
 		for (var i = 0; i < this.actors.length; ++i) {
 			var actor = this.actors[i];
-			if (instanceOf(actor, Player)) {
+			if (actor instanceof Player) {
 				if (actor.playerId == playerId) {
 					return actor;
 				}
@@ -265,7 +265,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 				// [2] is the actor id of the player the command is from
 				// [3] is the properties of the command
 				var player = this.actorWithId(msg[2]);
-				assert(instanceOf(player, Player), 'Game.handleMessage: player of C must be a Player');
+				assert(player instanceof Player, 'Game.handleMessage: player of C must be a Player');
 				this.commandQueues[0].push([player, msg[3]]);
 				break;
 			case 'tick':
@@ -299,7 +299,7 @@ define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 				// [2] is the actor id of the local player
 				assert(!this.localPlayer, 'Game.handleMessage: local player is already set');
 				var player = this.actorWithId(msg[2]);
-				assert(instanceOf(player, Player), 'Game.handleMessage: player of youAre must be a Player');
+				assert(player instanceof Player, 'Game.handleMessage: player of youAre must be a Player');
 				this.setLocalPlayer(player);
 				break;
 			case 'hello':

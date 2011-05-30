@@ -12,11 +12,6 @@ function inherits(child, parent) {
 	child.prototype.__parentTypes.push(parent);
 }
 
-function instanceOf(obj, parent) {
-	return (obj instanceof parent || (obj && typeof obj.__parentTypes == 'object'
-			&& obj.__parentTypes.indexOf(parent) >= 0));
-}
-
 /////////////////////////////////
 // Object activator singleton //
 ///////////////////////////////
@@ -120,6 +115,11 @@ Activator._stringify = function () {
 	return JSON.stringify(this, Activator._encodeMember);
 };
 
+Activator._instanceOf = function (obj, parent) {
+	return (obj instanceof parent || (obj && typeof obj.__parentTypes == 'object'
+			&& obj.__parentTypes.indexOf(parent) >= 0));
+};
+
 Activator._defaults = function (values, defaultValues) {
 	for (var key in defaultValues) {
 		var defaultValue = defaultValues[key];
@@ -127,7 +127,7 @@ Activator._defaults = function (values, defaultValues) {
 			if (defaultValue === Number) {
 				assert(typeof values[key] == 'number', 'Activator._defaults: type "' + this.constructor.typeName + '" requires parameter "' + key + '" to be a number');
 			} else if (typeof defaultValue == 'function') {
-				assert(instanceOf(values[key], defaultValue), 'Activator._defaults: type "' + this.constructor.typeName + '" requires parameter "' + key + '" to be of type "' + defaultValue.typeName + '"');
+				assert(Activator._instanceOf(values[key], defaultValue), 'Activator._defaults: type "' + this.constructor.typeName + '" requires parameter "' + key + '" to be of type "' + defaultValue.typeName + '"');
 			}
 			this[key] = values[key];
 		} else {
