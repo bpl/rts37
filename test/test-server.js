@@ -1,4 +1,4 @@
-// Firing Solution                  //
+// Alpha Site                  //
 // Unit tests for the server module //
 
 var sys = require('sys');

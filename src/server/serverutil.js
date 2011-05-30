@@ -1,4 +1,4 @@
-// Firing Solution          //
+// Alpha Site          //
 // Server utility functions //
 
 // Removes any part of the path that might refer to files below the initial scope of

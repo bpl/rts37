@@ -1,4 +1,4 @@
-// Firing Solution                        //
+// Alpha Site                        //
 // Configuration for a simple test server //
 
 var sys = require('sys');

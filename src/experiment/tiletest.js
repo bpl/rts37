@@ -1,4 +1,4 @@
-// Firing Solution                         //
+// Alpha Site                         //
 // Experimenting with pathfinding routines //
 
 var Pathfinder = {};

@@ -1,4 +1,4 @@
-// Firing Solution        //
+// Alpha Site        //
 // Math utility functions //
 
 var MathUtil = {};

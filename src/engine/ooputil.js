@@ -1,4 +1,4 @@
-// Firing Solution                                         //
+// Alpha Site                                         //
 // Utilities for object-oriented programming in JavaScript //
 
 function inherits(child, parent) {

@@ -1,4 +1,4 @@
-// Firing Solution     //
+// Alpha Site     //
 // Generic server core //
 
 var sys = require('sys'),
