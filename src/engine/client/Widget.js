@@ -1,7 +1,3 @@
-/////////////
-// Widget //
-///////////
-
 define(function () {
 
 	function Widget(client, opt /* x, y, width, height */) {

@@ -1,7 +1,3 @@
-////////////////
-// AIVehicle //
-//////////////
-
 define(['tanks/world/Vehicle'], function (Vehicle) {
 
 	register('AIVehicle', AIVehicle);

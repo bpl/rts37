@@ -1,7 +1,3 @@
-///////////////////////
-// CollisionContext //
-/////////////////////
-
 define(['engine/world/CollisionBound'], function (CollisionBound) {
 
 	function CollisionContext(game) {

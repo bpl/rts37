@@ -1,7 +1,7 @@
 /*global define: false, Image: false*/
 
-// Image loading plugin for RequireJS. No functionality beyond the standard //
-// Image object is provided.                                                //
+// Image loading plugin for RequireJS. No functionality beyond the standard
+// Image object is provided.
 
 define(function () {
 

@@ -1,5 +1,4 @@
-// Alpha Site                                         //
-// Utilities for object-oriented programming in JavaScript //
+// Utilities for object-oriented programming in JavaScript
 
 function inherits(child, parent) {
 	for (var property in parent.prototype) {

@@ -1,7 +1,3 @@
-///////////////
-// Viewport //
-/////////////
-
 define(['engine/client/Widget'], function (Widget) {
 
 	inherits(Viewport, Widget);

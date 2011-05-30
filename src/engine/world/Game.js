@@ -1,7 +1,3 @@
-///////////
-// Game //
-/////////
-
 define(['engine/world/Event', 'engine/world/Player'], function (Event, Player) {
 
 	function Game(isLocal) {

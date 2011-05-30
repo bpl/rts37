@@ -1,5 +1,4 @@
-// Alpha Site                           //
-// Utilies shared by server and client parts //
+// Utilies shared by server and client parts
 
 function assert(condition, error) {
 	if (!condition) {

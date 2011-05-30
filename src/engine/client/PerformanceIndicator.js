@@ -1,7 +1,3 @@
-///////////////////////////
-// PerformanceIndicator //
-/////////////////////////
-
 define(['engine/client/Widget'], function(Widget) {
 
 	inherits(PerformanceIndicator, Widget);

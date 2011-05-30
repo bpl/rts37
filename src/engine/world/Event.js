@@ -1,7 +1,3 @@
-////////////
-// Event //
-//////////
-
 define(function () {
 
 	function Event() {

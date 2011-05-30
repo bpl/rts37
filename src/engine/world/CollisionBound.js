@@ -1,7 +1,3 @@
-/////////////////////
-// CollisionBound //
-///////////////////
-
 define(function () {
 
 	function CollisionBound(x, y, radius, isLow, actor) {

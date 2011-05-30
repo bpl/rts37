@@ -1,7 +1,3 @@
-/////////////
-// Client //
-///////////
-
 define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, UIRenderer) {
 
 	function Client(game, canvas) {

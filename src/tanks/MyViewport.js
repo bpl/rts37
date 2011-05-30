@@ -1,7 +1,3 @@
-/////////////////
-// MyViewport //
-///////////////
-
 define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, Viewport) {
 
 	inherits(MyViewport, Viewport);

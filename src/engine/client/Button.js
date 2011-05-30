@@ -1,7 +1,3 @@
-/////////////
-// Button //
-///////////
-
 define(['engine/client/Widget', 'engine/world/Event'], function (Widget, Event) {
 
 	inherits(Button, Widget);
