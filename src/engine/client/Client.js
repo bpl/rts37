@@ -2,7 +2,7 @@
 // Client //
 ///////////
 
-define(['engine/client/UIRenderer'], function (UIRenderer) {
+define(['engine/util/mathlib', 'engine/client/UIRenderer'], function (mathlib, UIRenderer) {
 
 	function Client(game, canvas) {
 		var self = this;
@@ -115,7 +115,7 @@ define(['engine/client/UIRenderer'], function (UIRenderer) {
 
 	Client.prototype.normalizedOffset = function (evt) {
 		var bounds = this.canvas.getBoundingClientRect();
-		return new Vec(
+		return new mathlib.Vec(
 			evt.clientX - bounds.left,
 			evt.clientY - bounds.top
 		);

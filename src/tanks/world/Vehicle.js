@@ -2,7 +2,7 @@
 // Vehicle //
 ////////////
 
-define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (glmatrix, MyActor, Player, Projectile, Program, vertexShader, fragmentShader) {
+define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'tanks/world/MyActor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (glmatrix, mathlib, MyActor, Player, Projectile, Program, vertexShader, fragmentShader) {
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, MyActor);
@@ -76,22 +76,22 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 		this.dflY = 0;
 		if (this.targetX && this.targetY) {
 			// Orient towards a waypoint if we have not reached it yet
-			var angle = MathUtil.angle(this.x, this.y, this.targetX, this.targetY);
-			var angleDelta = MathUtil.angleDelta(this.angle, angle);
+			var angle = mathlib.angle(this.x, this.y, this.targetX, this.targetY);
+			var angleDelta = mathlib.angleDelta(this.angle, angle);
 			var rotationPerTick = this.rotationSpeed / this.game.ticksPerSecond;
 			if (Math.abs(angleDelta) > rotationPerTick) {
 				var lastAngle = this.angle;
-				this.angle = MathUtil.normalizeAngle(this.angle + angleDelta / Math.abs(angleDelta) * rotationPerTick);
-				this.dflAngle = MathUtil.angleDelta(lastAngle, this.angle);
+				this.angle = mathlib.normalizeAngle(this.angle + angleDelta / Math.abs(angleDelta) * rotationPerTick);
+				this.dflAngle = mathlib.angleDelta(lastAngle, this.angle);
 			} else {
-				this.dflAngle = MathUtil.angleDelta(this.angle, angle);
+				this.dflAngle = mathlib.angleDelta(this.angle, angle);
 				this.angle = angle;
 			}
-			var delta = MathUtil.anglePoint(this.angle, Math.round(this.speed / this.game.ticksPerSecond));
+			var delta = mathlib.anglePoint(this.angle, Math.round(this.speed / this.game.ticksPerSecond));
 			if (this.game.map.getTileAt(this.x + delta[0], this.y + delta[1]) === 0) {
 				this.setPosition(this.x + delta[0], this.y + delta[1]);
 			}
-			if (MathUtil.manhattanDistance(this.x, this.y, this.targetX, this.targetY) <= 5120) {
+			if (mathlib.manhattanDistance(this.x, this.y, this.targetX, this.targetY) <= 5120) {
 				this.targetX = null;
 				this.targetY = null;
 			}
@@ -113,7 +113,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 				var actor = this.game.actors[idx];
 				if (actor.player != this.player
 						&& actor instanceof Vehicle
-						&& MathUtil.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
+						&& mathlib.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
 						&& actor.isInRadarRadiusOf(this.player)) {
 					this.fireAtPos(actor.x, actor.y);
 					break;
@@ -190,7 +190,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 			}
 			// If there is a target, draw the target indicator
 			if (this.targetX && this.targetY && this.player == this.game.localPlayer) {
-				var distance = MathUtil.distance(
+				var distance = mathlib.distance(
 					this.x - this.dflX * factor,
 					this.y - this.dflY * factor,
 					this.targetX,
@@ -199,15 +199,15 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 				ctx.strokeStyle = uiCtx.indicatorStyle;
 				if (distance > 49152) {
 					ctx.beginPath();
-					var angle = MathUtil.angle(
+					var angle = mathlib.angle(
 						this.x - this.dflX * factor,
 						this.y - this.dflY * factor,
 						this.targetX,
 						this.targetY
 					);
-					var delta = MathUtil.anglePoint(angle, 35);
+					var delta = mathlib.anglePoint(angle, 35);
 					ctx.moveTo(delta[0], delta[1]);
-					delta = MathUtil.anglePoint(angle - Math.PI, 13);
+					delta = mathlib.anglePoint(angle - Math.PI, 13);
 					ctx.lineTo(
 						(this.targetX - (this.x - this.dflX * factor)) / 1024 + delta[0],
 						(this.targetY - (this.y - this.dflY * factor)) / 1024 + delta[1]
@@ -246,7 +246,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 
 	Vehicle.prototype.clickTest = function (x, y, client) {
 		var factor = client.factor;
-		return MathUtil.distance(
+		return mathlib.distance(
 			this.x - this.dflX * factor,
 			this.y - this.dflY * factor,
 			x,
@@ -260,14 +260,14 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 	};
 
 	Vehicle.prototype.projectileHitTest = function (x, y) {
-		return MathUtil.distance(this.x, this.y, x, y) <= 15360;
+		return mathlib.distance(this.x, this.y, x, y) <= 15360;
 	};
 
 	Vehicle.prototype.isInVisualRadiusOf = function (player) {
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
 			if (actor.player == player && 'visualRadius' in actor) {
-				if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
+				if (mathlib.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
 					return true;
 				}
 			}
@@ -279,7 +279,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
 			if (actor.player == player && 'radarRadius' in actor) {
-				if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
+				if (mathlib.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
 					return true;
 				}
 			}
@@ -307,12 +307,12 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 			}
 		}
 		if (gunIndex < this.currentReloadMsecs.length &&
-				MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
+				mathlib.distance(x, y, this.x, this.y) < this.firingRadius) {
 			this.game.createActor(Projectile, {
 				'player': this.player,
 				'x': this.x, 'y': this.y,
-				'angle': MathUtil.angle(this.x, this.y, x, y),
-				'range': MathUtil.distance(this.x, this.y, x, y),
+				'angle': mathlib.angle(this.x, this.y, x, y),
+				'range': mathlib.distance(this.x, this.y, x, y),
 				'speed': this.projectileSpeed
 			});
 			this.currentReloadMsecs[gunIndex] = this.reloadMsecs;
@@ -322,7 +322,7 @@ define(['dep/glmatrix/glmatrix', 'tanks/world/MyActor', 'engine/world/Player', '
 
 	Vehicle.prototype.issueFireAtPos = function (x, y) {
 		if (this.reloadingCount < this.currentReloadMsecs.length &&
-				MathUtil.distance(x, y, this.x, this.y) < this.firingRadius) {
+				mathlib.distance(x, y, this.x, this.y) < this.firingRadius) {
 			this.game.issueCommand(['FR', this.id, x, y]);
 			return true;
 		}

@@ -2,7 +2,7 @@
 // Projectile //
 ///////////////
 
-define(['tanks/world/MyActor', 'engine/world/Player', 'tanks/world/HitMarker'], function (MyActor, Player, HitMarker) {
+define(['tanks/world/MyActor', 'engine/world/Player', 'tanks/world/HitMarker', 'engine/util/mathlib'], function (MyActor, Player, HitMarker, mathlib) {
 
 	register('Projectile', Projectile);
 	inherits(Projectile, MyActor);
@@ -20,7 +20,7 @@ define(['tanks/world/MyActor', 'engine/world/Player', 'tanks/world/HitMarker'], 
 	Projectile.prototype.tick = function () {
 		var speedPerTick = Math.round(this.speed / this.game.ticksPerSecond);
 		if (this.range > speedPerTick) {
-			var delta = MathUtil.anglePoint(this.angle, speedPerTick);
+			var delta = mathlib.anglePoint(this.angle, speedPerTick);
 			this.dflX = delta[0];
 			this.dflY = delta[1];
 			this.x += delta[0];
@@ -60,7 +60,7 @@ define(['tanks/world/MyActor', 'engine/world/Player', 'tanks/world/HitMarker'], 
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
 			if (actor.player == player && 'visualRadius' in actor) {
-				if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
+				if (mathlib.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
 					return true;
 				}
 			}
@@ -72,7 +72,7 @@ define(['tanks/world/MyActor', 'engine/world/Player', 'tanks/world/HitMarker'], 
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
 			if (actor.player == player && 'radarRadius' in actor) {
-				if (MathUtil.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
+				if (mathlib.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
 					return true;
 				}
 			}
