@@ -4,6 +4,8 @@ ENGINE PLANNING
 
 This document contains the current plan regarding how the engine should work.
 
+!! OBSOLETE !!
+
 ----------
 Game setup
 ----------
