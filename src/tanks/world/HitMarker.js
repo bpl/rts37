@@ -1,13 +1,9 @@
-////////////////
-// HitMarker //
-//////////////
-
-define(['tanks/world/MyActor'], function (MyActor) {
+define(['engine/world/Actor'], function (Actor) {
 
 	register('HitMarker', HitMarker);
-	inherits(HitMarker, MyActor);
+	inherits(HitMarker, Actor);
 	function HitMarker(opt /* x, y */) {
-		MyActor.call(this, opt);
+		Actor.call(this, opt);
 		this.defaults(opt, {
 			radius: 15,
 			lifetimeMsecs: 2000,

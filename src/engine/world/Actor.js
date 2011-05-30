@@ -1,14 +1,10 @@
-////////////
-// Actor //
-//////////
-
 define(function () {
 
-	function Actor(x, y) {
+	function Actor(opt /* x, y */) {
 		this.game = null;
 		this.id = null;
-		this.x = x;
-		this.y = y;
+		this.x = opt.x || 0;
+		this.y = opt.y || 0;
 		// Delta from last. This should be positive if the value has increased since last tick and
 		// negative if the value has decreased since last tick. It will be multiplied with
 		// the interpolation factor and *substracted* from the current value (yes, the interpolation

@@ -1,14 +1,10 @@
-/////////////////
-// Projectile //
-///////////////
-
-define(['tanks/world/MyActor', 'engine/world/Player', 'tanks/world/HitMarker', 'engine/util/mathlib'], function (MyActor, Player, HitMarker, mathlib) {
+define(['engine/world/Actor', 'engine/world/Player', 'tanks/world/HitMarker', 'engine/util/mathlib'], function (Actor, Player, HitMarker, mathlib) {
 
 	register('Projectile', Projectile);
-	inherits(Projectile, MyActor);
+	inherits(Projectile, Actor);
 	function Projectile(opt /* player, x, y, angle, range, speed */) {
 		assert(opt.player && typeof opt.player === 'object', 'Projectile: player must be an object');
-		MyActor.call(this, opt);
+		Actor.call(this, opt);
 		this.defaults(opt, {
 			player: Player,
 			angle: Number,

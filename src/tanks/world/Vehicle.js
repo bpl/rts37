@@ -1,13 +1,9 @@
-//////////////
-// Vehicle //
-////////////
-
-define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'tanks/world/MyActor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (glmatrix, mathlib, MyActor, Player, Projectile, Program, vertexShader, fragmentShader) {
+define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/vehicle.vert', 'engine/util/Shader!tanks/shaders/vehicle.frag'], function (glmatrix, mathlib, Actor, Player, Projectile, Program, vertexShader, fragmentShader) {
 
 	register('Vehicle', Vehicle);
-	inherits(Vehicle, MyActor);
+	inherits(Vehicle, Actor);
 	function Vehicle(opt /* id, player, x, y */) {
-		MyActor.call(this, opt);
+		Actor.call(this, opt);
 		this.defaults(opt, {
 			id: Number,
 			player: Player,
@@ -41,7 +37,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'tanks/world/MyActor', '
 	Vehicle.shaderProgram = new Program(vertexShader, fragmentShader);
 
 	Vehicle.prototype.setGame = function (game) {
-		MyActor.prototype.setGame.call(this, game);
+		Actor.prototype.setGame.call(this, game);
 		this.surfaceLowBound = this.game.surfaceContext.getLowBound(this, 15 * 1024);
 		this.surfaceHighBound = this.game.surfaceContext.getHighBound(this, 15 * 1024);
 	};
