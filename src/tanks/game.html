@@ -25,12 +25,12 @@
 <div class="tabset">
 
 <ul class="tabs">
-	<li class="selected"><a href="#create">Create remote game</a></li>
+	<li><a href="#create">Create remote game</a></li>
 	<li><a href="#join">Join remote game</a></li>
-	<li><a href="#local">Local game</a></li>
+	<li class="selected"><a href="#local">Local game</a></li>
 </ul>
 
-<div class="sheet" id="create">
+<div class="sheet hidden" id="create">
 
 <p><label for="f-create-state">Initial game state</label><br><textarea name="state" id="f-create-state" cols="60" rows="5">
 &quot;AC&quot;, {&quot;$type&quot;: &quot;Player&quot;, &quot;id&quot;: 1, &quot;playerId&quot;: &quot;p1&quot;, &quot;color&quot;: &quot;#ff0000&quot;}
@@ -59,7 +59,7 @@
 
 </div>
 
-<div class="sheet hidden" id="local">
+<div class="sheet" id="local">
 
 <p><label for="f-local-state">Initial game state</label><br><textarea name="state" id="f-local-state" cols="60" rows="5">
 &quot;AC&quot;, {&quot;$type&quot;: &quot;Player&quot;, &quot;id&quot;: 1, &quot;playerId&quot;: &quot;p1&quot;, &quot;color&quot;: &quot;#ff0000&quot;}
