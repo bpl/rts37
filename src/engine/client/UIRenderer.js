@@ -13,38 +13,62 @@ define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!engi
 
 	UIRenderer.vectorProgram = new Program(vectorVertexShader, vectorFragmentShader);
 
-	UIRenderer.tempVec3 = glmatrix.Vec3.create();
+	UIRenderer.tempVec41 = glmatrix.Vec4.create();
+	UIRenderer.tempVec42 = glmatrix.Vec4.create();
+	UIRenderer.tempVec43 = glmatrix.Vec4.create();
+	UIRenderer.tempVec44 = glmatrix.Vec4.create();
 
 	UIRenderer.tempMat4 = glmatrix.Mat4.create();
 
-	UIRenderer.prototype.addRectScreen4 = function (x1, y1, x2, y2, x3, y3, x4, y4) {
+	UIRenderer.prototype.addRectScreen4zw = function (vec1, vec2, vec3, vec4) {
 		var lps = this._linePoints;
 		var lpc = this._linePointCount;
-		if (lpc + 16 > lps.length) {
+		if (lpc + 32 > lps.length) {
 			// FIXME: Show error in console
 			return;
 		}
 		// Top side
-		lps[lpc] = x1;
-		lps[lpc + 1] = y1;
-		lps[lpc + 2] = x2;
-		lps[lpc + 3] = y2;
+		lps.set(vec1, lpc);
+		lps.set(vec2, lpc + 4);
 		// Right side
-		lps[lpc + 4] = x2;
-		lps[lpc + 5] = y2;
-		lps[lpc + 6] = x3;
-		lps[lpc + 7] = y3;
+		lps.set(vec2, lpc + 8);
+		lps.set(vec3, lpc + 12);
 		// Bottom side
-		lps[lpc + 8] = x3;
-		lps[lpc + 9] = y3;
-		lps[lpc + 10] = x4;
-		lps[lpc + 11] = y4;
+		lps.set(vec3, lpc + 16);
+		lps.set(vec4, lpc + 20);
 		// Left side
-		lps[lpc + 12] = x4;
-		lps[lpc + 13] = y4;
-		lps[lpc + 14] = x1;
-		lps[lpc + 15] = y1;
-		this._linePointCount += 16;
+		lps.set(vec4, lpc + 24);
+		lps.set(vec1, lpc + 28);
+		this._linePointCount += 32;
+	};
+
+	UIRenderer.prototype.addRectScreen4 = function (x1, y1, x2, y2, x3, y3, x4, y4) {
+		var vec1 = UIRenderer.tempVec41;
+		var vec2 = UIRenderer.tempVec42;
+		var vec3 = UIRenderer.tempVec43;
+		var vec4 = UIRenderer.tempVec44;
+
+		vec1[0] = x1;
+		vec1[1] = y1;
+		vec1[2] = 0;
+		vec1[3] = 1;
+
+		vec2[0] = x2;
+		vec2[1] = y2;
+		vec2[2] = 0;
+		vec2[3] = 1;
+
+		vec3[0] = x3;
+		vec3[1] = y3;
+		vec3[2] = 0;
+		vec3[3] = 1;
+
+		vec4[0] = x4;
+		vec4[1] = y4;
+		vec4[2] = 0;
+		vec4[3] = 1;
+
+		this.addRectScreen4zw(vec1, vec2, vec3, vec4);
 	};
 
 	UIRenderer.prototype.addRectScreen = function (x1, y1, x2, y2) {
@@ -52,7 +76,11 @@ define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!engi
 	};
 
 	UIRenderer.prototype.addRectModel = function (worldToClip, modelToWorld, w, h) {
-		var vec = UIRenderer.tempVec3;
+		var vec1 = UIRenderer.tempVec41;
+		var vec2 = UIRenderer.tempVec42;
+		var vec3 = UIRenderer.tempVec43;
+		var vec4 = UIRenderer.tempVec44;
+
 		var mat = UIRenderer.tempMat4;
 
 		glmatrix.Mat4.set(worldToClip, mat);
@@ -61,69 +89,64 @@ define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!engi
 		var half_w = w / 2;
 		var half_h = h / 2;
 
-		vec[0] = -half_w;
-		vec[1] = -half_h;
-		vec[2] = 0;
-		glmatrix.Mat4.multiplyVec3(mat, vec, vec);
-		var x1 = vec[0];
-		var y1 = vec[1];
+		vec1[0] = -half_w;
+		vec1[1] = -half_h;
+		vec1[2] = 0;
+		vec1[3] = 1;
+		glmatrix.Mat4.multiplyVec4(mat, vec1, vec1);
 
-		vec[0] = half_w;
-		vec[1] = -half_h;
-		vec[2] = 0;
-		glmatrix.Mat4.multiplyVec3(mat, vec, vec);
-		var x2 = vec[0];
-		var y2 = vec[1];
+		vec2[0] = half_w;
+		vec2[1] = -half_h;
+		vec2[2] = 0;
+		vec2[3] = 1;
+		glmatrix.Mat4.multiplyVec4(mat, vec2, vec2);
 
-		vec[0] = half_w;
-		vec[1] = half_h;
-		vec[2] = 0;
-		glmatrix.Mat4.multiplyVec3(mat, vec, vec);
-		var x3 = vec[0];
-		var y3 = vec[1];
+		vec3[0] = half_w;
+		vec3[1] = half_h;
+		vec3[2] = 0;
+		vec3[3] = 1;
+		glmatrix.Mat4.multiplyVec4(mat, vec3, vec3);
 
-		vec[0] = -half_w;
-		vec[1] = half_h;
-		vec[2] = 0;
-		glmatrix.Mat4.multiplyVec3(mat, vec, vec);
-		var x4 = vec[0];
-		var y4 = vec[1];
+		vec4[0] = -half_w;
+		vec4[1] = half_h;
+		vec4[2] = 0;
+		vec4[3] = 1;
+		glmatrix.Mat4.multiplyVec4(mat, vec4, vec4);
 
-		this.addRectScreen4(x1, y1, x2, y2, x3, y3, x4, y4);
+		this.addRectScreen4zw(vec1, vec2, vec3, vec4);
 	};
 
 	UIRenderer.prototype.addRectWorld = function (worldToClip, x1, y1, x2, y2) {
-		var vec = UIRenderer.tempVec3;
+		var vec1 = UIRenderer.tempVec41;
+		var vec2 = UIRenderer.tempVec42;
+		var vec3 = UIRenderer.tempVec43;
+		var vec4 = UIRenderer.tempVec44;
 
-		vec[0] = x1;
-		vec[1] = y1;
-		vec[2] = 0;
-		glmatrix.Mat4.multiplyVec3(worldToClip, vec, vec);
-		var nx1 = vec[0];
-		var ny1 = vec[1];
+		vec1[0] = x1;
+		vec1[1] = y1;
+		vec1[2] = 0;
+		vec1[3] = 1;
+		glmatrix.Mat4.multiplyVec4(worldToClip, vec1, vec1);
 
-		vec[0] = x2;
-		vec[1] = y1;
-		vec[2] = 0;
-		glmatrix.Mat4.multiplyVec3(worldToClip, vec, vec);
-		var nx2 = vec[0];
-		var ny2 = vec[1];
+		vec2[0] = x2;
+		vec2[1] = y1;
+		vec2[2] = 0;
+		vec2[3] = 1;
+		glmatrix.Mat4.multiplyVec4(worldToClip, vec2, vec2);
 
-		vec[0] = x2;
-		vec[1] = y2;
-		vec[2] = 0;
-		glmatrix.Mat4.multiplyVec3(worldToClip, vec, vec);
-		var nx3 = vec[0];
-		var ny3 = vec[1];
+		vec3[0] = x2;
+		vec3[1] = y2;
+		vec3[2] = 0;
+		vec3[3] = 1;
+		glmatrix.Mat4.multiplyVec4(worldToClip, vec3, vec3);
 
-		vec[0] = x1;
-		vec[1] = y2;
-		vec[2] = 0;
-		glmatrix.Mat4.multiplyVec3(worldToClip, vec, vec);
-		var nx4 = vec[0];
-		var ny4 = vec[1];
+		vec4[0] = x1;
+		vec4[1] = y2;
+		vec4[2] = 0;
+		vec4[3] = 1;
+		glmatrix.Mat4.multiplyVec4(worldToClip, vec4, vec4);
 
-		this.addRectScreen4(nx1, ny1, nx2, ny2, nx3, ny3, nx4, ny4);
+		this.addRectScreen4zw(vec1, vec2, vec3, vec4);
 	};
 
 	UIRenderer.prototype.draw = function (gl) {
@@ -151,10 +174,10 @@ define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!engi
 			gl.enableVertexAttribArray(vectorProgram.vertexPosition);
 			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 			gl.bufferSubData(gl.ARRAY_BUFFER, 0, lps);
-			gl.vertexAttribPointer(vectorProgram.vertexPosition, 2, gl.FLOAT, false, 0, 0);
+			gl.vertexAttribPointer(vectorProgram.vertexPosition, 4, gl.FLOAT, false, 0, 0);
 			gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-			gl.vertexAttrib4f(vectorProgram.fillColor, 0, 1, 1, 0.3);
+			gl.vertexAttrib4f(vectorProgram.fillColor, 0, 1, 1, 1);
 
 			gl.drawArrays(gl.LINES, 0, lpc);
 

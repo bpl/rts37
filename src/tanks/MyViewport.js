@@ -5,6 +5,8 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 	inherits(MyViewport, Viewport);
 	function MyViewport(client, opt /* x, y, width, height */) {
 		Viewport.call(this, client, opt);
+		this.worldToView = glmatrix.Mat4.identity(glmatrix.Mat4.create());
+		this.projection = glmatrix.Mat4.identity(glmatrix.Mat4.create());
 		this.worldToClip = glmatrix.Mat4.identity(glmatrix.Mat4.create());
 	}
 
@@ -14,15 +16,45 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		// M_model->screen =
 		//    M_ndc->screen * M_projection * M_world->view * M_model->world
 
+		var wtv = this.worldToView;
+		var prj = this.projection;
 		var wtc = this.worldToClip;
 		var client = this.client;
 
 		gl.viewport(this.x, this.y, this.width, this.height);
 
+		//*
+		glmatrix.Mat4.lookAt(
+			[this.viewX, this.viewY + 200, 600],   // Eye
+			[this.viewX, this.viewY, 0],   // Center
+			[0, 0, 1],   // Up
+			wtv
+		);
+		//*/
+
+		//*
+		glmatrix.Mat4.perspective(
+			60,   // FOV in degrees
+			this.width / this.height,   // Aspect ratio
+			10,   // zNear
+			1500,   // zFar,
+			prj
+		);
+		//*/
+
+		/*
+		prj[0] = 2 / this.width / this.viewZoom;
+		prj[5] = -2 / this.height / this.viewZoom;
+		//*/
+
+		glmatrix.Mat4.multiply(prj, wtv, wtc);
+
+		/*
 		wtc[0] = 2 / this.width / this.viewZoom;     // X scale
 		wtc[5] = -2 / this.height / this.viewZoom;   // Y scale
 		wtc[12] = -this.viewX / this.width * 2 / this.viewZoom;    // X translation
 		wtc[13] = this.viewY / this.height * 2 / this.viewZoom;    // Y translation
+		//*/
 
 		// Draw the actors
 		for (var idx in this.game.actors) {

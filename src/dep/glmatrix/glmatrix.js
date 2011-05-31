@@ -1838,6 +1838,20 @@ quat4.str = function(quat) {
 
 return {
 	'Vec3': vec3,
+	'Vec4': {
+		'create': function(vec) {
+			var dest = new glMatrixArrayType(4);
+
+			if(vec) {
+				dest[0] = vec[0];
+				dest[1] = vec[1];
+				dest[2] = vec[2];
+				dest[3] = vec[3];
+			}
+
+			return dest;
+		}
+	},
 	'Mat3': mat3,
 	'Mat4': mat4,
 	'Quat4': quat4
