@@ -26,7 +26,7 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		glmatrix.Mat4.identity(wtv);
 		glmatrix.Mat4.scaleVal(wtv, 1, -1, 1);
 		glmatrix.Mat4.rotateX(wtv, Math.PI / 12);
-		glmatrix.Mat4.translateVal(wtv, -this.viewX, -this.viewY - 200, -600);
+		glmatrix.Mat4.translateVal(wtv, -this.viewX, -this.viewY - 200, -600 * this.viewZoom);
 
 		glmatrix.Mat4.perspective(
 			60,   // FOV in degrees
