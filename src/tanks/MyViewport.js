@@ -23,16 +23,11 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		gl.viewport(this.x, this.y, this.width, this.height);
 
-		//*
-		glmatrix.Mat4.lookAt(
-			[this.viewX, this.viewY + 200, 600],   // Eye
-			[this.viewX, this.viewY, 0],   // Center
-			[0, 0, 1],   // Up
-			wtv
-		);
-		//*/
+		glmatrix.Mat4.identity(wtv);
+		glmatrix.Mat4.scaleVal(wtv, 1, -1, 1);
+		glmatrix.Mat4.rotateX(wtv, Math.PI / 12);
+		glmatrix.Mat4.translateVal(wtv, -this.viewX, -this.viewY - 200, -600);
 
-		//*
 		glmatrix.Mat4.perspective(
 			60,   // FOV in degrees
 			this.width / this.height,   // Aspect ratio
@@ -40,21 +35,8 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 			1500,   // zFar,
 			prj
 		);
-		//*/
-
-		/*
-		prj[0] = 2 / this.width / this.viewZoom;
-		prj[5] = -2 / this.height / this.viewZoom;
-		//*/
 
 		glmatrix.Mat4.multiply(prj, wtv, wtc);
-
-		/*
-		wtc[0] = 2 / this.width / this.viewZoom;     // X scale
-		wtc[5] = -2 / this.height / this.viewZoom;   // Y scale
-		wtc[12] = -this.viewX / this.width * 2 / this.viewZoom;    // X translation
-		wtc[13] = this.viewY / this.height * 2 / this.viewZoom;    // Y translation
-		//*/
 
 		// Draw the actors
 		for (var idx in this.game.actors) {
