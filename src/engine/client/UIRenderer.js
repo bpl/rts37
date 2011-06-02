@@ -116,33 +116,35 @@ define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!engi
 		this.addRectScreen4zw(vec1, vec2, vec3, vec4);
 	};
 
-	UIRenderer.prototype.addRectWorld = function (worldToClip, x1, y1, x2, y2) {
+	UIRenderer.prototype.addRectWorld = function (worldToClip, x1, y1, x2, y2, z) {
 		var vec1 = UIRenderer.tempVec41;
 		var vec2 = UIRenderer.tempVec42;
 		var vec3 = UIRenderer.tempVec43;
 		var vec4 = UIRenderer.tempVec44;
 
+		z = z || 0;
+
 		vec1[0] = x1;
 		vec1[1] = y1;
-		vec1[2] = 0;
+		vec1[2] = z;
 		vec1[3] = 1;
 		glmatrix.Mat4.multiplyVec4(worldToClip, vec1, vec1);
 
 		vec2[0] = x2;
 		vec2[1] = y1;
-		vec2[2] = 0;
+		vec2[2] = z;
 		vec2[3] = 1;
 		glmatrix.Mat4.multiplyVec4(worldToClip, vec2, vec2);
 
 		vec3[0] = x2;
 		vec3[1] = y2;
-		vec3[2] = 0;
+		vec3[2] = z;
 		vec3[3] = 1;
 		glmatrix.Mat4.multiplyVec4(worldToClip, vec3, vec3);
 
 		vec4[0] = x1;
 		vec4[1] = y2;
-		vec4[2] = 0;
+		vec4[2] = z;
 		vec4[3] = 1;
 		glmatrix.Mat4.multiplyVec4(worldToClip, vec4, vec4);
 

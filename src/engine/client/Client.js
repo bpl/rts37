@@ -173,7 +173,7 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer', 'engine/util/Event'],
 					&& offset.x < widget.x + widget.width
 					&& offset.y >= widget.y
 					&& offset.y < widget.y + widget.height) {
-				if (widget.handleClick(offset.x, offset.y) !== false) {
+				if (widget.handleClick(offset.x - widget.x, offset.y - widget.y) !== false) {
 					return;
 				}
 			}
@@ -199,7 +199,7 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer', 'engine/util/Event'],
 					&& offset.x < widget.x + widget.width
 					&& offset.y >= widget.y
 					&& offset.y < widget.y + widget.height) {
-				if (widget.handleMouseMove(offset.x, offset.y) !== false) {
+				if (widget.handleMouseMove(offset.x - widget.x, offset.y - widget.y) !== false) {
 					this.mouseOverWidget = widget;
 					return;
 				}

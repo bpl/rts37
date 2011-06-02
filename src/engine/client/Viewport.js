@@ -26,9 +26,9 @@ define(['engine/client/Widget'], function (Widget) {
 		}
 	};
 
-	Viewport.prototype.viewToWorld = function (x, y) {
-		return [(x - this.x) * this.viewZoom + this.viewX - this.width / 2 * this.viewZoom << 10,
-				(y - this.y) * this.viewZoom + this.viewY - this.height / 2 * this.viewZoom << 10];
+	Viewport.prototype.screenToWorld = function (x, y) {
+		return [x * this.viewZoom + this.viewX - this.width / 2 * this.viewZoom << 10,
+				y * this.viewZoom + this.viewY - this.height / 2 * this.viewZoom << 10];
 	};
 
 	Viewport.prototype._autoScrollDimension = function (mousePos, viewportPos, viewportSize) {
@@ -43,7 +43,7 @@ define(['engine/client/Widget'], function (Widget) {
 	};
 
 	Viewport.prototype.handleClick = function (x, y) {
-		var target = this.viewToWorld(x, y);
+		var target = this.screenToWorld(x, y);
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
 			if (actor.isSelectable() && actor.clickTest(target[0], target[1], this.client)) {
@@ -63,7 +63,7 @@ define(['engine/client/Widget'], function (Widget) {
 		// Save the most recent position of the mouse to use in firing etc.
 		// FIXME: Handle changes to this when zooming or scrolling. Maybe do the
 		// conversion right before the value needs to be used.
-		var target = this.viewToWorld(x, y);
+		var target = this.screenToWorld(x, y);
 		this.lastMouseX = target[0];
 		this.lastMouseY = target[1];
 		// If the mouse pointer is near the boundary of the viewport, scroll
