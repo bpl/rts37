@@ -85,7 +85,7 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 				this.angle = angle;
 			}
 			var delta = mathlib.anglePoint(this.angle, Math.round(this.speed / this.game.ticksPerSecond));
-			if (this.game.map.getTileAt(this.x + delta[0], this.y + delta[1]) === 0) {
+			if (this.game.map.isPassable(this.x + delta[0], this.y + delta[1])) {
 				this.setPosition(this.x + delta[0], this.y + delta[1]);
 			}
 			if (mathlib.manhattanDistance(this.x, this.y, this.targetX, this.targetY) <= 5120) {

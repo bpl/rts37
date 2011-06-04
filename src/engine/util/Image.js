@@ -13,6 +13,20 @@ define(function () {
 	// files will give it an extension.
 	var TRUTHY_BLANK = {'toString': function () { return ''; }};
 
+	var getPixelData = function () {
+		var data = this.cachedPixelData;
+		if (!data) {
+			var canvas = document.createElement('canvas');
+			canvas.width = this.width;
+			canvas.height = this.height;
+			var ctx = canvas.getContext('2d');
+			ctx.drawImage(this, 0, 0);
+			data = ctx.getImageData(0, 0, this.width, this.height).data;
+			this.cachedPixelData = data;
+		}
+		return data;
+	};
+
 	return {
 		'load': function (name, req, load, config) {
 			var match, modName, ext, image;
@@ -36,6 +50,8 @@ define(function () {
 			};
 
 			image.src = req.nameToUrl(modName, ext);
+
+			image.getPixelData = getPixelData;
 		}
 	};
 
