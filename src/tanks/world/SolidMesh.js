@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/solid.vert', 'engine/util/Shader!tanks/shaders/solid.frag'], function (glmatrix, Program, vertexShader, fragmentShader) {
+define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/solid.vert', 'engine/util/Shader!tanks/shaders/solid.frag'], function (glmatrix, webgllib, Program, vertexShader, fragmentShader) {
 
 	// To be used as a mixin
 
@@ -17,10 +17,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/Program', 'engine/util/Shader!tank
 		var triangleBuffer = this.meshSingleton.triangleBuffer;
 		var vertices = this.meshSingleton.TRIANGLE_VERTICES;
 		if (!triangleBuffer) {
-			triangleBuffer = gl.createBuffer();
-			gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
-			gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-			gl.bindBuffer(gl.ARRAY_BUFFER, null);
+			triangleBuffer = webgllib.createArrayBuffer(gl, vertices);
 			this.meshSingleton.triangleBuffer = triangleBuffer;
 		}
 
