@@ -55,6 +55,9 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		glmatrix.Mat4.multiply(prj, wtv, wtc);
 
+		// Draw the terrain
+		this.game.map.draw(gl, client, this);
+
 		// Draw the actors
 		for (var idx in this.game.actors) {
 			this.game.actors[idx].draw(gl, client, this);
@@ -62,11 +65,6 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		// Draw the boundaries of the playfield
 		this.client.uiRenderer.addRectWorld(wtc, 0, 0, this.game.fieldWidth, this.game.fieldHeight);
-
-		/*
-		// Draw map tiles
-		this.game.map.draw(ctx, uiCtx, this.factor);
-		*/
 	};
 
 	MyViewport.prototype.screenToWorld = function (x, y) {
