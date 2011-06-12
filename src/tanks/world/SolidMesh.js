@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program', 'engine/util/Shader!tanks/shaders/solid.vert', 'engine/util/Shader!tanks/shaders/solid.frag'], function (glmatrix, webgllib, Program, vertexShader, fragmentShader) {
+define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program!tanks/shaders/solid.vert!tanks/shaders/solid.frag'], function (glmatrix, webgllib, shaderProgram) {
 
 	// To be used as a mixin
 
@@ -8,8 +8,6 @@ define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program', 
 		this.meshSingleton = meshSingleton;
 		this.modelToWorld = glmatrix.Mat4.identity(glmatrix.Mat4.create());
 	}
-
-	SolidMesh.shaderProgram = new Program(vertexShader, fragmentShader);
 
 	SolidMesh.prototype.drawMesh = function (gl, client, viewport) {
 		// FIXME: Put this somewhere else. This must be recreated if the WebGL
@@ -34,7 +32,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program', 
 		mtw[12] = (this.x - this.dflX * factor) / 1024;
 		mtw[13] = (this.y - this.dflY * factor) / 1024;
 
-		var program = SolidMesh.shaderProgram;
+		var program = shaderProgram;
 
 		gl.useProgram(program.prepare(gl));
 		gl.enableVertexAttribArray(program.vertexPosition);

@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/webgllib', 'engine/util/Program', 'engine/util/Shader!engine/shaders/terrain.vert', 'engine/util/Shader!engine/shaders/terrain.frag'], function (webgllib, Program, vertexShader, fragmentShader) {
+define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert!engine/shaders/terrain.frag'], function (webgllib, shaderProgram) {
 
 	// The map consists of square blocks of square tiles. One pixel in the
 	// source image corresponds to one tile in the map. Block contains the
@@ -41,8 +41,6 @@ define(['engine/util/webgllib', 'engine/util/Program', 'engine/util/Shader!engin
 	Map.commonVertexBuffer = null;
 
 	Map.commonIndexBuffer = null;
-
-	Map.shaderProgram = new Program(vertexShader, fragmentShader);
 
 	// FIXME: These need to be regenerated if the WebGL context is lost
 	Map._generateCommonBuffers = function (gl) {
@@ -170,7 +168,7 @@ define(['engine/util/webgllib', 'engine/util/Program', 'engine/util/Shader!engin
 			this._blocks = blocks;
 		}
 
-		var program = Map.shaderProgram;
+		var program = shaderProgram;
 
 		gl.useProgram(program.prepare(gl));
 		gl.enableVertexAttribArray(program.xyPosition);

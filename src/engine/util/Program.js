@@ -5,6 +5,10 @@
 
 define(function () {
 
+	// Ugly hack to work around the fact that req.nameToUrl expects that non-JS
+	// files will give it an extension.
+	var TRUTHY_BLANK = {'toString': function () { return ''; }};
+
 	function Program(/* ...shaders */) {
 		this._context = null;
 		this.shaders = [];
@@ -19,6 +23,31 @@ define(function () {
 	// Make sure we don't accidentally create attribute and uniform location
 	// properties that conflict with built-in properties.
 	Program._NULL_PROGRAM = new Program();
+
+	// RequireJS plugin support for program linking
+	Program.load = function (name, req, load, config) {
+		var shaders = name.split('!').map(function (name) {
+			return 'engine/util/Shader!' + name;
+		});
+		req(shaders, function (/* ...shaders */) {
+			var program = new Program();
+			for (var i = 0; i < shaders.length; ++i) {
+				program.addShader(arguments[i]);
+			}
+			load(program);
+		});
+	};
+
+	Program.prototype.addShader = function (shader) {
+		if (this.program) {
+			if (this._context) {
+				this._context.deleteProgram(this.program);
+			}
+			this.program = null;
+			this._context = null;
+		}
+		this.shaders.push(shader);
+	};
 
 	Program.prototype.prepare = function (gl) {
 		if (this._context !== gl) {

@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program', 'engine/util/Shader!engine/shaders/uivector.vert', 'engine/util/Shader!engine/shaders/uivector.frag'], function (glmatrix, webgllib, Program, vectorVertexShader, vectorFragmentShader) {
+define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program!engine/shaders/uivector.vert!engine/shaders/uivector.frag'], function (glmatrix, webgllib, vectorProgram) {
 
 	function UIRenderer() {
 		this._linePoints = new Float32Array(UIRenderer.LINE_MAX_POINTS);
@@ -10,8 +10,6 @@ define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program', 
 	UIRenderer.LINE_MAX_POINTS = 1000;
 
 	UIRenderer.positionBuffer = null;
-
-	UIRenderer.vectorProgram = new Program(vectorVertexShader, vectorFragmentShader);
 
 	UIRenderer.tempVec41 = glmatrix.Vec4.create();
 	UIRenderer.tempVec42 = glmatrix.Vec4.create();
@@ -155,7 +153,6 @@ define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program', 
 		// Cache all relevant variables
 		var lps = this._linePoints;
 		var lpc = this._linePointCount;
-		var vectorProgram = UIRenderer.vectorProgram;
 
 		// FIXME: Put this somewhere else. This must be recreated if the WebGL
 		// context is lost.
