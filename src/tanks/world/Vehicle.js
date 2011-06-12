@@ -1,13 +1,11 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'engine/world/Player', 'tanks/world/Projectile'], function (mathlib, Actor, SolidMesh, Player, Projectile) {
+define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Mesh!tanks/models/tank1.json'], function (glmatrix, mathlib, Actor, Player, Projectile, vehicleMesh) {
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, Actor);
-	inherits(Vehicle, SolidMesh);
 	function Vehicle(opt /* id, player, x, y */) {
 		Actor.call(this, opt);
-		SolidMesh.call(this, Vehicle);
 		this.defaults(opt, {
 			id: Number,
 			player: Player,
@@ -29,13 +27,7 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 		this.surfaceHighBound = null;
 	}
 
-	Vehicle.TRIANGLE_VERTICES = new Float32Array([
-		0, -15, 0,
-		10, 15, 0,
-		-10, 15, 0
-	]);
-
-	Vehicle.triangleBuffer = null;
+	Vehicle.modelToWorld = glmatrix.Mat4.identity(glmatrix.Mat4.create());
 
 	Vehicle.prototype.setGame = function (game) {
 		Actor.prototype.setGame.call(this, game);
@@ -125,11 +117,23 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 			return;
 		}
 
-		this.drawMesh(gl, client, viewport);
+		var mtw = Vehicle.modelToWorld;
+		var factor = client.factor;
+		var angleRad = (this.angle - this.dflAngle * factor);
+		// Rotation
+		mtw[0] = Math.cos(angleRad);
+		mtw[4] = -Math.sin(angleRad);
+		mtw[1] = Math.sin(angleRad);
+		mtw[5] = Math.cos(angleRad);
+		// Translation
+		mtw[12] = (this.x - this.dflX * factor) / 1024;
+		mtw[13] = (this.y - this.dflY * factor) / 1024;
+
+		vehicleMesh.draw(gl, viewport.worldToClip, mtw, this.getMeshColor(client));
 
 		// If selected, draw the selection indicator
 		if (client.selectedActors.indexOf(this) >= 0) {
-			client.uiRenderer.addRectModel(viewport.worldToClip, this.modelToWorld, 40, 40);
+			client.uiRenderer.addRectModel(viewport.worldToClip, mtw, 40, 40);
 		}
 
 		/*
