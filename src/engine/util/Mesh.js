@@ -10,7 +10,6 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!en
 	var TRUTHY_BLANK = {'toString': function () { return ''; }};
 
 	function Mesh(mesh) {
-		this._vertexCount = Mesh._getVertexCount(mesh);
 		this._vertexArray = Mesh._generateVertexArray(mesh);
 		this._indexArray = Mesh._generateIndexArray(mesh);
 
@@ -45,30 +44,25 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!en
 		xhr.send(null);
 	};
 
-	Mesh._getVertexCount = function (mesh) {
-		return mesh.v[0].length / 3;
-	};
-
 	Mesh._generateVertexArray = function (mesh) {
-		var positions = mesh.v[0]:
+		var positions = mesh.v[0];
 		var normals = mesh.n[0];
 
-		var vertices = positions.length / 3;
+		var vertexCount = positions.length / 3;
 
 		// Reserve space for positions and normals
-		var result = new Float32Array(vertices * 6);
+		var result = new Float32Array(vertexCount * 6);
 
 		// Interleave positions and normals
 		var resIdx = 0;
-		var posIdx = 0;
-		var norIdx = 0;
-		for (var i = 0; i < vertices; ++i) {
-			result[resIdx++] = positions[posIdx++];
-			result[resIdx++] = positions[posIdx++];
-			result[resIdx++] = positions[posIdx++];
-			result[resIdx++] = normals[norIdx++];
-			result[resIdx++] = normals[norIdx++];
-			result[resIdx++] = normals[norIdx++];
+		for (var i = 0; i < vertexCount; ++i) {
+			var base = i * 3;
+			result[resIdx++] = positions[base + 2];
+			result[resIdx++] = positions[base];
+			result[resIdx++] = positions[base + 1];
+			result[resIdx++] = 0/*normals[base + 2]*/;
+			result[resIdx++] = 0/*normals[base]*/;
+			result[resIdx++] = 0/*normals[base + 1]*/;
 		}
 
 		return result;
@@ -96,15 +90,16 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!en
 		gl.enableVertexAttribArray(program.vertexPosition);
 //		gl.enableVertexAttribArray(program.vertexNormal);
 		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 4 * 3, 0);
-//		gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, 4 * 3, 4 * 3);
+		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 4 * 6, 0);
+//		gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, 4 * 6, 4 * 3);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
 		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
 		gl.uniformMatrix4fv(program.worldToClip, false, wtc);
 		gl.uniform4fv(program.fillColor, color);
+		gl.uniform1f(program.scaleFactor, 7);   // FIXME: Make configurable
 
-		gl.drawElements(gl.TRIANGLES, this._vertexCount * 3, gl.UNSIGNED_SHORT, 0);
+		gl.drawElements(gl.TRIANGLES, this._indexArray.length, gl.UNSIGNED_SHORT, 0);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
