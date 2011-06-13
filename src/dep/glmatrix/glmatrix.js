@@ -1923,7 +1923,16 @@ return {
 			}
 
 			return dest;
-		}
+		},
+		'set': function(vec, dest) {
+			dest[0] = vec[0];
+			dest[1] = vec[1];
+			dest[2] = vec[2];
+			dest[3] = vec[3];
+
+			return dest;
+		},
+		'normalize': vec3.normalize
 	},
 	'Mat3': mat3,
 	'Mat4': mat4,

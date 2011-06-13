@@ -60,9 +60,9 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!en
 			result[resIdx++] = positions[base + 2];
 			result[resIdx++] = positions[base];
 			result[resIdx++] = positions[base + 1];
-			result[resIdx++] = 0/*normals[base + 2]*/;
-			result[resIdx++] = 0/*normals[base]*/;
-			result[resIdx++] = 0/*normals[base + 1]*/;
+			result[resIdx++] = normals[base + 2];
+			result[resIdx++] = normals[base];
+			result[resIdx++] = normals[base + 1];
 		}
 
 		return result;
@@ -72,7 +72,7 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!en
 		return new Uint16Array(mesh.f[0]);
 	};
 
-	Mesh.prototype.draw = function (gl, wtc, mtw, color) {
+	Mesh.prototype.draw = function (gl, viewport, mtw, color) {
 		// FIXME: Put this somewhere else. This must be recreated if the WebGL
 		// context is lost.
 		var vertexBuffer = this._vertexBuffer;
@@ -88,14 +88,16 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!en
 
 		gl.useProgram(program.prepare(gl));
 		gl.enableVertexAttribArray(program.vertexPosition);
-//		gl.enableVertexAttribArray(program.vertexNormal);
+		gl.enableVertexAttribArray(program.vertexNormal);
 		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 4 * 6, 0);
-//		gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, 4 * 6, 4 * 3);
+		gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, 4 * 6, 4 * 3);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
 		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
-		gl.uniformMatrix4fv(program.worldToClip, false, wtc);
+		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
+		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
+		gl.uniform4fv(program.sunLight, viewport.sunLightView);
 		gl.uniform4fv(program.fillColor, color);
 		gl.uniform1f(program.scaleFactor, 7);   // FIXME: Make configurable
 
@@ -103,7 +105,7 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!en
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-//		gl.disableVertexAttribArray(program.vertexNormal);
+		gl.disableVertexAttribArray(program.vertexNormal);
 		gl.disableVertexAttribArray(program.vertexPosition);
 		gl.useProgram(null);
 	};

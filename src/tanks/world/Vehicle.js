@@ -129,7 +129,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'e
 		mtw[12] = (this.x - this.dflX * factor) / 1024;
 		mtw[13] = (this.y - this.dflY * factor) / 1024;
 
-		vehicleMesh.draw(gl, viewport.worldToClip, mtw, this.getMeshColor(client));
+		vehicleMesh.draw(gl, viewport, mtw, this.getMeshColor(client));
 
 		// If selected, draw the selection indicator
 		if (client.selectedActors.indexOf(this) >= 0) {

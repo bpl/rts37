@@ -2,8 +2,8 @@
 precision highp float;
 #endif
 
-uniform vec4 fillColor;
+varying vec4 vertexColor;
 
 void main(void) {
-	gl_FragColor = fillColor;
+	gl_FragColor = vertexColor;
 }
