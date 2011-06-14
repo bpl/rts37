@@ -19,11 +19,9 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		// the intensity of sunlight.
 		// FIXME: Should reside in game or client
 		var sun = glmatrix.Vec4.create();
-		// FIXME: For some reason this is acting as if the X and Z dimensions
-		// are swapped.
-		sun[0] = 1;
+		sun[0] = -1;
 		sun[1] = 1;
-		sun[2] = -1;
+		sun[2] = 1;
 		sun[3] = 0.5;
 		glmatrix.Vec4.normalize(sun);
 		this.sunLightWorld = sun;

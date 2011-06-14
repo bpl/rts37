@@ -20,6 +20,6 @@ void main(void) {
 	gl_Position = projection * (worldToView * (modelToWorld * (vec4(scaleFactor * vertexPosition, 1.0))));
 
 	vec3 normalInView = normalize((worldToView * (modelToWorld * vec4(vertexNormal, 0.0))).xyz);
-	float sunLightIncidence = max(0.0, dot(normalInView, sunLight.zyx));
+	float sunLightIncidence = max(0.0, dot(normalInView, sunLight.xyz));
 	vertexColor = vec4(fillColor.rgb * (0.5 + sunLight.w * sunLightIncidence), 1.0);
 }
