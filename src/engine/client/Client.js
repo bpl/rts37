@@ -98,6 +98,12 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer', 'engine/util/Event'],
 		// FIXME: Must be done again if the context is lost and restored
 
 		var gl = this.gl;
+
+		// Enable depth buffering
+		// Defaults to depth mask enabled and depth range of 0 to 1
+		gl.enable(gl.DEPTH_TEST);
+		gl.depthFunc(gl.LEQUAL);
+
 		gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		gl.clearDepth(1.0);
 	}
