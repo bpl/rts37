@@ -22,7 +22,7 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		sun[0] = -1;
 		sun[1] = 1;
 		sun[2] = 1;
-		sun[3] = 0.5;
+		sun[3] = 0.6;
 		glmatrix.Vec4.normalize(sun);
 		this.sunLightWorld = sun;
 		this.sunLightView = glmatrix.Vec4.create();

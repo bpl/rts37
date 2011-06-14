@@ -21,5 +21,5 @@ void main(void) {
 
 	vec3 normalInView = normalize((worldToView * (modelToWorld * vec4(vertexNormal, 0.0))).xyz);
 	float sunLightIncidence = max(0.0, dot(normalInView, sunLight.xyz));
-	vertexColor = vec4(fillColor.rgb * (0.5 + sunLight.w * sunLightIncidence), 1.0);
+	vertexColor = vec4(fillColor.rgb * mix(1.0, sunLightIncidence, sunLight.w), 1.0);
 }
