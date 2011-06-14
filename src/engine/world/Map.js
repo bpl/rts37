@@ -136,9 +136,9 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 	// A safe but slow routine to get the height value of a tile on the map on
 	// the certain world coordinates.
 	Map.prototype.getHeightAt = function (x, y) {
-		x = (x >> 10) / TILE_SIZE | 0;
-		y = (y >> 10) / TILE_SIZE | 0;
-		if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+		if (x >= 0 && x < this.width * TILE_SIZE << 10 && y >= 0 && y < this.height * TILE_SIZE << 10) {
+			x = (x >> 10) / TILE_SIZE | 0;
+			y = (y >> 10) / TILE_SIZE | 0;
 			return this._heightMap[y * this.width + x];
 		}
 		return -1;
@@ -146,9 +146,9 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 
 	// A safe but slow routine to determine if a tile is passable to normal units
 	Map.prototype.isPassable = function (x, y) {
-		x = (x >> 10) / TILE_SIZE | 0;
-		y = (y >> 10) / TILE_SIZE | 0;
-		if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+		if (x >= 0 && x < this.width * TILE_SIZE << 10 && y >= 0 && y < this.height * TILE_SIZE << 10) {
+			x = (x >> 10) / TILE_SIZE | 0;
+			y = (y >> 10) / TILE_SIZE | 0;
 			return (this._heightMap[y * this.width + x] === Z_BASE_LEVEL);
 		}
 		return false;
