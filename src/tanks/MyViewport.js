@@ -17,10 +17,13 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		// Unit vector pointing towards the sun. The fourth component controls
 		// the intensity of sunlight.
+		// FIXME: Should reside in game or client
 		var sun = glmatrix.Vec4.create();
-		sun[0] = -1;
-		sun[1] = 0;
-		sun[2] = 0.25;
+		// FIXME: For some reason this is acting as if the X and Z dimensions
+		// are swapped.
+		sun[0] = 1;
+		sun[1] = 1;
+		sun[2] = -1;
 		sun[3] = 0.5;
 		glmatrix.Vec4.normalize(sun);
 		this.sunLightWorld = sun;
@@ -66,9 +69,10 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		glmatrix.Mat4.multiply(prj, wtv, wtc);
 
-		glmatrix.Vec4.set(this.sunLightWorld, this.sunLightView);
-		glmatrix.Mat4.multiplyVec3(wtv, this.sunLightView);   // Leave w alone
+		// Transform light direction from world to view space, leaving W alone
+		glmatrix.Mat4.multiplyNormal3(wtv, this.sunLightWorld, this.sunLightView);
 		glmatrix.Vec4.normalize(this.sunLightView);
+		this.sunLightView[3] = this.sunLightWorld[3];
 
 		// Draw the terrain
 		this.game.map.draw(gl, client, this);
