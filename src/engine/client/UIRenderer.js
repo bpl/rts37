@@ -149,6 +149,51 @@ define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program!en
 		this.addRectScreen4zw(vec1, vec2, vec3, vec4);
 	};
 
+	UIRenderer.prototype.addPolyWorld = function (worldToClip, poly, z) {
+		var vec1 = UIRenderer.tempVec41;
+		var vec2 = UIRenderer.tempVec42;
+		var vec3 = UIRenderer.tempVec43;
+		var lps = this._linePoints;
+		var lpc = this._linePointCount;
+
+		z = z || 0;
+
+		if (poly.length < 2) {
+			return;
+		}
+		if (lpc + poly.length * 8 > lps.length) {
+			// FIXME: Show error in console
+			return;
+		}
+
+		vec1[0] = poly[0];
+		vec1[1] = poly[1];
+		vec1[2] = z;
+		vec1[3] = 1;
+		glmatrix.Mat4.multiplyVec4(worldToClip, vec1, vec1);
+		glmatrix.Mat4.set(vec1, vec2);
+
+		for (var i = 2; i < poly.length; i += 2) {
+			vec3[0] = poly[i];
+			vec3[1] = poly[i + 1];
+			vec3[2] = z;
+			vec3[3] = 1;
+			glmatrix.Mat4.multiplyVec4(worldToClip, vec3, vec3);
+
+			lps.set(vec2, lpc);
+			lps.set(vec3, lpc + 4);
+			lpc += 8;
+
+			glmatrix.Mat4.set(vec3, vec2);
+		}
+
+		lps.set(vec2, lpc);
+		lps.set(vec1, lpc + 4);
+		lpc += 8;
+
+		this._linePointCount = lpc;
+	};
+
 	UIRenderer.prototype.draw = function (gl) {
 		// Cache all relevant variables
 		var lps = this._linePoints;
