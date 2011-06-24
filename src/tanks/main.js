@@ -59,6 +59,12 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 		};
 		client.onresizewindow();
 
+		// Pollute the global scope for debugging purposes
+		// TODO: Come up with a cleaner way to surface these
+		gGame = game;
+		gClient = client;
+		gViewport = viewport;
+
 		return game;
 	}
 
