@@ -105,23 +105,31 @@ define(['engine/client/Widget'], function (Widget) {
 		}
 	};
 
-	Viewport.prototype._constrainDimension = function (value, viewport, field) {
-		if (viewport >= field) {
-			return field / 2;
-		} else if (value < viewport / 2) {
-			return viewport / 2;
-		} else if (value > field - viewport / 2) {
-			return field - viewport / 2;
-		} else {
-			return value;
+	Viewport.prototype._constrainView = function () {
+		var viewportWidth = this.width * this.viewZoom;
+		var viewportHeight = this.height * this.viewZoom;
+
+		if (viewportWidth >= this.game.fieldWidth) {
+			this.viewX = this.game.fieldWidth / 2;
+		} else if (this.viewX < viewportWidth / 2) {
+			this.viewX = viewportWidth / 2;
+		} else if (this.viewX > this.game.fieldWidth - viewportWidth / 2) {
+			this.viewX = this.game.fieldWidth - viewportWidth / 2;
+		}
+
+		if (viewportHeight >= this.game.fieldHeight) {
+			this.viewY = this.game.fieldHeight / 2;
+		} else if (this.viewY < viewportHeight / 2) {
+			this.viewY = viewportHeight / 2;
+		} else if (this.viewY > this.game.fieldHeight - viewportHeight / 2) {
+			this.viewY = this.game.fieldHeight - viewportHeight / 2;
 		}
 	};
 
 	Viewport.prototype.translate = function (x, y) {
-		this.viewX = this._constrainDimension(this.viewX + x * this.viewZoom,
-				this.width * this.viewZoom, this.game.fieldWidth);
-		this.viewY = this._constrainDimension(this.viewY + y * this.viewZoom,
-				this.height * this.viewZoom, this.game.fieldHeight);
+		this.viewX = this.viewX + x * this.viewZoom;
+		this.viewY = this.viewY + y * this.viewZoom;
+		this._constrainView();
 	};
 
 	Viewport.prototype.zoomBy = function (factor) {

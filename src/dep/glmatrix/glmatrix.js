@@ -599,12 +599,16 @@ mat4.set = function(mat, dest) {
  * Sets a mat4 to an identity matrix
  *
  * Params:
- * dest - mat4 to set
+ * dest - Optional, mat4 to set. If not specified, a new matrix will be created.
  *
  * Returns:
  * dest
  */
 mat4.identity = function(dest) {
+	if (!dest) {
+		dest = mat4.create();
+	}
+
 	dest[0] = 1;
 	dest[1] = 0;
 	dest[2] = 0;
