@@ -38,34 +38,13 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 		this._blocks = null;
 	}
 
-	Map.commonVertexBuffer = null;
-
 	Map.commonIndexBuffer = null;
 
 	// FIXME: These need to be regenerated if the WebGL context is lost
-	Map._generateCommonBuffers = function (gl) {
-		// Common vertex buffer will contain X and Y coordinates of the top left
-		// corners of the map tiles in row-major order. Common index buffer will
-		// index into this in zig-zag fashion to produce a regular lattice mesh.
-		// Z coordinates will be supplied by individual map tiles.
+	Map._generateIndexBuffer = function (gl) {
+		// Common index buffer will index into the map tiles in zig-zag fashion
+		// to produce a regular lattice mesh.
 		var buf, arr, idx;
-
-		// Generate vertex buffer
-		if (Map.commonVertexBuffer) {
-			buf = Map.commonVertexBuffer;
-			Map.commonVertexBuffer = null;
-			gl.deleteBuffer(buf);
-		}
-		arr = new Float32Array(BLOCK_VERTICES * BLOCK_VERTICES * 2);
-		idx = 0;
-		for (var y = 0; y <= BLOCK_SIZE; ++y) {
-			for (var x = 0; x <= BLOCK_SIZE; ++x) {
-				arr[idx++] = x * TILE_SIZE;
-				arr[idx++] = y * TILE_SIZE;
-			}
-		}
-		Map.commonVertexBuffer = webgllib.createArrayBuffer(gl, arr);
-
 		// Generate index buffer
 		if (Map.commonIndexBuffer) {
 			buf = Map.commonIndexBuffer;
@@ -111,23 +90,45 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 		return result;
 	};
 
+	Map.prototype._sampleMap = function (mapX, mapY) {
+		if (mapX < 0 || mapY < 0) {
+			return 0;
+		} else if (mapX < this.width && mapY < this.height) {
+			return this._heightMap[mapY * this.width + mapX] - Z_BASE_LEVEL;
+		} else if ((mapX === this.width && mapY <= this.height)
+				|| (mapY === this.height && mapX <= this.width)) {
+			return 0;
+		} else {
+			return -10;
+		}
+	};
+
 	Map.prototype._generateBlock = function (gl, bx, by) {
 		// TODO: Don't recreate this every time a block is generated
-		var arr = new Float32Array(BLOCK_VERTICES * BLOCK_VERTICES);
+		var arr = new Float32Array(BLOCK_VERTICES * BLOCK_VERTICES * 6);
+
 		// Sample the height map to generate a block
 		var idx = 0;
 		for (var y = 0; y < BLOCK_VERTICES; ++y) {
 			for (var x = 0; x < BLOCK_VERTICES; ++x) {
+				// X and Y vertex position
+				arr[idx++] = x * TILE_SIZE;
+				arr[idx++] = y * TILE_SIZE;
+
+				// Z vertex position
 				var mapX = bx * BLOCK_SIZE + x;
 				var mapY = by * BLOCK_SIZE + y;
-				if (mapX < this.width && mapY < this.height) {
-					arr[idx++] = this._heightMap[mapY * this.width + mapX] - Z_BASE_LEVEL;
-				} else if ((mapX === this.width && mapY <= this.height)
-						|| (mapY === this.height && mapX <= this.width)) {
-					arr[idx++] = 0;
-				} else {
-					arr[idx++] = -10;
-				}
+				arr[idx++] = this._sampleMap(mapX, mapY);
+
+				// Approximate vertex normal
+				var xdn = this._sampleMap(mapX - 1, mapY) - this._sampleMap(mapX + 1, mapY);
+				var ydn = this._sampleMap(mapX, mapY - 1) - this._sampleMap(mapX, mapY + 1);
+				var zdn = TILE_SIZE * 4;
+				var length_i = 1 / Math.sqrt(xdn * xdn + ydn * ydn + zdn * zdn);
+
+				arr[idx++] = xdn * length_i;
+				arr[idx++] = ydn * length_i;
+				arr[idx++] = zdn * length_i;
 			}
 		}
 		return webgllib.createArrayBuffer(gl, arr);
@@ -155,12 +156,11 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 	};
 
 	Map.prototype.draw = function (gl, client, viewport) {
-		var commonVertexBuffer = Map.commonVertexBuffer;
-		if (!commonVertexBuffer) {
-			Map._generateCommonBuffers(gl);
-			commonVertexBuffer = Map.commonVertexBuffer;
-		}
 		var commonIndexBuffer = Map.commonIndexBuffer;
+		if (!commonIndexBuffer) {
+			Map._generateIndexBuffer(gl);
+			commonIndexBuffer = Map.commonIndexBuffer;
+		}
 
 		var blocks = this._blocks;
 		if (!blocks) {
@@ -171,19 +171,20 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 		var program = shaderProgram;
 
 		gl.useProgram(program.prepare(gl));
-		gl.enableVertexAttribArray(program.xyPosition);
-		gl.enableVertexAttribArray(program.zPosition);
-		gl.bindBuffer(gl.ARRAY_BUFFER, commonVertexBuffer);
-		gl.vertexAttribPointer(program.xyPosition, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(program.vertexPosition);
+		gl.enableVertexAttribArray(program.vertexNormal);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, commonIndexBuffer);
 
 		gl.uniform1f(program.tileSize, TILE_SIZE);
-		gl.uniformMatrix4fv(program.worldToClip, false, viewport.worldToClip);
+		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
+		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
+		gl.uniform4fv(program.sunLight, viewport.sunLightView);
 
 		for (var y = 0; y < this._heightInBlocks; ++y) {
 			for (var x = 0; x < this._widthInBlocks; ++x) {
 				gl.bindBuffer(gl.ARRAY_BUFFER, blocks[y][x]);
-				gl.vertexAttribPointer(program.zPosition, 1, gl.FLOAT, false, 0, 0);
+				gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 4 * 6, 0);
+				gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, 4 * 6, 4 * 3);
 
 				gl.uniform2f(
 					program.blockPosition,
@@ -197,8 +198,8 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-		gl.disableVertexAttribArray(program.zPosition);
-		gl.disableVertexAttribArray(program.xyPosition);
+		gl.disableVertexAttribArray(program.vertexNormal);
+		gl.disableVertexAttribArray(program.vertexPosition);
 		gl.useProgram(null);
 	};
 
