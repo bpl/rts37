@@ -86,7 +86,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engin
 
 		var program = shaderProgram;
 
-		gl.useProgram(program.prepare(gl));
+		gl.useProgram(program.program);
 		gl.enableVertexAttribArray(program.vertexPosition);
 		gl.enableVertexAttribArray(program.vertexNormal);
 		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);

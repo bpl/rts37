@@ -1,8 +1,12 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(function () {
+define(['engine/util/Event'], function (Event) {
 
 	var gllib = {};
+
+	gllib._gl = null;
+
+	gllib._contextProvided = new Event();
 
 	gllib.createArrayBuffer = function (gl, array, usage) {
 		var buffer = gl.createBuffer();
@@ -18,6 +22,20 @@ define(function () {
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, array, usage || gl.STATIC_DRAW);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 		return buffer;
+	};
+
+	gllib.needsContext = function (callback, context) {
+		this._contextProvided.register(callback, context);
+		if (this._gl) {
+			callback.call(context || null, this._gl);
+		}
+	};
+
+	gllib.provideContext = function (gl) {
+		if (this._gl !== gl) {
+			this._gl = gl;
+			this._contextProvided.emit(gl);
+		}
 	};
 
 	return gllib;

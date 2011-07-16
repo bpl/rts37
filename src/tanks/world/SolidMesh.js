@@ -34,7 +34,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!tanks
 
 		var program = shaderProgram;
 
-		gl.useProgram(program.prepare(gl));
+		gl.useProgram(program.program);
 		gl.enableVertexAttribArray(program.vertexPosition);
 		gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
 		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 0, 0);

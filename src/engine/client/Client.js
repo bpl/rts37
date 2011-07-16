@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/mathlib', 'engine/client/UIRenderer', 'engine/util/Event'], function (mathlib, UIRenderer, Event) {
+define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 'engine/util/Event'], function (mathlib, gllib, UIRenderer, Event) {
 
 	function Client(game, canvas) {
 		var self = this;
@@ -98,6 +98,7 @@ define(['engine/util/mathlib', 'engine/client/UIRenderer', 'engine/util/Event'],
 		// FIXME: Must be done again if the context is lost and restored
 
 		var gl = this.gl;
+		gllib.provideContext(gl);
 
 		// Enable depth buffering
 		// Defaults to depth mask enabled and depth range of 0 to 1

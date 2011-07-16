@@ -36,21 +36,19 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 		this._heightMap = this._generateHeightMap(image);
 
 		this._blocks = null;
+
+		gllib.needsContext(function (gl) {
+			this._blocks = this._generateBlocks(gl);
+		}, this);
 	}
 
 	Map.commonIndexBuffer = null;
 
-	// FIXME: These need to be regenerated if the WebGL context is lost
-	Map._generateIndexBuffer = function (gl) {
+	gllib.needsContext(function (gl) {
 		// Common index buffer will index into the map tiles in zig-zag fashion
 		// to produce a regular lattice mesh.
 		var buf, arr, idx;
 		// Generate index buffer
-		if (Map.commonIndexBuffer) {
-			buf = Map.commonIndexBuffer;
-			Map.commonIndexBuffer = null;
-			gl.deleteBuffer(buf);
-		}
 		arr = new Int16Array(BLOCK_SIZE * BLOCK_SIZE * 6);
 		idx = 0;
 		for (var y = 0; y < BLOCK_SIZE; ++y) {
@@ -66,7 +64,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 			}
 		}
 		Map.commonIndexBuffer = gllib.createElementArrayBuffer(gl, arr);
-	};
+	}, Map);
 
 	Map.prototype._generateHeightMap = function (image) {
 		var pixelData = image.getPixelData();
@@ -157,20 +155,10 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 
 	Map.prototype.draw = function (gl, client, viewport) {
 		var commonIndexBuffer = Map.commonIndexBuffer;
-		if (!commonIndexBuffer) {
-			Map._generateIndexBuffer(gl);
-			commonIndexBuffer = Map.commonIndexBuffer;
-		}
-
 		var blocks = this._blocks;
-		if (!blocks) {
-			blocks = this._generateBlocks(gl);
-			this._blocks = blocks;
-		}
-
 		var program = shaderProgram;
 
-		gl.useProgram(program.prepare(gl));
+		gl.useProgram(program.program);
 		gl.enableVertexAttribArray(program.vertexPosition);
 		gl.enableVertexAttribArray(program.vertexNormal);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, commonIndexBuffer);

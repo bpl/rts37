@@ -3,7 +3,7 @@
 // Shader loading plugin for RequireJS. Wraps the actual shader, because it will
 // need to be recreated if the context is lost.
 
-define(function () {
+define(['engine/util/gllib'], function (gllib) {
 
 	var GET_PARAMETERS_REGEX = /^(\w+)[ \t]+(\w+)[ \t]+(\w+);$/gm;
 	var SPLIT_TYPE_REGEX = /^([^!]+)!([^!]+)$/;
@@ -15,7 +15,6 @@ define(function () {
 
 	function Shader(type, shaderSource) {
 		this._shaderSource = shaderSource;
-		this._context = null;
 		this.type = type;
 		this.shader = null;
 		// Each of these is a hash object {'name': 'dataType'}
@@ -23,6 +22,16 @@ define(function () {
 		this.uniforms = {};
 		this.varyings = {};
 		this._getParameters();
+
+		gllib.needsContext(function (gl) {
+			var shader = gl.createShader(this.type);
+			gl.shaderSource(shader, this._shaderSource);
+			gl.compileShader(shader);
+			if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+				throw new Error('Could not compile ' + this.getTypeString() + ' shader\n\n' + gl.getShaderInfoLog(shader));
+			}
+			this.shader = shader;
+		}, this);
 	}
 
 	// Redefine here for independence from the WebGL context
@@ -59,27 +68,6 @@ define(function () {
 				// default: pass
 			}
 		}
-	};
-
-	Shader.prototype.prepare = function (gl) {
-		if (this._context !== gl) {
-			if (this.shader) {
-				this._context.deleteShader(this.shader);
-				this.shader = null;
-				this._context = null;
-			}
-			if (gl) {
-				var shader = gl.createShader(this.type);
-				gl.shaderSource(shader, this._shaderSource);
-				gl.compileShader(shader);
-				if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-					throw new Error('Could not compile ' + this.getTypeString() + ' shader\n\n' + gl.getShaderInfoLog(shader));
-				}
-				this.shader = shader;
-				this._context = gl;
-			}
-		}
-		return this.shader;
 	};
 
 	return {

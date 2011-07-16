@@ -209,7 +209,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 
 		// Line rendering pass
 		if (lpc) {
-			gl.useProgram(vectorProgram.prepare(gl));
+			gl.useProgram(vectorProgram.program);
 			gl.enable(gl.BLEND);
 			gl.blendFunc(gl.SRC_ALPHA, gl.DST_COLOR);
 			gl.enableVertexAttribArray(vectorProgram.vertexPosition);
