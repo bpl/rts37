@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program!engine/shaders/uivector.vert!engine/shaders/uivector.frag'], function (glmatrix, webgllib, vectorProgram) {
+define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!engine/shaders/uivector.frag'], function (glmatrix, gllib, vectorProgram) {
 
 	function UIRenderer() {
 		this._linePoints = new Float32Array(UIRenderer.LINE_MAX_POINTS);
@@ -203,7 +203,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/webgllib', 'engine/util/Program!en
 		// context is lost.
 		var positionBuffer = UIRenderer.positionBuffer;
 		if (!positionBuffer) {
-			positionBuffer = webgllib.createArrayBuffer(gl, lps, gl.DYNAMIC_DRAW);
+			positionBuffer = gllib.createArrayBuffer(gl, lps, gl.DYNAMIC_DRAW);
 			UIRenderer.positionBuffer = positionBuffer;
 		}
 

@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert!engine/shaders/terrain.frag'], function (webgllib, shaderProgram) {
+define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!engine/shaders/terrain.frag'], function (gllib, shaderProgram) {
 
 	// The map consists of square blocks of square tiles. One pixel in the
 	// source image corresponds to one tile in the map. Block contains the
@@ -65,7 +65,7 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 				arr[idx++] = (y + 1) * BLOCK_VERTICES + (x + 1);
 			}
 		}
-		Map.commonIndexBuffer = webgllib.createElementArrayBuffer(gl, arr);
+		Map.commonIndexBuffer = gllib.createElementArrayBuffer(gl, arr);
 	};
 
 	Map.prototype._generateHeightMap = function (image) {
@@ -131,7 +131,7 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/terrain.vert
 				arr[idx++] = zdn * length_i;
 			}
 		}
-		return webgllib.createArrayBuffer(gl, arr);
+		return gllib.createArrayBuffer(gl, arr);
 	};
 
 	// A safe but slow routine to get the height value of a tile on the map on

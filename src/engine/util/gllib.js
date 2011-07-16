@@ -2,9 +2,9 @@
 
 define(function () {
 
-	var webgllib = {};
+	var gllib = {};
 
-	webgllib.createArrayBuffer = function (gl, array, usage) {
+	gllib.createArrayBuffer = function (gl, array, usage) {
 		var buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.bufferData(gl.ARRAY_BUFFER, array, usage || gl.STATIC_DRAW);
@@ -12,7 +12,7 @@ define(function () {
 		return buffer;
 	};
 
-	webgllib.createElementArrayBuffer = function (gl, array, usage) {
+	gllib.createElementArrayBuffer = function (gl, array, usage) {
 		var buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, array, usage || gl.STATIC_DRAW);
@@ -20,6 +20,6 @@ define(function () {
 		return buffer;
 	};
 
-	return webgllib;
+	return gllib;
 
 });

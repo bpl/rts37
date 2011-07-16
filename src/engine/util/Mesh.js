@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!engine/shaders/mesh.frag'], function (webgllib, shaderProgram) {
+define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engine/shaders/mesh.frag'], function (gllib, shaderProgram) {
 
 	var GET_PARAMETERS_REGEX = /^(\w+)[ \t]+(\w+)[ \t]+(\w+);$/gm;
 	var SPLIT_EXT_REGEX = /^(.+)(\.[^.\/]+)$/;
@@ -78,9 +78,9 @@ define(['engine/util/webgllib', 'engine/util/Program!engine/shaders/mesh.vert!en
 		var vertexBuffer = this._vertexBuffer;
 		var indexBuffer = this._indexBuffer;
 		if (!vertexBuffer) {
-			vertexBuffer = webgllib.createArrayBuffer(gl, this._vertexArray);
+			vertexBuffer = gllib.createArrayBuffer(gl, this._vertexArray);
 			this._vertexBuffer = vertexBuffer;
-			indexBuffer = webgllib.createElementArrayBuffer(gl, this._indexArray);
+			indexBuffer = gllib.createElementArrayBuffer(gl, this._indexArray);
 			this._indexBuffer = indexBuffer;
 		}
 
