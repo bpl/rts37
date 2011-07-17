@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, Viewport) {
+define(['engine/util/gllib', 'engine/client/Viewport'], function (gllib, Viewport) {
 
 	inherits(MyViewport, Viewport);
 	function MyViewport(client, opt /* x, y, width, height */) {
@@ -10,28 +10,28 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		this.zNear = 10;
 		this.zFar = 1500;
 
-		this.worldToView = glmatrix.Mat4.identity();
-		this.projection = glmatrix.Mat4.identity();
-		this.worldToClip = glmatrix.Mat4.identity();
-		this.viewToWorld = glmatrix.Mat4.identity();
+		this.worldToView = gllib.Mat4.identity();
+		this.projection = gllib.Mat4.identity();
+		this.worldToClip = gllib.Mat4.identity();
+		this.viewToWorld = gllib.Mat4.identity();
 		// NT = Not Translated
-		this.viewToWorldNT = glmatrix.Mat4.identity();
+		this.viewToWorldNT = gllib.Mat4.identity();
 
 		this.visibleArea = new Float32Array(8);
 
 		// Unit vector pointing towards the sun. The fourth component controls
 		// the intensity of sunlight.
 		// FIXME: Should reside in game or client
-		var sun = glmatrix.Vec4.create();
+		var sun = gllib.Vec4.create();
 		sun[0] = -1;
 		sun[1] = 1;
 		sun[2] = 1;
 		sun[3] = 0.6;
-		glmatrix.Vec4.normalize(sun);
+		gllib.Vec4.normalize(sun);
 		this.sunLightWorld = sun;
-		this.sunLightView = glmatrix.Vec4.create();
+		this.sunLightView = gllib.Vec4.create();
 
-		this._screenToWorldTempVec4 = glmatrix.Vec4.create();
+		this._screenToWorldTempVec4 = gllib.Vec4.create();
 	}
 
 	MyViewport.prototype.draw = function (gl) {
@@ -50,22 +50,22 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 
 		gl.viewport(this.x, this.y, this.width, this.height);
 
-		glmatrix.Mat4.identity(wtv);
-		glmatrix.Mat4.scaleVal(wtv, 1, -1, 1);
-		glmatrix.Mat4.rotateX(wtv, Math.PI / 12);
-		glmatrix.Mat4.translateVal(wtv, -this.viewX, -this.viewY - 200, -600 * this.viewZoom);
+		gllib.Mat4.identity(wtv);
+		gllib.Mat4.scaleVal(wtv, 1, -1, 1);
+		gllib.Mat4.rotateX(wtv, Math.PI / 12);
+		gllib.Mat4.translateVal(wtv, -this.viewX, -this.viewY - 200, -600 * this.viewZoom);
 
-		glmatrix.Mat4.identity(vtw);
-		glmatrix.Mat4.translateVal(vtw, this.viewX, this.viewY + 200, 600 * this.viewZoom);
-		glmatrix.Mat4.rotateX(vtw, -Math.PI / 12);
-		glmatrix.Mat4.scaleVal(vtw, 1, -1, 1);
+		gllib.Mat4.identity(vtw);
+		gllib.Mat4.translateVal(vtw, this.viewX, this.viewY + 200, 600 * this.viewZoom);
+		gllib.Mat4.rotateX(vtw, -Math.PI / 12);
+		gllib.Mat4.scaleVal(vtw, 1, -1, 1);
 
-		glmatrix.Mat4.identity(vtwNT);
-		glmatrix.Mat4.translateVal(vtwNT, 0, 200, 600 * this.viewZoom);
-		glmatrix.Mat4.rotateX(vtwNT, -Math.PI / 12);
-		glmatrix.Mat4.scaleVal(vtwNT, 1, -1, 1);
+		gllib.Mat4.identity(vtwNT);
+		gllib.Mat4.translateVal(vtwNT, 0, 200, 600 * this.viewZoom);
+		gllib.Mat4.rotateX(vtwNT, -Math.PI / 12);
+		gllib.Mat4.scaleVal(vtwNT, 1, -1, 1);
 
-		glmatrix.Mat4.perspective(
+		gllib.Mat4.perspective(
 			this.fov,
 			this.width / this.height,   // Aspect ratio
 			this.zNear,
@@ -73,14 +73,14 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 			prj
 		);
 
-		glmatrix.Mat4.multiply(prj, wtv, wtc);
+		gllib.Mat4.multiply(prj, wtv, wtc);
 
 		// Now that the matrices are done, find the visible area
 		this.getVisibleArea(this.visibleArea);
 
 		// Transform light direction from world to view space, leaving W alone
-		glmatrix.Mat4.multiplyNormal3(wtv, this.sunLightWorld, this.sunLightView);
-		glmatrix.Vec4.normalize(this.sunLightView);
+		gllib.Mat4.multiplyNormal3(wtv, this.sunLightWorld, this.sunLightView);
+		gllib.Vec4.normalize(this.sunLightView);
 		this.sunLightView[3] = this.sunLightWorld[3];
 
 		// Draw the terrain
@@ -123,7 +123,7 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		upp[1] = 0;
 		upp[2] = 0;
 		upp[3] = 1;
-		glmatrix.Mat4.multiplyVec4(this.viewToWorld, upp);
+		gllib.Mat4.multiplyVec4(this.viewToWorld, upp);
 		var xa = upp[0];
 		var ya = upp[1];
 		var za = upp[2];
@@ -132,7 +132,7 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		upp[1] = -2 / this.height * y + 1;
 		upp[2] = -1 / Math.tan(this.fov * Math.PI / 360);
 		upp[3] = 1;
-		glmatrix.Mat4.multiplyVec4(this.viewToWorld, upp);
+		gllib.Mat4.multiplyVec4(this.viewToWorld, upp);
 		var xb = upp[0];
 		var yb = upp[1];
 		var zb = upp[2];
@@ -160,7 +160,7 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 		upp[1] = 0;
 		upp[2] = 0;
 		upp[3] = 1;
-		glmatrix.Mat4.multiplyVec4(this.viewToWorldNT, upp);
+		gllib.Mat4.multiplyVec4(this.viewToWorldNT, upp);
 		var xa = upp[0];
 		var ya = upp[1];
 		var za = upp[2];
@@ -170,7 +170,7 @@ define(['dep/glmatrix/glmatrix', 'engine/client/Viewport'], function (glmatrix, 
 			upp[1] = (i === 0 || i === 2 ? 1 : -1);
 			upp[2] = -1 / Math.tan(this.fov * Math.PI / 360);
 			upp[3] = 1;
-			glmatrix.Mat4.multiplyVec4(this.viewToWorldNT, upp);
+			gllib.Mat4.multiplyVec4(this.viewToWorldNT, upp);
 			var xb = upp[0];
 			var yb = upp[1];
 			var zb = upp[2];

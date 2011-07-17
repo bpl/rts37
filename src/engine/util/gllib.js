@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/Event'], function (Event) {
+define(['dep/glmatrix/glmatrix', 'engine/util/Event'], function (glmatrix, Event) {
 
 	var gllib = {};
 
@@ -45,6 +45,13 @@ define(['engine/util/Event'], function (Event) {
 			this._contextProvided.emit(gl);
 		}
 	};
+
+	// Shortcuts to glmatrix to simplify imports
+	gllib.Vec3 = glmatrix.Vec3;
+	gllib.Vec4 = glmatrix.Vec4;
+	gllib.Mat3 = glmatrix.Mat3;
+	gllib.Mat4 = glmatrix.Mat4;
+	gllib.Quat4 = glmatrix.Quat4;
 
 	return gllib;
 

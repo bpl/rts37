@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!engine/shaders/uivector.frag'], function (glmatrix, gllib, vectorProgram) {
+define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!engine/shaders/uivector.frag'], function (gllib, vectorProgram) {
 
 	function UIRenderer() {
 		this._linePoints = new Float32Array(UIRenderer.LINE_MAX_POINTS);
@@ -11,12 +11,12 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 
 	UIRenderer.positionBuffer = null;
 
-	UIRenderer.tempVec41 = glmatrix.Vec4.create();
-	UIRenderer.tempVec42 = glmatrix.Vec4.create();
-	UIRenderer.tempVec43 = glmatrix.Vec4.create();
-	UIRenderer.tempVec44 = glmatrix.Vec4.create();
+	UIRenderer.tempVec41 = gllib.Vec4.create();
+	UIRenderer.tempVec42 = gllib.Vec4.create();
+	UIRenderer.tempVec43 = gllib.Vec4.create();
+	UIRenderer.tempVec44 = gllib.Vec4.create();
 
-	UIRenderer.tempMat4 = glmatrix.Mat4.create();
+	UIRenderer.tempMat4 = gllib.Mat4.create();
 
 	gllib.needsContext(function (gl) {
 		UIRenderer.positionBuffer = gllib.createArrayBuffer(
@@ -88,8 +88,8 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 
 		var mat = UIRenderer.tempMat4;
 
-		glmatrix.Mat4.set(worldToClip, mat);
-		glmatrix.Mat4.multiply(mat, modelToWorld, mat);
+		gllib.Mat4.set(worldToClip, mat);
+		gllib.Mat4.multiply(mat, modelToWorld, mat);
 
 		var half_w = w / 2;
 		var half_h = h / 2;
@@ -98,25 +98,25 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 		vec1[1] = -half_h;
 		vec1[2] = 0;
 		vec1[3] = 1;
-		glmatrix.Mat4.multiplyVec4(mat, vec1, vec1);
+		gllib.Mat4.multiplyVec4(mat, vec1, vec1);
 
 		vec2[0] = half_w;
 		vec2[1] = -half_h;
 		vec2[2] = 0;
 		vec2[3] = 1;
-		glmatrix.Mat4.multiplyVec4(mat, vec2, vec2);
+		gllib.Mat4.multiplyVec4(mat, vec2, vec2);
 
 		vec3[0] = half_w;
 		vec3[1] = half_h;
 		vec3[2] = 0;
 		vec3[3] = 1;
-		glmatrix.Mat4.multiplyVec4(mat, vec3, vec3);
+		gllib.Mat4.multiplyVec4(mat, vec3, vec3);
 
 		vec4[0] = -half_w;
 		vec4[1] = half_h;
 		vec4[2] = 0;
 		vec4[3] = 1;
-		glmatrix.Mat4.multiplyVec4(mat, vec4, vec4);
+		gllib.Mat4.multiplyVec4(mat, vec4, vec4);
 
 		this.addRectScreen4zw(vec1, vec2, vec3, vec4);
 	};
@@ -133,25 +133,25 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 		vec1[1] = y1;
 		vec1[2] = z;
 		vec1[3] = 1;
-		glmatrix.Mat4.multiplyVec4(worldToClip, vec1, vec1);
+		gllib.Mat4.multiplyVec4(worldToClip, vec1, vec1);
 
 		vec2[0] = x2;
 		vec2[1] = y1;
 		vec2[2] = z;
 		vec2[3] = 1;
-		glmatrix.Mat4.multiplyVec4(worldToClip, vec2, vec2);
+		gllib.Mat4.multiplyVec4(worldToClip, vec2, vec2);
 
 		vec3[0] = x2;
 		vec3[1] = y2;
 		vec3[2] = z;
 		vec3[3] = 1;
-		glmatrix.Mat4.multiplyVec4(worldToClip, vec3, vec3);
+		gllib.Mat4.multiplyVec4(worldToClip, vec3, vec3);
 
 		vec4[0] = x1;
 		vec4[1] = y2;
 		vec4[2] = z;
 		vec4[3] = 1;
-		glmatrix.Mat4.multiplyVec4(worldToClip, vec4, vec4);
+		gllib.Mat4.multiplyVec4(worldToClip, vec4, vec4);
 
 		this.addRectScreen4zw(vec1, vec2, vec3, vec4);
 	};
@@ -177,21 +177,21 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 		vec1[1] = poly[1];
 		vec1[2] = z;
 		vec1[3] = 1;
-		glmatrix.Mat4.multiplyVec4(worldToClip, vec1, vec1);
-		glmatrix.Mat4.set(vec1, vec2);
+		gllib.Mat4.multiplyVec4(worldToClip, vec1, vec1);
+		gllib.Mat4.set(vec1, vec2);
 
 		for (var i = 2; i < poly.length; i += 2) {
 			vec3[0] = poly[i];
 			vec3[1] = poly[i + 1];
 			vec3[2] = z;
 			vec3[3] = 1;
-			glmatrix.Mat4.multiplyVec4(worldToClip, vec3, vec3);
+			gllib.Mat4.multiplyVec4(worldToClip, vec3, vec3);
 
 			lps.set(vec2, lpc);
 			lps.set(vec3, lpc + 4);
 			lpc += 8;
 
-			glmatrix.Mat4.set(vec3, vec2);
+			gllib.Mat4.set(vec3, vec2);
 		}
 
 		lps.set(vec2, lpc);

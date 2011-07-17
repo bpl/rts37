@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!tanks/shaders/solid.vert!tanks/shaders/solid.frag'], function (glmatrix, gllib, shaderProgram) {
+define(['engine/util/gllib', 'engine/util/Program!tanks/shaders/solid.vert!tanks/shaders/solid.frag'], function (gllib, shaderProgram) {
 
 	// To be used as a mixin
 
@@ -9,7 +9,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!tanks
 
 	function SolidMesh(meshSingleton) {
 		this.meshSingleton = meshSingleton;
-		this.modelToWorld = glmatrix.Mat4.identity(glmatrix.Mat4.create());
+		this.modelToWorld = gllib.Mat4.identity(gllib.Mat4.create());
 
 		if (!meshSingleton.solidMeshBufferInitialized) {
 			gllib.needsContext(function (gl) {

@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Mesh!tanks/models/tank1.json'], function (glmatrix, mathlib, Actor, Player, Projectile, vehicleMesh) {
+define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Mesh!tanks/models/tank1.json'], function (gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, Actor);
@@ -27,7 +27,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/world/Actor', 'e
 		this.surfaceHighBound = null;
 	}
 
-	Vehicle.modelToWorld = glmatrix.Mat4.identity(glmatrix.Mat4.create());
+	Vehicle.modelToWorld = gllib.Mat4.identity(gllib.Mat4.create());
 
 	Vehicle.prototype.setGame = function (game) {
 		Actor.prototype.setGame.call(this, game);
