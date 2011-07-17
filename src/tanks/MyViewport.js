@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/client/Viewport'], function (gllib, Viewport) {
+define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'], function (gllib, Viewport, Billboard) {
 
 	inherits(MyViewport, Viewport);
 	function MyViewport(client, opt /* x, y, width, height */) {
@@ -90,6 +90,9 @@ define(['engine/util/gllib', 'engine/client/Viewport'], function (gllib, Viewpor
 		for (var idx in this.game.actors) {
 			this.game.actors[idx].draw(gl, client, this);
 		}
+
+		// Draw the billboards
+		Billboard.draw(gl, client, this);
 
 		// Draw the boundaries of the playfield
 		this.client.uiRenderer.addRectWorld(wtc, 0, 0, this.game.fieldWidth, this.game.fieldHeight);

@@ -1,0 +1,146 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
+define(['engine/util/gllib', 'engine/util/Color', 'engine/util/Program!engine/shaders/billboard.frag!engine/shaders/billboard.vert'], function (gllib, Color, shaderProgram) {
+
+	// Billboards are used here for ephemeral animated decorations such as
+	// explosions and smoke. Billboard objects are managers of that type of
+	// billboard instead of actual billboard instances.
+	function Billboard(/*textureImage*/fillColor, lifetime) {
+		// FIXME: Use a texture instead of a color used as a placeholder
+		this.fillColor = Color.require(fillColor);
+		this.lifetime = lifetime;
+		this.scaleFactor = 50;   // FIXME: Make configurable
+
+		this._count = 0;
+		this._variableArray = new Float32Array(Billboard.CAPACITY * Billboard.VARIABLE_SIZE);
+
+		Billboard._billboards.push(this);
+	}
+
+	// Display at most this many billboards. If depleted, purge starting from
+	// the oldest one.
+	Billboard.CAPACITY = 100;
+
+	// Each billboard needs two triangles. The varying part contains the
+	// coordinates and the amount of time the billboard has been alive so far.
+	Billboard.VARIABLE_SIZE = 6 * 4;
+
+	// List of all billboards (billboard managers) for drawing
+	Billboard._billboards = [];
+
+	Billboard._constantBuffer = null;
+
+	Billboard._variableBuffer = null;
+
+	Billboard.draw = function (gl, client, viewport) {
+		var arr = this._billboards;
+		for (var i = 0; i < arr.length; ++i) {
+			arr[i].draw(gl, client, viewport);
+		}
+	};
+
+	gllib.needsContext(function (gl) {
+		var vertices = [
+			// One half
+			-1, -1,   1, -1,   -1, 1,
+			// Second half
+			-1, 1,   1, -1,   1, 1
+		];
+		var arr = new Float32Array(Billboard.CAPACITY * vertices.length);
+		var pos = 0;
+		for (var i = 0; i < Billboard.CAPACITY; ++i) {
+			for (var j = 0; j < vertices.length; ++j) {
+				arr[pos++] = vertices[j];
+			}
+		}
+		Billboard._constantBuffer = gllib.createArrayBuffer(arr);
+		Billboard._variableBuffer = gllib.createArrayBuffer(Billboard.CAPACITY * Billboard.VARIABLE_SIZE * 4);
+	}, Billboard);
+
+	Billboard.prototype.add = function (worldX, worldY, worldZ) {
+		if (this._count >= Billboard.CAPACITY) {
+			return;
+		}
+
+		var pos = this._count * Billboard.VARIABLE_SIZE;
+		var va = this._variableArray;
+
+		for (var i = 0; i < 6; ++i) {
+			va[pos++] = worldX / 1024;
+			va[pos++] = worldY / 1024;
+			va[pos++] = worldZ / 1024;
+			va[pos++] = 0;
+		}
+
+		++this._count;
+	};
+
+	Billboard.prototype.draw = function (gl, client, viewport) {
+		var constantBuffer = Billboard._constantBuffer;
+		var variableBuffer = Billboard._variableBuffer;
+		var va = this._variableArray;
+
+		if (!this._count) {
+			return;
+		}
+
+		// Cull the variable array
+		var msecsSinceDrawn = client.msecsSinceDrawn;
+		var pos = 0;
+		var oldPos = 0;
+		var count = 0;
+		for (var i = 0; i < this._count * 6; ++i) {
+			va[oldPos + 3] += msecsSinceDrawn;
+			if (va[oldPos + 3] <= this.lifetime) {
+				if (oldPos !== pos) {
+					va[pos] = va[oldPos];
+					va[pos + 1] = va[oldPos + 1];
+					va[pos + 2] = va[oldPos + 2];
+					va[pos + 3] = va[oldPos + 3];
+				}
+				pos += 4;
+				++count;
+			}
+			oldPos += 4;
+		}
+		count = count / 6;
+		this._count = count;
+
+		if (!count) {
+			return;
+		}
+
+		var program = shaderProgram;
+
+		gl.useProgram(program.program);
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.SRC_ALPHA, gl.DST_COLOR);
+		gl.enableVertexAttribArray(program.anchorPosition);
+		gl.enableVertexAttribArray(program.msecsLive);
+		gl.enableVertexAttribArray(program.deltaPosition);
+		gl.bindBuffer(gl.ARRAY_BUFFER, variableBuffer);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, va);
+		gl.vertexAttribPointer(program.anchorPosition, 3, gl.FLOAT, false, 4 * 4, 0);
+		gl.vertexAttribPointer(program.msecsLive, 1, gl.FLOAT, false, 4 * 4, 3 * 4);
+		gl.bindBuffer(gl.ARRAY_BUFFER, constantBuffer);
+		gl.vertexAttribPointer(program.deltaPosition, 2, gl.FLOAT, false, 0, 0);
+
+		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
+		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
+		gl.uniform4fv(program.fillColor, this.fillColor);
+		gl.uniform1f(program.lifetime, this.lifetime);
+		gl.uniform1f(program.scaleFactor, this.scaleFactor);
+
+		gl.drawArrays(gl.TRIANGLES, 0, count * 6);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.disableVertexAttribArray(program.deltaPosition);
+		gl.disableVertexAttribArray(program.msecsLive);
+		gl.disableVertexAttribArray(program.anchorPosition);
+		gl.disable(gl.BLEND);
+		gl.useProgram(null);
+	};
+
+	return Billboard;
+
+});
