@@ -15,8 +15,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 			targetX: null,
 			targetY: null,
 			firingRadius: 300 * 1024,
-			radarRadius: 200 * 1024,
-			visualRadius: 100 * 1024,
 			reloadMsecs: 4000,
 			projectileSpeed: 90 * 1024,
 			currentReloadMsecs: [0, 0, 0, 0],
@@ -102,8 +100,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 				var actor = this.game.actors[idx];
 				if (actor.player !== this.player
 						&& 'firingRadius' in actor   // FIXME: Use something more role-specific
-						&& mathlib.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius
-						&& actor.isInRadarRadiusOf(this.player)) {
+						&& mathlib.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius) {
 					this.fireAtPos(actor.x, actor.y);
 					break;
 				}
@@ -112,11 +109,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 	};
 
 	Vehicle.prototype.draw = function (gl, client, viewport) {
-		if (this.player !== this.game.localPlayer
-				&& !this.isInRadarRadiusOf(this.game.localPlayer)) {
-			return;
-		}
-
 		var mtw = Vehicle.modelToWorld;
 		var factor = client.factor;
 		var angleRad = (this.angle - this.dflAngle * factor);
@@ -200,14 +192,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		}
 	};
 
-	Vehicle.prototype.addRadarArc = function (ctx, expand, factor) {
-		if (this.player == this.game.localPlayer) {
-			var centerX = (this.x - this.dflX * factor) / 1024;
-			var centerY = (this.y - this.dflY * factor) / 1024;
-			ctx.arc(centerX, centerY, (this.radarRadius >> 10) + expand, 0, Math.PI * 2, false);
-		}
-	};
-
 	Vehicle.prototype.clickTest = function (x, y, client) {
 		var factor = client.factor;
 		return mathlib.distance(
@@ -225,30 +209,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 
 	Vehicle.prototype.projectileHitTest = function (x, y) {
 		return mathlib.distance(this.x, this.y, x, y) <= 15360;
-	};
-
-	Vehicle.prototype.isInVisualRadiusOf = function (player) {
-		for (var idx in this.game.actors) {
-			var actor = this.game.actors[idx];
-			if (actor.player == player && 'visualRadius' in actor) {
-				if (mathlib.distance(this.x, this.y, actor.x, actor.y) <= actor.visualRadius) {
-					return true;
-				}
-			}
-		}
-		return false;
-	};
-
-	Vehicle.prototype.isInRadarRadiusOf = function (player) {
-		for (var idx in this.game.actors) {
-			var actor = this.game.actors[idx];
-			if (actor.player == player && 'radarRadius' in actor) {
-				if (mathlib.distance(this.x, this.y, actor.x, actor.y) <= actor.radarRadius) {
-					return true;
-				}
-			}
-		}
-		return false;
 	};
 
 	Vehicle.prototype.validateMove = function (player, x, y) {
