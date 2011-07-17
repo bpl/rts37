@@ -13,7 +13,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!tanks
 
 		if (!meshSingleton.solidMeshBufferInitialized) {
 			gllib.needsContext(function (gl) {
-				meshSingleton.triangleBuffer = gllib.createArrayBuffer(gl, meshSingleton.TRIANGLE_VERTICES);
+				meshSingleton.triangleBuffer = gllib.createArrayBuffer(meshSingleton.TRIANGLE_VERTICES);
 			}, meshSingleton);
 			meshSingleton.solidMeshBufferInitialized = true;
 		}

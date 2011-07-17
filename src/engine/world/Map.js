@@ -63,7 +63,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 				arr[idx++] = (y + 1) * BLOCK_VERTICES + (x + 1);
 			}
 		}
-		Map.commonIndexBuffer = gllib.createElementArrayBuffer(gl, arr);
+		Map.commonIndexBuffer = gllib.createElementArrayBuffer(arr);
 	}, Map);
 
 	Map.prototype._generateHeightMap = function (image) {
@@ -128,7 +128,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 				arr[idx++] = zdn * length_i;
 			}
 		}
-		return gllib.createArrayBuffer(gl, arr);
+		return gllib.createArrayBuffer(arr);
 	};
 
 	// A safe but slow routine to get the height value of a tile on the map on

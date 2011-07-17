@@ -8,7 +8,11 @@ define(['engine/util/Event'], function (Event) {
 
 	gllib._contextProvided = new Event();
 
-	gllib.createArrayBuffer = function (gl, arrayOrNumber, usage) {
+	gllib.createArrayBuffer = function (arrayOrNumber, usage) {
+		var gl = this._gl;
+		if (!gl) {
+			throw new Error('gllib.createArrayBuffer: WebGL context has not been provided');
+		}
 		var buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.bufferData(gl.ARRAY_BUFFER, arrayOrNumber, usage || gl.STATIC_DRAW);
@@ -16,7 +20,11 @@ define(['engine/util/Event'], function (Event) {
 		return buffer;
 	};
 
-	gllib.createElementArrayBuffer = function (gl, arrayOrNumber, usage) {
+	gllib.createElementArrayBuffer = function (arrayOrNumber, usage) {
+		var gl = this._gl;
+		if (!gl) {
+			throw new Error('gllib.createElementArrayBuffer: WebGL context has not been provided');
+		}
 		var buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayOrNumber, usage || gl.STATIC_DRAW);

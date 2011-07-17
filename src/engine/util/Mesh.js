@@ -16,8 +16,8 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engin
 		this._vertexBuffer = null;
 		this._indexBuffer = null;
 		gllib.needsContext(function (gl) {
-			this._vertexBuffer = gllib.createArrayBuffer(gl, this._vertexArray);
-			this._indexBuffer = gllib.createElementArrayBuffer(gl, this._indexArray);
+			this._vertexBuffer = gllib.createArrayBuffer(this._vertexArray);
+			this._indexBuffer = gllib.createElementArrayBuffer(this._indexArray);
 		}, this);
 	}
 

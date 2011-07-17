@@ -19,7 +19,10 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 	UIRenderer.tempMat4 = glmatrix.Mat4.create();
 
 	gllib.needsContext(function (gl) {
-		UIRenderer.positionBuffer = gllib.createArrayBuffer(gl, UIRenderer.LINE_MAX_POINTS * 4, gl.DYNAMIC_DRAW);
+		UIRenderer.positionBuffer = gllib.createArrayBuffer(
+			UIRenderer.LINE_MAX_POINTS * 4,
+			gl.DYNAMIC_DRAW
+		);
 	}, UIRenderer);
 
 	UIRenderer.prototype.addRectScreen4zw = function (vec1, vec2, vec3, vec4) {
