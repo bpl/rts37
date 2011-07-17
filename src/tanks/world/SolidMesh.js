@@ -4,20 +4,24 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!tanks
 
 	// To be used as a mixin
 
+	// FIXME: Mixin turned out to be a silly way to go about this. Convert
+	// everything to Mesh (or something else) instead.
+
 	function SolidMesh(meshSingleton) {
 		this.meshSingleton = meshSingleton;
 		this.modelToWorld = glmatrix.Mat4.identity(glmatrix.Mat4.create());
+
+		if (!meshSingleton.solidMeshBufferInitialized) {
+			gllib.needsContext(function (gl) {
+				meshSingleton.triangleBuffer = gllib.createArrayBuffer(gl, meshSingleton.TRIANGLE_VERTICES);
+			}, meshSingleton);
+			meshSingleton.solidMeshBufferInitialized = true;
+		}
 	}
 
 	SolidMesh.prototype.drawMesh = function (gl, client, viewport) {
-		// FIXME: Put this somewhere else. This must be recreated if the WebGL
-		// context is lost.
 		var triangleBuffer = this.meshSingleton.triangleBuffer;
 		var vertices = this.meshSingleton.TRIANGLE_VERTICES;
-		if (!triangleBuffer) {
-			triangleBuffer = gllib.createArrayBuffer(gl, vertices);
-			this.meshSingleton.triangleBuffer = triangleBuffer;
-		}
 
 		var wtc = viewport.worldToClip;
 		var mtw = this.modelToWorld;

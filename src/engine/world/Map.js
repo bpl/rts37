@@ -75,7 +75,6 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 		return result;
 	};
 
-	// FIXME: These need to be regenerated if the WebGL context is lost
 	Map.prototype._generateBlocks = function (gl) {
 		var result = [];
 		for (var by = 0; by < this._heightInBlocks; ++by) {

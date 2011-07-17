@@ -18,6 +18,10 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 
 	UIRenderer.tempMat4 = glmatrix.Mat4.create();
 
+	gllib.needsContext(function (gl) {
+		UIRenderer.positionBuffer = gllib.createArrayBuffer(gl, UIRenderer.LINE_MAX_POINTS * 4, gl.DYNAMIC_DRAW);
+	}, UIRenderer);
+
 	UIRenderer.prototype.addRectScreen4zw = function (vec1, vec2, vec3, vec4) {
 		var lps = this._linePoints;
 		var lpc = this._linePointCount;
@@ -198,14 +202,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/gllib', 'engine/util/Program!engin
 		// Cache all relevant variables
 		var lps = this._linePoints;
 		var lpc = this._linePointCount;
-
-		// FIXME: Put this somewhere else. This must be recreated if the WebGL
-		// context is lost.
 		var positionBuffer = UIRenderer.positionBuffer;
-		if (!positionBuffer) {
-			positionBuffer = gllib.createArrayBuffer(gl, lps, gl.DYNAMIC_DRAW);
-			UIRenderer.positionBuffer = positionBuffer;
-		}
 
 		// Line rendering pass
 		if (lpc) {

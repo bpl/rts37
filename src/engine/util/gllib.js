@@ -8,18 +8,18 @@ define(['engine/util/Event'], function (Event) {
 
 	gllib._contextProvided = new Event();
 
-	gllib.createArrayBuffer = function (gl, array, usage) {
+	gllib.createArrayBuffer = function (gl, arrayOrNumber, usage) {
 		var buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-		gl.bufferData(gl.ARRAY_BUFFER, array, usage || gl.STATIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, arrayOrNumber, usage || gl.STATIC_DRAW);
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		return buffer;
 	};
 
-	gllib.createElementArrayBuffer = function (gl, array, usage) {
+	gllib.createElementArrayBuffer = function (gl, arrayOrNumber, usage) {
 		var buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, array, usage || gl.STATIC_DRAW);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayOrNumber, usage || gl.STATIC_DRAW);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 		return buffer;
 	};

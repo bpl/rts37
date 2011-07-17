@@ -15,6 +15,10 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engin
 
 		this._vertexBuffer = null;
 		this._indexBuffer = null;
+		gllib.needsContext(function (gl) {
+			this._vertexBuffer = gllib.createArrayBuffer(gl, this._vertexArray);
+			this._indexBuffer = gllib.createElementArrayBuffer(gl, this._indexArray);
+		}, this);
 	}
 
 	Mesh.load = function (name, req, load, config) {
@@ -73,17 +77,8 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engin
 	};
 
 	Mesh.prototype.draw = function (gl, viewport, mtw, color) {
-		// FIXME: Put this somewhere else. This must be recreated if the WebGL
-		// context is lost.
 		var vertexBuffer = this._vertexBuffer;
 		var indexBuffer = this._indexBuffer;
-		if (!vertexBuffer) {
-			vertexBuffer = gllib.createArrayBuffer(gl, this._vertexArray);
-			this._vertexBuffer = vertexBuffer;
-			indexBuffer = gllib.createElementArrayBuffer(gl, this._indexArray);
-			this._indexBuffer = indexBuffer;
-		}
-
 		var program = shaderProgram;
 
 		gl.useProgram(program.program);
