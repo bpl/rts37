@@ -27,7 +27,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		this.surfaceHighBound = null;
 	}
 
-	Vehicle.modelToWorld = gllib.Mat4.identity(gllib.Mat4.create());
+	Vehicle.modelToWorld = gllib.Mat4.identity();
 
 	Vehicle.prototype.setGame = function (game) {
 		Actor.prototype.setGame.call(this, game);

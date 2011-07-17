@@ -9,7 +9,7 @@ define(['engine/util/gllib', 'engine/util/Program!tanks/shaders/solid.vert!tanks
 
 	function SolidMesh(meshSingleton) {
 		this.meshSingleton = meshSingleton;
-		this.modelToWorld = gllib.Mat4.identity(gllib.Mat4.create());
+		this.modelToWorld = gllib.Mat4.identity();
 
 		if (!meshSingleton.solidMeshBufferInitialized) {
 			gllib.needsContext(function (gl) {

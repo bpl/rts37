@@ -7,6 +7,7 @@
  * - Added constructor for Vec4 type.
  * - Added translateVal and scaleVal functions that take scalar arguments
  *   instead of a vector.
+ * - Allow identity mat3 to created with a single call.
  */
 
 /*
@@ -410,15 +411,19 @@ mat3.set = function(mat, dest) {
 
 /*
  * mat3.identity
- * Sets a mat3 to an identity matrix
+ * Sets a mat3 to an identity matrix or creates a new mat3 identity matrix
  *
  * Params:
- * dest - mat3 to set
+ * dest - Optional, mat3 to set
  *
  * Returns:
- * dest
+ * dest if specified, a new mat3 otherwise
  */
 mat3.identity = function(dest) {
+	if (!dest) {
+		dest = mat3.create();
+	}
+
 	dest[0] = 1;
 	dest[1] = 0;
 	dest[2] = 0;
@@ -596,13 +601,13 @@ mat4.set = function(mat, dest) {
 
 /*
  * mat4.identity
- * Sets a mat4 to an identity matrix
+ * Sets a mat4 to an identity matrix or creates a new mat4 identity matrix
  *
  * Params:
- * dest - Optional, mat4 to set. If not specified, a new matrix will be created.
+ * dest - Optional, mat4 to set
  *
  * Returns:
- * dest
+ * dest if specified, a new mat4 otherwise
  */
 mat4.identity = function(dest) {
 	if (!dest) {
