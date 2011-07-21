@@ -32,6 +32,10 @@ define(['engine/util/gllib', 'engine/util/Color', 'engine/util/Program!engine/sh
 
 	Billboard._variableBuffer = null;
 
+	Billboard._tempRight = gllib.Vec3.create();
+	Billboard._tempUp = gllib.Vec3.create();
+	Billboard._tempLook = gllib.Vec3.create();
+
 	Billboard.draw = function (gl, client, viewport) {
 		var arr = this._billboards;
 		for (var i = 0; i < arr.length; ++i) {
@@ -76,15 +80,12 @@ define(['engine/util/gllib', 'engine/util/Color', 'engine/util/Program!engine/sh
 	};
 
 	Billboard.prototype.draw = function (gl, client, viewport) {
-		var constantBuffer = Billboard._constantBuffer;
-		var variableBuffer = Billboard._variableBuffer;
-		var va = this._variableArray;
-
 		if (!this._count) {
 			return;
 		}
 
 		// Cull the variable array
+		var va = this._variableArray;
 		var msecsSinceDrawn = client.msecsSinceDrawn;
 		var pos = 0;
 		var oldPos = 0;
@@ -110,8 +111,32 @@ define(['engine/util/gllib', 'engine/util/Color', 'engine/util/Program!engine/sh
 			return;
 		}
 
+		// Cache some further variables
+		var wtv = viewport.worldToView;
+		var right = Billboard._tempRight;
+		var up = Billboard._tempUp;
+		var look = Billboard._tempLook;
+
+		var constantBuffer = Billboard._constantBuffer;
+		var variableBuffer = Billboard._variableBuffer;
 		var program = shaderProgram;
 
+		// Calculate the transformation
+		//
+		// 3D math is based on NeHe billboarding tutorial:
+		// http://nehe.gamedev.net/data/articles/article.asp?article=19
+
+		up[0] = wtv[4];
+		up[1] = wtv[5];
+		up[2] = wtv[6];
+
+		look[0] = -wtv[8];
+		look[1] = -wtv[9];
+		look[2] = -wtv[10];
+
+		gllib.Vec3.cross(up, look, right);
+
+		// Do the drawing
 		gl.useProgram(program.program);
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.DST_COLOR);
@@ -125,8 +150,11 @@ define(['engine/util/gllib', 'engine/util/Color', 'engine/util/Program!engine/sh
 		gl.bindBuffer(gl.ARRAY_BUFFER, constantBuffer);
 		gl.vertexAttribPointer(program.deltaPosition, 2, gl.FLOAT, false, 0, 0);
 
-		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
+		gl.uniformMatrix4fv(program.worldToView, false, wtv);
 		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
+		gl.uniform3fv(program.modelToWorldRight, right);
+		gl.uniform3fv(program.modelToWorldUp, up);
+		gl.uniform3fv(program.modelToWorldLook, look);
 		gl.uniform4fv(program.fillColor, this.fillColor);
 		gl.uniform1f(program.lifetime, this.lifetime);
 		gl.uniform1f(program.scaleFactor, this.scaleFactor);
