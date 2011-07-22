@@ -142,6 +142,7 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 
 		// Do the drawing
 		gl.useProgram(program.program);
+		gl.depthMask(false);
 		gl.enable(gl.BLEND);
 		switch (this.blending) {
 			case 'replace': gl.blendFunc(gl.ONE, gl.ZERO); break;
@@ -180,6 +181,7 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 		gl.disableVertexAttribArray(program.msecsLive);
 		gl.disableVertexAttribArray(program.anchorPosition);
 		gl.disable(gl.BLEND);
+		gl.depthMask(true);
 		gl.useProgram(null);
 	};
 

@@ -104,6 +104,7 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 		// Defaults to depth mask enabled and depth range of 0 to 1
 		gl.enable(gl.DEPTH_TEST);
 		gl.depthFunc(gl.LEQUAL);
+		gl.depthMask(true);   // It's already the default, though
 
 		gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		gl.clearDepth(1.0);
