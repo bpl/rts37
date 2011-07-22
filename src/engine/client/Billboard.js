@@ -1,17 +1,21 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/Color', 'engine/util/Program!engine/shaders/billboard.frag!engine/shaders/billboard.vert'], function (gllib, Color, shaderProgram) {
+define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/shaders/billboard.frag!engine/shaders/billboard.vert'], function (gllib, Texture, shaderProgram) {
 
 	// Billboards are used here for ephemeral animated decorations such as
 	// explosions and smoke. Billboard objects are managers of that type of
 	// billboard instead of actual billboard instances.
-	function Billboard(/*textureImage*/fillColor, lifetime) {
-		// FIXME: Use a texture instead of a color used as a placeholder
-		this.fillColor = Color.require(fillColor);
+	//
+	// Supported blending modes:
+	// - replace: Replace existing fragment with the new fragment. The default.
+	// - additive: Add color values from the new fragment to the existing one.
+	function Billboard(image, lifetime, blending) {
 		this.lifetime = lifetime;
 		this.scaleFactor = 50;   // FIXME: Make configurable
+		this.blending = blending || 'replace';
 
 		this._count = 0;
+		this._texture = new Texture({'image': image});
 		this._variableArray = new Float32Array(Billboard.CAPACITY * Billboard.VARIABLE_SIZE);
 
 		Billboard._billboards.push(this);
@@ -139,7 +143,11 @@ define(['engine/util/gllib', 'engine/util/Color', 'engine/util/Program!engine/sh
 		// Do the drawing
 		gl.useProgram(program.program);
 		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.SRC_ALPHA, gl.DST_COLOR);
+		switch (this.blending) {
+			case 'replace': gl.blendFunc(gl.ONE, gl.ZERO); break;
+			case 'additive': gl.blendFunc(gl.ONE, gl.ONE); break;
+			default: throw new Error('Billboard.draw: Unknown blending mode ' + this.blending);
+		}
 		gl.enableVertexAttribArray(program.anchorPosition);
 		gl.enableVertexAttribArray(program.msecsLive);
 		gl.enableVertexAttribArray(program.deltaPosition);
@@ -150,16 +158,22 @@ define(['engine/util/gllib', 'engine/util/Color', 'engine/util/Program!engine/sh
 		gl.bindBuffer(gl.ARRAY_BUFFER, constantBuffer);
 		gl.vertexAttribPointer(program.deltaPosition, 2, gl.FLOAT, false, 0, 0);
 
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this._texture.texture);
+		gl.uniform1i(program.fillTexture, 0);
+
 		gl.uniformMatrix4fv(program.worldToView, false, wtv);
 		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
 		gl.uniform3fv(program.modelToWorldRight, right);
 		gl.uniform3fv(program.modelToWorldUp, up);
 		gl.uniform3fv(program.modelToWorldLook, look);
-		gl.uniform4fv(program.fillColor, this.fillColor);
 		gl.uniform1f(program.lifetime, this.lifetime);
 		gl.uniform1f(program.scaleFactor, this.scaleFactor);
 
 		gl.drawArrays(gl.TRIANGLES, 0, count * 6);
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.disableVertexAttribArray(program.deltaPosition);

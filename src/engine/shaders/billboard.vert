@@ -15,9 +15,9 @@ uniform vec3 modelToWorldLook;
 
 uniform float scaleFactor;
 uniform float lifetime;
-uniform vec4 fillColor;
 
-varying vec4 vertexColor;
+varying vec2 vertexTexCoords;
+varying float vertexAlpha;
 
 void main(void) {
 	mat4 modelToWorld = mat4(
@@ -35,5 +35,9 @@ void main(void) {
 
 	gl_Position = projection * (worldToView * modelToWorld * vertexPosition);
 
-	vertexColor = fillColor * (1.0 - (msecsLive / lifetime));
+	vertexTexCoords = vec2(
+		(deltaPosition.x + 1.0) * 0.5,
+		(deltaPosition.y + 1.0) * 0.5
+	);
+	vertexAlpha = 1.0 - (msecsLive / lifetime);
 }

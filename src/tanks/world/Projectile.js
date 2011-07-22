@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'engine/world/Player', 'engine/util/Color', 'engine/client/Billboard'], function (mathlib, Actor, SolidMesh, Player, Color, Billboard) {
+define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'engine/world/Player', 'engine/util/Color', 'engine/client/Billboard', 'engine/util/Image!tanks/textures/cuzco_exp2.jpg'], function (mathlib, Actor, SolidMesh, Player, Color, Billboard, explosionImage) {
 
 	register('Projectile', Projectile);
 	inherits(Projectile, Actor);
@@ -27,7 +27,7 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 
 	Projectile.meshColor = Color.fromValues(1, 1, 1, 1);
 
-	Projectile.explosion = new Billboard(Color.fromValues(1, 1, 1, 1), 1000);
+	Projectile.explosion = new Billboard(explosionImage, 1000, 'additive');
 
 	Projectile.prototype.dflAngle = 0;
 
