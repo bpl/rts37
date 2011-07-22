@@ -146,7 +146,7 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 		gl.enable(gl.BLEND);
 		switch (this.blending) {
 			case 'replace': gl.blendFunc(gl.ONE, gl.ZERO); break;
-			case 'additive': gl.blendFunc(gl.ONE, gl.ONE); break;
+			case 'additive': gl.blendFunc(gl.SRC_ALPHA, gl.ONE); break;
 			default: throw new Error('Billboard.draw: Unknown blending mode ' + this.blending);
 		}
 		gl.enableVertexAttribArray(program.anchorPosition);

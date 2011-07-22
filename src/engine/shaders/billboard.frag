@@ -9,5 +9,5 @@ varying float vertexAlpha;
 
 void main(void) {
 	vec4 sampledColor = texture2D(fillTexture, vertexTexCoords);
-	gl_FragColor = vec4(sampledColor.rgb, sampledColor.a * (1.0 + 0.0 * vertexAlpha));
+	gl_FragColor = vec4(sampledColor.rgb, sampledColor.a * vertexAlpha);
 }
