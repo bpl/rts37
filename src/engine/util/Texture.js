@@ -12,9 +12,12 @@ define(['engine/util/gllib'], function (gllib) {
 	//
 	// - flip: Flip the Y axis when unpacking image data. Defaults to true.
 	//
+	// - mipmap: Generate a mipmap for the texture. Defaults to true.
+	//
 	// - min_filter: Minifying function to use. One of 'nearest', 'linear',
 	//   'nearest_mipmap_nearest', 'linear_mipmap_nearest',
-	//   'nearest_mipmap_linear', 'linear_mipmap_linear'. Default is 'linear'.
+	//   'nearest_mipmap_linear', 'linear_mipmap_linear'. Default is
+	//   'nearest_mipmap_linear'.
 	//
 	// - mag_filter: Magnifying function to use. Either 'nearest' or 'linear'.
 	//   Default is 'linear'.
@@ -47,7 +50,8 @@ define(['engine/util/gllib'], function (gllib) {
 
 		this._image = opt.image || null;
 		this._flip = 'flip' in opt ? opt.flip : true;
-		this._min_filter = opt.min_filter || 'linear';
+		this._mipmap = 'mipmap' in opt ? opt.mipmap : true;
+		this._min_filter = opt.min_filter || 'nearest_mipmap_linear';
 		this._mag_filter = opt.mag_filter || 'linear';
 
 		gllib.needsContext(function (gl) {
@@ -62,6 +66,10 @@ define(['engine/util/gllib'], function (gllib) {
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this._image);
 			} else {
 				throw new Error('Texture: Unknown texture type');
+			}
+
+			if (this._mipmap) {
+				gl.generateMipmap(gl.TEXTURE_2D);
 			}
 
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, decodeMinFilter(gl, this._min_filter));
