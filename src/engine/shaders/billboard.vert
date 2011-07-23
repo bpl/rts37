@@ -40,7 +40,7 @@ void main(void) {
 
 	float liveFract = msecsLive / lifetime;
 
-	float currentFrame = floor(numFrames * liveFract);
+	float currentFrame = min(floor(numFrames * liveFract), numFrames - 1.0);
 	float framePos = currentFrame / framesAcross;
 	float frameSize = 1.0 / framesAcross;
 
