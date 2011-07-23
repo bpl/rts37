@@ -15,6 +15,9 @@ uniform vec3 modelToWorldLook;
 
 uniform float scaleFactor;
 uniform float lifetime;
+uniform float framesAcross;
+uniform float numFrames;
+uniform float minAlpha;
 
 varying vec2 vertexTexCoords;
 varying float vertexAlpha;
@@ -35,9 +38,16 @@ void main(void) {
 
 	gl_Position = projection * (worldToView * modelToWorld * vertexPosition);
 
+	float liveFract = msecsLive / lifetime;
+
+	float currentFrame = floor(numFrames * liveFract);
+	float framePos = currentFrame / framesAcross;
+	float frameSize = 1.0 / framesAcross;
+
 	vertexTexCoords = vec2(
-		(deltaPosition.x + 1.0) * 0.5,
-		(deltaPosition.y + 1.0) * 0.5
-	);
-	vertexAlpha = 1.0 - (msecsLive / lifetime);
+		(deltaPosition.x + 1.0) * 0.5 + fract(framePos) * framesAcross,
+		(deltaPosition.y + 1.0) * 0.5 + floor(framePos)
+	) * frameSize;
+
+	vertexAlpha = mix(minAlpha, 1.0, 1.0 - liveFract);
 }

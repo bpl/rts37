@@ -6,16 +6,34 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 	// explosions and smoke. Billboard objects are managers of that type of
 	// billboard instead of actual billboard instances.
 	//
+	// Options:
+	// - image: Image object to use as the texture. Required.
+	// - lifetime: Billboard instance lifetime in msecs.
+	// - blending: Blending mode, as below. Defaults to 'replace'.
+	// - framesAcross: How many animation frames are there per row in the
+	//   image. Default is 1.
+	// - numFrames: How animation frames are there in the image in total.
+	//   Default is 1.
+	// - minAlpha: The minimum alpha value to fade to. Default is 0.
+	// - scaleFactor: Extent of the billboard in world units. The actual width
+	//   and height will be scaleFactor * 2.
+	//
+	// Options will also be passed to the Texture constructor as-is. Please see
+	// Texture source file for information about applicable options.
+	//
 	// Supported blending modes:
 	// - replace: Replace existing fragment with the new fragment. The default.
 	// - additive: Add color values from the new fragment to the existing one.
-	function Billboard(image, lifetime, blending) {
-		this.lifetime = lifetime;
-		this.scaleFactor = 50;   // FIXME: Make configurable
-		this.blending = blending || 'replace';
+	function Billboard(opt) {
+		this.lifetime = opt.lifetime || 1000;
+		this.blending = opt.blending || 'replace';
+		this.framesAcross = opt.framesAcross || 1;
+		this.numFrames = opt.numFrames || 1;
+		this.minAlpha = opt.minAlpha || 0;
+		this.scaleFactor = opt.scaleFactor || 50;
 
 		this._count = 0;
-		this._texture = new Texture({'image': image});
+		this._texture = new Texture(opt);
 		this._variableArray = new Float32Array(Billboard.CAPACITY * Billboard.VARIABLE_SIZE);
 
 		Billboard._billboards.push(this);
@@ -170,6 +188,9 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 		gl.uniform3fv(program.modelToWorldLook, look);
 		gl.uniform1f(program.lifetime, this.lifetime);
 		gl.uniform1f(program.scaleFactor, this.scaleFactor);
+		gl.uniform1f(program.framesAcross, this.framesAcross);
+		gl.uniform1f(program.numFrames, this.numFrames);
+		gl.uniform1f(program.minAlpha, this.minAlpha);
 
 		gl.drawArrays(gl.TRIANGLES, 0, count * 6);
 

@@ -27,7 +27,15 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 
 	Projectile.meshColor = Color.fromValues(1, 1, 1, 1);
 
-	Projectile.explosion = new Billboard(explosionImage, 1000, 'additive');
+	Projectile.explosion = new Billboard({
+		'image': explosionImage,
+		'flip': false,
+		'lifetime': 1000,
+		'blending': 'additive',
+		'framesAcross': 4,
+		'numFrames': 16,
+		'minAlpha': 1
+	});
 
 	Projectile.prototype.dflAngle = 0;
 
