@@ -16,7 +16,7 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 	//   Default is 1.
 	// - minAlpha: The minimum alpha value to fade to. Default is 0.
 	// - scaleFactor: Extent of the billboard in world units. The actual width
-	//   and height will be scaleFactor * 2.
+	//   and height will be scaleFactor * 2. The default is 1.
 	//
 	// Options will also be passed to the Texture constructor as-is. Please see
 	// Texture source file for information about applicable options.
@@ -30,7 +30,7 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 		this.framesAcross = opt.framesAcross || 1;
 		this.numFrames = opt.numFrames || 1;
 		this.minAlpha = opt.minAlpha || 0;
-		this.scaleFactor = opt.scaleFactor || 50;
+		this.scaleFactor = opt.scaleFactor || 1;
 
 		this._count = 0;
 		this._texture = new Texture(opt);

@@ -27,15 +27,27 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 
 	Projectile.meshColor = Color.fromValues(1, 1, 1, 1);
 
-	Projectile.explosion = new Billboard({
+	Projectile.bigExplosion = new Billboard({
 		'image': explosionImage,
 		'flip': false,
 		'lifetime': 1000,
 		'blending': 'additive',
 		'framesAcross': 4,
 		'numFrames': 16,
-		'minAlpha': 1
+		'minAlpha': 1,
+		'scaleFactor': 50
 	});
+
+	Projectile.smallExplosion = new Billboard({
+			'image': explosionImage,
+			'flip': false,
+			'lifetime': 1000,
+			'blending': 'additive',
+			'framesAcross': 4,
+			'numFrames': 16,
+			'minAlpha': 1,
+			'scaleFactor': 10
+		});
 
 	Projectile.prototype.dflAngle = 0;
 
@@ -52,7 +64,9 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 			for (var idx in this.game.actors) {
 				var actor = this.game.actors[idx];
 				if ('projectileHitTest' in actor && actor.projectileHitTest(this.x, this.y)) {
-					Projectile.explosion.add(this.x, this.y, 0);
+					Projectile.bigExplosion.add(this.x, this.y, 20 * 1024);
+				} else {
+					Projectile.smallExplosion.add(this.x, this.y, 10 * 1024);
 				}
 			}
 			this.game.removeActor(this);
