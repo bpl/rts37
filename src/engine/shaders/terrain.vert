@@ -13,7 +13,8 @@ uniform mat4 projection;
 
 uniform vec4 sunLight;
 
-varying vec4 vertexColor;
+varying float vertexLightness;
+varying vec2 vertexTexCoords;
 
 void main() {
 	vec4 worldPosition = vec4(blockPosition + vertexPosition.xy, vertexPosition.z, 1.0);
@@ -21,5 +22,7 @@ void main() {
 
 	vec3 normalInView = normalize((worldToView * vec4(vertexNormal, 0.0)).xyz);
 	float sunLightIncidence = max(0.0, dot(normalInView, sunLight.xyz));
-	vertexColor = vec4(vec3(0.0, 0.6, 0.0) * mix(1.0, sunLightIncidence, sunLight.w), 1.0);
+	vertexLightness = sunLightIncidence * 2.5 - 0.75;
+
+	vertexTexCoords = vertexPosition.xy / tileSize / 16.0;
 }

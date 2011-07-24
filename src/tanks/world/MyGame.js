@@ -1,13 +1,13 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/world/Game', 'engine/world/CollisionContext', 'engine/world/Map', 'engine/util/Image!tanks/images/map.png'], function (Game, CollisionContext, Map, mapImage) {
+define(['engine/world/Game', 'engine/world/CollisionContext', 'engine/world/Map', 'engine/util/Image!tanks/images/map.png', 'engine/util/Image!tanks/textures/dim_grass2.jpg'], function (Game, CollisionContext, Map, mapImage, groundTextureImage) {
 
 	inherits(MyGame, Game);
 	function MyGame(isLocal) {
 		Game.prototype.constructor.call(this, isLocal);
 		// FIXME: Location of map image is hardcoded
 		// FIXME: Map should probably reside in Game instead of MyGame
-		this.map = new Map(mapImage);
+		this.map = new Map(mapImage, groundTextureImage);
 		this.fieldWidth = this.map.width * this.map.tileSize;
 		this.fieldHeight = this.map.height * this.map.tileSize;
 		this.surfaceContext = new CollisionContext(this);

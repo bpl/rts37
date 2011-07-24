@@ -2,8 +2,14 @@
 precision highp float;
 #endif
 
-varying vec4 vertexColor;
+uniform sampler2D groundTexture;
+
+varying float vertexLightness;
+varying vec2 vertexTexCoords;
 
 void main() {
-	gl_FragColor = vertexColor;
+	gl_FragColor = vec4(
+		texture2D(groundTexture, vertexTexCoords).rgb * vertexLightness,
+		1.0
+	);
 }

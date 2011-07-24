@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!engine/shaders/terrain.frag'], function (gllib, shaderProgram) {
+define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/shaders/terrain.vert!engine/shaders/terrain.frag'], function (gllib, Texture, shaderProgram) {
 
 	// The map consists of square blocks of square tiles. One pixel in the
 	// source image corresponds to one tile in the map. Block contains the
@@ -18,7 +18,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 	// The height map value when z = 0
 	var Z_BASE_LEVEL = 64;
 
-	function Map(image) {
+	function Map(image, groundTextureImage) {
 		assert(image && 'getPixelData' in image, 'Map: must be able to get pixels from image');
 
 		this.width = +image.width | 0;
@@ -27,6 +27,10 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 		assert(this.height > 0, 'Map: height must be a positive integer');
 
 		this.tileSize = TILE_SIZE;
+
+		this._groundTexture = new Texture({
+			'image': groundTextureImage
+		});
 
 		this._widthInBlocks = Math.ceil(this.width / BLOCK_SIZE);
 		this._heightInBlocks = Math.ceil(this.height / BLOCK_SIZE);
@@ -162,6 +166,10 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 		gl.enableVertexAttribArray(program.vertexNormal);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, commonIndexBuffer);
 
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this._groundTexture.texture);
+		gl.uniform1i(program.groundTexture, 0);
+
 		gl.uniform1f(program.tileSize, TILE_SIZE);
 		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
 		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
@@ -182,6 +190,9 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/terrain.vert!en
 				gl.drawElements(gl.TRIANGLES, BLOCK_SIZE * BLOCK_SIZE * 6, gl.UNSIGNED_SHORT, 0);
 			}
 		}
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
