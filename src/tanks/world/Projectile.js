@@ -1,14 +1,12 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'engine/world/Player', 'engine/util/Color', 'engine/client/Billboard', 'engine/util/Image!tanks/textures/cuzco_exp2.jpg'], function (mathlib, Actor, SolidMesh, Player, Color, Billboard, explosionImage) {
+define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'engine/util/Color', 'engine/client/Billboard', 'engine/util/Mesh!tanks/models/cone.json', 'engine/util/Image!tanks/textures/cuzco_exp2.jpg'], function (gllib, mathlib, Actor, Player, Color, Billboard, projectileMesh, explosionImage) {
 
 	register('Projectile', Projectile);
 	inherits(Projectile, Actor);
-	inherits(Projectile, SolidMesh);
 	function Projectile(opt /* player, x, y, angle, range, speed */) {
 		assert(opt.player && typeof opt.player === 'object', 'Projectile: player must be an object');
 		Actor.call(this, opt);
-		SolidMesh.call(this, Projectile);
 		this.defaults(opt, {
 			player: Player,
 			angle: Number,
@@ -17,15 +15,9 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 		});
 	}
 
-	Projectile.TRIANGLE_VERTICES = new Float32Array([
-		0, -3, 0,
-		3, 3, 0,
-		-3, 3, 0
-	]);
-
-	Projectile.triangleBuffer = null;
-
 	Projectile.meshColor = Color.fromValues(1, 1, 1, 1);
+
+	Projectile.modelToWorld = gllib.Mat4.identity();
 
 	Projectile.bigExplosion = new Billboard({
 		'image': explosionImage,
@@ -39,17 +31,15 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 	});
 
 	Projectile.smallExplosion = new Billboard({
-			'image': explosionImage,
-			'flip': false,
-			'lifetime': 1000,
-			'blending': 'additive',
-			'framesAcross': 4,
-			'numFrames': 16,
-			'minAlpha': 1,
-			'scaleFactor': 10
-		});
-
-	Projectile.prototype.dflAngle = 0;
+		'image': explosionImage,
+		'flip': false,
+		'lifetime': 1000,
+		'blending': 'additive',
+		'framesAcross': 4,
+		'numFrames': 16,
+		'minAlpha': 1,
+		'scaleFactor': 10
+	});
 
 	Projectile.prototype.tick = function () {
 		var speedPerTick = Math.round(this.speed / this.game.ticksPerSecond);
@@ -74,11 +64,22 @@ define(['engine/util/mathlib', 'engine/world/Actor', 'tanks/world/SolidMesh', 'e
 	};
 
 	Projectile.prototype.draw = function (gl, client, viewport) {
-		this.drawMesh(gl, client, viewport);
-	};
+		// FIXME: The math code is repeated here and in Vehicle class
 
-	Projectile.prototype.getMeshColor = function (client) {
-		return Projectile.meshColor;
+		var mtw = Projectile.modelToWorld;
+		var factor = client.factor;
+		var angleRad = this.angle;
+		// Rotation
+		mtw[0] = Math.cos(angleRad);
+		mtw[4] = -Math.sin(angleRad);
+		mtw[1] = Math.sin(angleRad);
+		mtw[5] = Math.cos(angleRad);
+		// Translation
+		mtw[12] = (this.x - this.dflX * factor) / 1024;
+		mtw[13] = (this.y - this.dflY * factor) / 1024;
+		mtw[14] = 10;
+
+		projectileMesh.draw(gl, viewport, mtw, Projectile.meshColor);
 	};
 
 	return Projectile;
