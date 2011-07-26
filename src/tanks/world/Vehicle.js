@@ -121,7 +121,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		mtw[12] = (this.x - this.dflX * factor) / 1024;
 		mtw[13] = (this.y - this.dflY * factor) / 1024;
 
-		vehicleMesh.draw(gl, viewport, mtw, this.getMeshColor(client));
+		vehicleMesh.draw(gl, viewport, mtw, this.player.color);
 
 		// If selected, draw the selection indicator
 		if (client.selectedActors.indexOf(this) >= 0) {
@@ -175,10 +175,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 				ctx.stroke();
 			}
 		*/
-	};
-
-	Vehicle.prototype.getMeshColor = function (client) {
-		return this.player.color;
 	};
 
 	Vehicle.prototype.addFiringArc = function (ctx, expand, factor) {
