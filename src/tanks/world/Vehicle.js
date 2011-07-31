@@ -15,46 +15,22 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 			targetX: null,
 			targetY: null,
 			firingRadius: 300 * 1024,
+			collisionRadius: 15 * 1024,
 			reloadMsecs: 4000,
 			projectileSpeed: 90 * 1024,
 			currentReloadMsecs: [0, 0, 0, 0],
 			reloadingCount: 0
 		});
 		this.dflAngle = 0;
-		this.surfaceLowBound = null;
-		this.surfaceHighBound = null;
 	}
 
 	Vehicle.modelToWorld = gllib.Mat4.identity();
-
-	Vehicle.prototype.setGame = function (game) {
-		Actor.prototype.setGame.call(this, game);
-		this.surfaceLowBound = this.game.surfaceContext.getLowBound(this, 15 * 1024);
-		this.surfaceHighBound = this.game.surfaceContext.getHighBound(this, 15 * 1024);
-	};
-
-	Vehicle.prototype.afterRemove = function () {
-		if (this.surfaceLowBound) {
-			this.surfaceLowBound.remove();
-		}
-		if (this.surfaceHighBound) {
-			this.surfaceHighBound.remove();
-		}
-	};
-
-	Vehicle.prototype.afterCollision = function (context, actor) {
-		if (context == this.game.surfaceContext) {
-			this.setPosition(this.x - this.dflX, this.y - this.dflY);
-		}
-	};
 
 	Vehicle.prototype.setPosition = function (x, y) {
 		this.dflX += x - this.x;
 		this.dflY += y - this.y;
 		this.x = x;
 		this.y = y;
-		this.surfaceLowBound.setPosition(x, y);
-		this.surfaceHighBound.setPosition(x, y);
 	};
 
 	Vehicle.prototype.tick = function () {
@@ -75,7 +51,8 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 				this.angle = angle;
 			}
 			var delta = mathlib.anglePoint(this.angle, Math.round(this.speed / this.game.ticksPerSecond));
-			if (this.game.map.isPassable(this.x + delta[0], this.y + delta[1])) {
+			if (this.game.map.isPassable(this.x + delta[0], this.y + delta[1])
+					&& !this.wouldCollideWithSomeActor(this.x + delta[0], this.y + delta[1])) {
 				this.setPosition(this.x + delta[0], this.y + delta[1]);
 			}
 			if (mathlib.manhattanDistance(this.x, this.y, this.targetX, this.targetY) <= 5120) {
@@ -94,7 +71,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 				}
 			}
 		}
-		// Radar handling
+		// Fire at any enemies in range
 		if (this.reloadingCount < this.currentReloadMsecs.length) {
 			for (var idx in this.game.actors) {
 				var actor = this.game.actors[idx];
@@ -245,6 +222,20 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 				mathlib.distance(x, y, this.x, this.y) < this.firingRadius) {
 			this.game.issueCommand(['FR', this.id, x, y]);
 			return true;
+		}
+		return false;
+	};
+
+	// FIXME: Use a suitable data structure to determine collisions in better
+	// than O(n^2).
+	Vehicle.prototype.wouldCollideWithSomeActor = function (x, y) {
+		for (var idx in this.game.actors) {
+			var actor = this.game.actors[idx];
+			if (actor !== this
+					&& 'collisionRadius' in actor
+					&& mathlib.distance(actor.x, actor.y, x, y) < actor.collisionRadius + this.collisionRadius) {
+				return true;
+			}
 		}
 		return false;
 	};
