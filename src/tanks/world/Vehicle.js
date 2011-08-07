@@ -1,6 +1,9 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/Mesh!tanks/models/tank1.json'], function (gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
+define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank1.json'], function (gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
+
+	var tempModelToWorld = gllib.Mat4.identity();
+	var tempJointMatrices = [gllib.Mat4.identity()];
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, Actor);
@@ -23,8 +26,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		});
 		this.dflAngle = 0;
 	}
-
-	Vehicle.modelToWorld = gllib.Mat4.identity();
 
 	Vehicle.prototype.setPosition = function (x, y) {
 		this.dflX += x - this.x;
@@ -86,7 +87,8 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 	};
 
 	Vehicle.prototype.draw = function (gl, client, viewport) {
-		var mtw = Vehicle.modelToWorld;
+		var mtw = tempModelToWorld;
+		var joints = tempJointMatrices;
 		var factor = client.factor;
 		var angleRad = (this.angle - this.dflAngle * factor);
 		// Rotation
@@ -98,7 +100,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		mtw[12] = (this.x - this.dflX * factor) / 1024;
 		mtw[13] = (this.y - this.dflY * factor) / 1024;
 
-		vehicleMesh.draw(gl, viewport, mtw, this.player.color);
+		vehicleMesh.draw(gl, viewport, mtw, joints, this.player.color);
 
 		// If selected, draw the selection indicator
 		if (client.selectedActors.indexOf(this) >= 0) {

@@ -5,7 +5,7 @@
 
 define(['engine/util/gllib'], function (gllib) {
 
-	var GET_PARAMETERS_REGEX = /^(\w+)[ \t]+(\w+)[ \t]+(\w+);$/gm;
+	var GET_PARAMETERS_REGEX = /^(\w+)[ \t]+(\w+)[ \t]+(\w+)(?:\[\w+\])?;$/gm;
 	var SPLIT_TYPE_REGEX = /^([^!]+)!([^!]+)$/;
 	var SPLIT_EXT_REGEX = /^(.+)(\.[^.\/]+)$/;
 

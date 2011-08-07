@@ -1,0 +1,221 @@
+// Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
+
+define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/mesh.frag'], function (gllib, shaderProgram) {
+
+	var GET_PARAMETERS_REGEX = /^(\w+)[ \t]+(\w+)[ \t]+(\w+);$/gm;
+	var SPLIT_EXT_REGEX = /^(.+)(\.[^.\/]+)$/;
+
+	// Ugly hack to work around the fact that req.nameToUrl expects that non-JS
+	// files will give it an extension.
+	var TRUTHY_BLANK = {'toString': function () { return ''; }};
+
+	// Vertex array layout:
+	//
+	//   vec3   Vertex position
+	//   vec3   Vertex normal
+	//   ubyte  Joint A index
+	//   ubyte  Joint A weight
+	//   ubyte  Joint B index
+	//   ubyte  Joint B index
+	//   (UV coords will be needed soon but not quite yet.)
+	//
+	var VERTEX_SIZE = 12 + 12 + 4;
+
+	// TODO: This should probably be configurable eventually
+	var MAX_JOINT_COUNT = 4;
+
+	var LITTLE_ENDIAN = new Uint16Array(new Uint8Array([0x12, 0x34]).buffer)[0] !== 0x1234;
+
+	function JointedMesh(vertexCount, indexCount, getVerticesFunc, getIndicesFunc) {
+		var va = new ArrayBuffer(vertexCount * VERTEX_SIZE);
+		var ia = new Uint16Array(indexCount);
+
+		this._vertexCount = vertexCount;
+		this._indexCount = indexCount;
+		this._vertexArray = va;
+		this._indexArray = ia;
+		this._jointArray = new Float32Array(16 * MAX_JOINT_COUNT);
+
+		this._vertexBuffer = null;
+		this._indexBuffer = null;
+
+		// Pass a temporary object as a parameter to avoid unnecessary garbage
+		var vertex = {
+			position: gllib.Vec3.create(),
+			normal: gllib.Vec3.create(),
+			jointA: 0,
+			weightA: 0,   // 0-1
+			jointB: 0,
+			weightB: 0   // 0-1
+		};
+		var pos = 0;
+		var vad = new DataView(va);
+		getVerticesFunc(vertex, function () {
+			vad.setFloat32(pos, vertex.position[0], LITTLE_ENDIAN);
+			vad.setFloat32(pos + 4, vertex.position[1], LITTLE_ENDIAN);
+			vad.setFloat32(pos + 8, vertex.position[2], LITTLE_ENDIAN);
+
+			vad.setFloat32(pos + 12, vertex.normal[0], LITTLE_ENDIAN);
+			vad.setFloat32(pos + 16, vertex.normal[1], LITTLE_ENDIAN);
+			vad.setFloat32(pos + 20, vertex.normal[2], LITTLE_ENDIAN);
+
+			vad.setUint8(pos + 24, vertex.jointA);
+			vad.setUint8(pos + 25, Math.round(vertex.weightA * 255));
+
+			vad.setUint8(pos + 26, vertex.jointB);
+			vad.setUint8(pos + 27, Math.round(vertex.weightB * 255));
+
+			pos += VERTEX_SIZE;
+		});
+
+		pos = 0;
+		getIndicesFunc(function (index) {
+			ia[pos++] = index
+		});
+
+		gllib.needsContext(function (gl) {
+			this._vertexBuffer = gllib.createArrayBuffer(va);
+			this._indexBuffer = gllib.createElementArrayBuffer(ia);
+		}, this);
+	}
+
+	// Parameter mesh is a JSON object produced by blender-webgl-exporter.
+	// Object n will become a submesh whose transformation will be fully
+	// determined by bone n.
+	JointedMesh.fromJSONScene = function (scene) {
+		var objs = scene.objs;
+
+		// Count the total number of vertices and indices
+		var vertexCount = 0;
+		var indexCount = 0;
+		for (var i = 0; i < objs.length; ++i) {
+			var mesh = objs[i].mesh;
+			vertexCount += mesh.v[0].length / 3;
+			indexCount += mesh.f[0].length;
+		}
+
+		return new JointedMesh(
+			vertexCount,
+			indexCount,
+			function (vtx, pushVertex) {
+				for (var i = 0; i < objs.length; ++i) {
+					var mesh = objs[i].mesh;
+					var positions = mesh.v[0];
+					var normals = mesh.n[0];
+					var vertexCount = positions.length / 3;
+
+					for (var j = 0; j < vertexCount; ++j) {
+						var base = j * 3;
+
+						vtx.position[0] = positions[base + 2];
+						vtx.position[1] = positions[base];
+						vtx.position[2] = positions[base + 1];
+
+						vtx.normal[0] = normals[base + 2];
+						vtx.normal[1] = normals[base];
+						vtx.normal[2] = normals[base + 1];
+
+						vtx.jointA = i;
+						vtx.weightA = 1;
+
+						vtx.jointB = i;   // FIXME: What to put here?
+						vtx.weightB = 0;
+
+						pushVertex();
+					}
+				}
+			},
+			function (pushIndex) {
+				for (var i = 0; i < objs.length; ++i) {
+					var indices = objs[i].mesh.f[0];
+					for (var j = 0; j < indices.length; ++j) {
+						pushIndex(indices[j]);
+					}
+				}
+			}
+		);
+	};
+
+	JointedMesh.load = function (name, req, load, config) {
+		var match = name.match(SPLIT_EXT_REGEX);
+		if (match) {
+			var modName = match[1];
+			var ext = match[2];
+		} else {
+			var modName = name;
+			var ext = TRUTHY_BLANK;
+		}
+
+		var xhr = new XMLHttpRequest();
+
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4) {
+				if (xhr.status === 200) {
+					var scene = JSON.parse(xhr.responseText);
+					load(JointedMesh.fromJSONScene(scene));
+				} else {
+					req.onError(new Error('Could not load jointed mesh with path ' + name));
+				}
+			}
+		};
+
+		xhr.open('GET', req.nameToUrl(modName, ext), true);
+		xhr.send(null);
+	};
+
+	JointedMesh.prototype.draw = function (gl, viewport, mtw, joints, color) {
+		var vertexBuffer = this._vertexBuffer;
+		var indexBuffer = this._indexBuffer;
+		var program = shaderProgram;
+
+		// Copy all the joint matrices to a single array to pass an a uniform
+		var ja = this._jointArray;
+		var pos = 0;
+		for (var i = 0; i < joints.length; ++i) {
+			var joint = joints[i];
+			for (var j = 0; j < 16; ++j) {
+				ja[pos + j] = joint[j];
+			}
+			pos += 16;
+		}
+
+		gl.useProgram(program.program);
+		gl.enableVertexAttribArray(program.vertexPosition);
+		gl.enableVertexAttribArray(program.vertexNormal);
+		gl.enableVertexAttribArray(program.vertexJointA);
+		gl.enableVertexAttribArray(program.vertexWeightA);
+		gl.enableVertexAttribArray(program.vertexJointB);
+		gl.enableVertexAttribArray(program.vertexWeightB);
+		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, VERTEX_SIZE, 0);
+		gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, VERTEX_SIZE, 12);
+		gl.vertexAttribPointer(program.vertexJointA, 1, gl.UNSIGNED_BYTE, false, VERTEX_SIZE, 24);
+		gl.vertexAttribPointer(program.vertexWeightA, 1, gl.UNSIGNED_BYTE, true, VERTEX_SIZE, 25);
+		gl.vertexAttribPointer(program.vertexJointB, 1, gl.UNSIGNED_BYTE, false, VERTEX_SIZE, 26);
+		gl.vertexAttribPointer(program.vertexWeightB, 1, gl.UNSIGNED_BYTE, true, VERTEX_SIZE, 27);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
+		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
+		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
+		gl.uniformMatrix4fv(program.jointMatrices, false, ja);
+		gl.uniform4fv(program.sunLight, viewport.sunLightView);
+		gl.uniform4fv(program.fillColor, color);
+		gl.uniform1f(program.scaleFactor, 7);   // FIXME: Make configurable
+
+		gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+		gl.disableVertexAttribArray(program.vertexWeightB);
+		gl.disableVertexAttribArray(program.vertexJointB);
+		gl.disableVertexAttribArray(program.vertexWeightA);
+		gl.disableVertexAttribArray(program.vertexJointA);
+		gl.disableVertexAttribArray(program.vertexNormal);
+		gl.disableVertexAttribArray(program.vertexPosition);
+		gl.useProgram(null);
+	};
+
+	return JointedMesh;
+
+});
