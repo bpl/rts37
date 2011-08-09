@@ -1,9 +1,12 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank1.json'], function (gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
+define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank2.json!Tank,Turret'], function (gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
 
 	var tempModelToWorld = gllib.Mat4.identity();
-	var tempJointMatrices = [gllib.Mat4.identity()];
+	var tempJointMatrices = [
+		gllib.Mat4.identity(),
+		gllib.Mat4.identity()
+	];
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, Actor);

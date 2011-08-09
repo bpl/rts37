@@ -2,8 +2,7 @@
 
 define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/mesh.frag'], function (gllib, shaderProgram) {
 
-	var GET_PARAMETERS_REGEX = /^(\w+)[ \t]+(\w+)[ \t]+(\w+);$/gm;
-	var SPLIT_EXT_REGEX = /^(.+)(\.[^.\/]+)$/;
+	var SPLIT_EXT_REGEX = /^([^!]+)(\.[^.\/!]+)(!.+)$/;
 
 	// Ugly hack to work around the fact that req.nameToUrl expects that non-JS
 	// files will give it an extension.
@@ -79,11 +78,19 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 		}, this);
 	}
 
-	// Parameter mesh is a JSON object produced by blender-webgl-exporter.
-	// Object n will become a submesh whose transformation will be fully
-	// determined by bone n.
-	JointedMesh.fromJSONScene = function (scene) {
-		var objs = scene.objs;
+	// Parameter scene is a JSON object produced by blender-webgl-exporter.
+	// Object objectNames[n] will become a submesh whose transformation will be
+	// fully determined by bone n.
+	JointedMesh.fromJSONScene = function (scene, objectNames) {
+		var unsortedObjects = scene.objs;
+
+		var objs = objectNames.map(function (name) {
+			var obj = unsortedObjects.filter(function (a) { return a.name === name; })[0];
+			if (!obj) {
+				throw new Error('JointedMesh.fromJSONScene: Object named "' + name + '" not found in scene');
+			}
+			return obj;
+		});
 
 		// Count the total number of vertices and indices
 		var vertexCount = 0;
@@ -126,11 +133,16 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 				}
 			},
 			function (pushIndex) {
+				var baseIndex = 0;
 				for (var i = 0; i < objs.length; ++i) {
-					var indices = objs[i].mesh.f[0];
+					var mesh = objs[i].mesh;
+
+					var indices = mesh.f[0];
 					for (var j = 0; j < indices.length; ++j) {
-						pushIndex(indices[j]);
+						pushIndex(baseIndex + indices[j]);
 					}
+
+					baseIndex += mesh.v[0].length / 3;
 				}
 			}
 		);
@@ -145,6 +157,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 			var modName = name;
 			var ext = TRUTHY_BLANK;
 		}
+		var objectNames = match[3].substr(1).split(',');
 
 		var xhr = new XMLHttpRequest();
 
@@ -152,7 +165,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 			if (xhr.readyState === 4) {
 				if (xhr.status === 200) {
 					var scene = JSON.parse(xhr.responseText);
-					load(JointedMesh.fromJSONScene(scene));
+					load(JointedMesh.fromJSONScene(scene, objectNames));
 				} else {
 					req.onError(new Error('Could not load jointed mesh with path ' + name));
 				}
