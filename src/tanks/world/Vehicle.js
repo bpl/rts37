@@ -16,6 +16,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 			id: Number,
 			player: Player,
 			angle: 0,
+			turretAngle: 0,
 			rotationSpeed: 3,
 			speed: 30 * 1024,
 			targetX: null,
@@ -28,6 +29,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 			reloadingCount: 0
 		});
 		this.dflAngle = 0;
+		this.dflTurretAngle = 0;
 	}
 
 	Vehicle.prototype.setPosition = function (x, y) {
@@ -38,22 +40,28 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 	};
 
 	Vehicle.prototype.tick = function () {
+
+		function rotateTowards(angle, angleProp, dflAngleProp) {
+			var angleDelta = mathlib.angleDelta(this[angleProp], angle);
+			var rotationPerTick = this.rotationSpeed / this.game.ticksPerSecond;
+			if (Math.abs(angleDelta) > rotationPerTick) {
+				var lastAngle = this[angleProp];
+				this[angleProp] = mathlib.normalizeAngle(this[angleProp] + angleDelta / Math.abs(angleDelta) * rotationPerTick);
+				this[dflAngleProp] = mathlib.angleDelta(lastAngle, this[angleProp]);
+			} else {
+				this[dflAngleProp] = mathlib.angleDelta(this[angleProp], angle);
+				this[angleProp] = angle;
+			}
+		}
+
 		this.dflAngle = 0;
 		this.dflX = 0;
 		this.dflY = 0;
+		this.dflTurretAngle = 0;
 		if (this.targetX && this.targetY) {
 			// Orient towards a waypoint if we have not reached it yet
 			var angle = mathlib.angle(this.x, this.y, this.targetX, this.targetY);
-			var angleDelta = mathlib.angleDelta(this.angle, angle);
-			var rotationPerTick = this.rotationSpeed / this.game.ticksPerSecond;
-			if (Math.abs(angleDelta) > rotationPerTick) {
-				var lastAngle = this.angle;
-				this.angle = mathlib.normalizeAngle(this.angle + angleDelta / Math.abs(angleDelta) * rotationPerTick);
-				this.dflAngle = mathlib.angleDelta(lastAngle, this.angle);
-			} else {
-				this.dflAngle = mathlib.angleDelta(this.angle, angle);
-				this.angle = angle;
-			}
+			rotateTowards.call(this, angle, 'angle', 'dflAngle');
 			var delta = mathlib.anglePoint(this.angle, Math.round(this.speed / this.game.ticksPerSecond));
 			if (this.game.map.isPassable(this.x + delta[0], this.y + delta[1])
 					&& !this.wouldCollideWithSomeActor(this.x + delta[0], this.y + delta[1])) {
@@ -76,16 +84,28 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 			}
 		}
 		// Fire at any enemies in range
-		if (this.reloadingCount < this.currentReloadMsecs.length) {
-			for (var idx in this.game.actors) {
-				var actor = this.game.actors[idx];
-				if (actor.player !== this.player
-						&& 'firingRadius' in actor   // FIXME: Use something more role-specific
-						&& mathlib.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius) {
-					this.fireAtPos(actor.x, actor.y);
-					break;
-				}
+		var targetUnit = null;
+		for (var idx in this.game.actors) {
+			var actor = this.game.actors[idx];
+			if (actor.player !== this.player
+					&& 'firingRadius' in actor   // FIXME: Use something more role-specific
+					&& mathlib.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius) {
+				targetUnit = actor;
+				break;
 			}
+		}
+		if (targetUnit) {
+			// If there is a target, rotate the turret towards the target and fire
+			var angleTowardsTarget = mathlib.angle(this.x, this.y, targetUnit.x, targetUnit.y);
+			var turretAngle = mathlib.normalizeAngle(angleTowardsTarget - this.angle);
+			rotateTowards.call(this, turretAngle, 'turretAngle', 'dflTurretAngle');
+			if (this.turretAngle === turretAngle
+					&& this.reloadingCount < this.currentReloadMsecs.length) {
+				this.fireAtPos(targetUnit.x, targetUnit.y);
+			}
+		} else {
+			// Otherwise make sure the turrent points forward
+			rotateTowards.call(this, 0, 'turretAngle', 'dflTurretAngle');
 		}
 	};
 
@@ -102,6 +122,14 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		// Translation
 		mtw[12] = (this.x - this.dflX * factor) / 1024;
 		mtw[13] = (this.y - this.dflY * factor) / 1024;
+
+		// Turret rotation
+		var turret = joints[1];
+		var turretAngleRad = (this.turretAngle - this.dflTurretAngle * factor);
+		turret[0] = Math.cos(turretAngleRad);
+		turret[4] = -Math.sin(turretAngleRad);
+		turret[1] = Math.sin(turretAngleRad);
+		turret[5] = Math.cos(turretAngleRad);
 
 		vehicleMesh.draw(gl, viewport, mtw, joints, this.player.color);
 
