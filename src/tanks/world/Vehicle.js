@@ -187,17 +187,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		*/
 	};
 
-	Vehicle.prototype.addFiringArc = function (ctx, expand, factor) {
-		if (this.player == this.game.localPlayer) {
-			ctx.arc(
-				(this.x - this.dflX * factor) / 1024,
-				(this.y - this.dflY * factor) / 1024,
-				(this.firingRadius >> 10) + expand,
-				0, Math.PI * 2, false
-			);
-		}
-	};
-
 	Vehicle.prototype.clickTest = function (x, y, client) {
 		var factor = client.factor;
 		return mathlib.distance(
