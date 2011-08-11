@@ -25,9 +25,15 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 
 	var LITTLE_ENDIAN = new Uint16Array(new Uint8Array([0x12, 0x34]).buffer)[0] !== 0x1234;
 
-	function JointedMesh(vertexCount, indexCount, getVerticesFunc, getIndicesFunc) {
+	function JointedMesh(vertexCount, indexCount, getVerticesFunc, getIndicesFunc, opt) {
 		var va = new ArrayBuffer(vertexCount * VERTEX_SIZE);
 		var ia = new Uint16Array(indexCount);
+
+		this.scaleFactor = 7;   // FIXME: Make configurable
+
+		// Currently is expected to contain {x, y, z} tuples. Might be extended
+		// with other information in the future.
+		this._placeholders = (opt && opt.placeholders ? opt.placeholders : {});
 
 		this._vertexCount = vertexCount;
 		this._indexCount = indexCount;
@@ -101,6 +107,18 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 			indexCount += mesh.f[0].length;
 		}
 
+		// Determine placeholder locations
+		var placeholders = {};
+		unsortedObjects.forEach(function (obj) {
+		    if (!obj.mesh.v.length) {
+				placeholders[obj.name] = {
+					'x': obj.mtx[1][3],
+					'y': -obj.mtx[0][3],
+					'z': obj.mtx[2][3]
+				};
+			}
+		});
+
 		return new JointedMesh(
 			vertexCount,
 			indexCount,
@@ -144,6 +162,9 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 
 					baseIndex += mesh.v[0].length / 3;
 				}
+			},
+			{
+				'placeholders': placeholders
 			}
 		);
 	};
@@ -214,7 +235,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 		gl.uniformMatrix4fv(program.jointMatrices, false, ja);
 		gl.uniform4fv(program.sunLight, viewport.sunLightView);
 		gl.uniform4fv(program.fillColor, color);
-		gl.uniform1f(program.scaleFactor, 7);   // FIXME: Make configurable
+		gl.uniform1f(program.scaleFactor, this.scaleFactor);
 
 		gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
 
@@ -227,6 +248,21 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 		gl.disableVertexAttribArray(program.vertexNormal);
 		gl.disableVertexAttribArray(program.vertexPosition);
 		gl.useProgram(null);
+	};
+
+	// Gets the position of a placeholder in model space
+	JointedMesh.prototype.getPlaceholderPosition = function (name, dest) {
+		if (!dest) {
+			dest = gllib.Vec3.create();
+		}
+
+		var ph = this._placeholders[name];
+		var sf = this.scaleFactor;
+		dest[0] = ph.x * sf;
+		dest[1] = ph.y * sf;
+		dest[2] = ph.z * sf;
+
+		return dest;
 	};
 
 	return JointedMesh;

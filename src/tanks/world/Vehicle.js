@@ -1,12 +1,13 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank2.json!Tank,Turret'], function (gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
+define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank3.json!Tank,Turret'], function (gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
 
 	var tempModelToWorld = gllib.Mat4.identity();
 	var tempJointMatrices = [
 		gllib.Mat4.identity(),
 		gllib.Mat4.identity()
 	];
+	var tempVec3 = gllib.Vec3.create();
 
 	register('Vehicle', Vehicle);
 	inherits(Vehicle, Actor);
@@ -109,27 +110,49 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		}
 	};
 
-	Vehicle.prototype.draw = function (gl, client, viewport) {
-		var mtw = tempModelToWorld;
-		var joints = tempJointMatrices;
-		var factor = client.factor;
+	Vehicle.prototype.getModelToWorld = function (factor, dest) {
+		if (!dest) {
+			dest = gllib.Mat4.create();
+		}
 		var angleRad = (this.angle - this.dflAngle * factor);
-		// Rotation
-		mtw[0] = Math.cos(angleRad);
-		mtw[4] = -Math.sin(angleRad);
-		mtw[1] = Math.sin(angleRad);
-		mtw[5] = Math.cos(angleRad);
-		// Translation
-		mtw[12] = (this.x - this.dflX * factor) / 1024;
-		mtw[13] = (this.y - this.dflY * factor) / 1024;
 
-		// Turret rotation
-		var turret = joints[1];
-		var turretAngleRad = (this.turretAngle - this.dflTurretAngle * factor);
-		turret[0] = Math.cos(turretAngleRad);
-		turret[4] = -Math.sin(turretAngleRad);
-		turret[1] = Math.sin(turretAngleRad);
-		turret[5] = Math.cos(turretAngleRad);
+		gllib.Mat4.identity(dest);
+		// Rotation
+		dest[0] = Math.cos(angleRad);
+		dest[4] = -Math.sin(angleRad);
+		dest[1] = Math.sin(angleRad);
+		dest[5] = Math.cos(angleRad);
+		// Translation
+		dest[12] = (this.x - this.dflX * factor) / 1024;
+		dest[13] = (this.y - this.dflY * factor) / 1024;
+
+		return dest;
+	};
+
+	Vehicle.prototype.getJointMatrix = function (jointNo, factor, dest) {
+	    if (!dest) {
+			dest = gllib.Mat4.create();
+		}
+
+		gllib.Mat4.identity(dest);
+		if (jointNo === 1) {
+			// Turret rotation
+			var turretAngleRad = (this.turretAngle - this.dflTurretAngle * factor);
+			dest[0] = Math.cos(turretAngleRad);
+			dest[4] = -Math.sin(turretAngleRad);
+			dest[1] = Math.sin(turretAngleRad);
+			dest[5] = Math.cos(turretAngleRad);
+		}
+
+		return dest;
+	};
+
+	Vehicle.prototype.draw = function (gl, client, viewport) {
+		var factor = client.factor;
+
+		var mtw = this.getModelToWorld(factor, tempModelToWorld);
+		var joints = tempJointMatrices;
+		this.getJointMatrix(1, factor, joints[1]);
 
 		vehicleMesh.draw(gl, viewport, mtw, joints, this.player.color);
 
@@ -227,11 +250,22 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		}
 		if (gunIndex < this.currentReloadMsecs.length &&
 				mathlib.distance(x, y, this.x, this.y) < this.firingRadius) {
+
+			// TODO: Placeholders should be tied to joints
+			// TODO: This probably can't use placeholders in the future due to consistency issues
+			var vec = vehicleMesh.getPlaceholderPosition('Muzzle', tempVec3);
+			gllib.Vec3.scale(vec, 1024, vec);
+			gllib.Mat4.multiplyVec3(this.getJointMatrix(1, 0, tempJointMatrices[1]), vec, vec);
+			var mtw = this.getModelToWorld(0, tempModelToWorld);
+			mtw[12] = this.x;
+			mtw[13] = this.y;
+			gllib.Mat4.multiplyVec3(mtw, vec, vec);
+
 			this.game.createActor(Projectile, {
 				'player': this.player,
-				'x': this.x, 'y': this.y,
-				'angle': mathlib.angle(this.x, this.y, x, y),
-				'range': mathlib.distance(this.x, this.y, x, y),
+				'x': vec[0], 'y': vec[1],
+				'angle': mathlib.normalizeAngle(this.turretAngle + this.angle),
+				'range': mathlib.distance(vec[0], vec[1], x, y),
 				'speed': this.projectileSpeed
 			});
 			this.currentReloadMsecs[gunIndex] = this.reloadMsecs;
