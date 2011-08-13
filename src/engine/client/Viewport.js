@@ -15,7 +15,7 @@ define(['engine/client/Widget'], function (Widget) {
 		this.lastMouseY = 0;
 		this.autoScrollX = 0;
 		this.autoScrollY = 0;
-	};
+	}
 
 	Viewport.prototype.draw = function (gl) {
 		// To make autoscrolling work, this should be called as the first thing
