@@ -132,10 +132,10 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 
 	Client.prototype.normalizedOffset = function (evt) {
 		var bounds = this.canvas.getBoundingClientRect();
-		return new mathlib.Vec(
-			evt.clientX - bounds.left,
-			evt.clientY - bounds.top
-		);
+		return {
+			'x': evt.clientX - bounds.left,
+			'y': evt.clientY - bounds.top
+		};
 	};
 
 	// Drawing loop. This should be called repeatedly, preferably using

@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/util/Event'], function (glmatrix, Event) {
+define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/util/Event'], function (glmatrix, mathlib, Event) {
 
 	var gllib = {};
 
