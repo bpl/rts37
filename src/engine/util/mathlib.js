@@ -125,16 +125,127 @@ define(function () {
 		return Math.round(a << 10 / b);
 	};
 
-	//////////
-	// Vec //
-	////////
+	////////////////////////////////////////
+	// Geometric primitives and routines //
+	//////////////////////////////////////
 
-	function Vec(x, y) {
-		this.x = x || 0;
-		this.y = y || 0;
+	// Inlining helpers, adapted from Brandon Jones' GLMatrix
+
+	function normalize(x, y, z) {
+		var len = 1 / Math.sqrt(x*x + y*y + z*z);
+		x *= len;
+		y *= len;
+		z *= len;
+		return [x, y, z];
 	}
 
-	mathlib.Vec = Vec;
+	function cross(x1, y1, z1, x2, y2, z2) {
+		var x = y1*z2 - z1*y2;
+		var y = z1*x2 - x1*z2;
+		var z = x1*y2 - y1*x2;
+		return [x, y, z];
+	}
+
+	/**
+	 * @lends Plane
+	 */
+	mathlib.Plane = {
+
+		/**
+		 * Constructs a new three-dimensional plane. The plane is represented as
+		 * parameters to the generalized planed equation.
+		 * @constructs
+		 */
+		create: function () {
+		    return new Float32Array(4);
+		},
+
+		/**
+		 * Creates a plane defined by three points on the plane. The result will
+		 * be written to an existing Plane object or optionally to a new Plane
+		 * object.
+		 * @param {number} x1
+		 * @param {number} y1
+		 * @param {number} z1
+		 * @param {number} x2
+		 * @param {number} y2
+		 * @param {number} z2
+		 * @param {number} x3
+		 * @param {number} y3
+		 * @param {number} z3
+		 * @param {Plane} [dest]
+		 * @returns {Plane} dest or a new plane object
+		 */
+		fromPoints: function (x1, y1, z1, x2, y2, z2, x3, y3, z3, dest) {
+			if (!dest) {
+				dest = new Float32Array(4);
+			}
+
+			// The math is from Essential Mathematics for Games & Interactive
+			// Application (2nd ed.), p. 81-82.
+
+			// Given points P, Q, R on the plane
+
+		    // u = Q - P
+			var ux = x2 - x1;
+			var uy = y2 - y1;
+			var uz = z2 - z1;
+
+			// v = R - P
+			var vx = x3 - x1;
+			var vy = y3 - y1;
+			var vz = z3 - z1;
+
+			// n = cross(u, v)
+			var a = uy*vz - uz*vy;
+			var b = uz*vx - ux*vz;
+			var c = ux*vy - uy*vx;
+
+			// normalize(n)
+			var len = 1 / Math.sqrt(a*a + b*b + c*c);
+			a *= len;
+			b *= len;
+			c *= len;
+
+			dest[0] = a;
+			dest[1] = b;
+			dest[2] = c;
+			dest[3] = -(a*x1 + b*y1 + c*z1);
+
+			return dest;
+		},
+
+		/**
+		 * Distance from a plane to a point. The sign of the result tells which
+		 * side of the plane the point lies. 0 means that the point lies on the
+		 * plane. Use Math.abs() to get absolute distance if that is what you
+		 * need.
+		 * @param {Plane} plane
+		 * @param {number} px
+		 * @param {number} py
+		 * @param {number} pz
+		 * @returns {number} Distance from the point to the plane, with the sign indicating which side of the plane the point lies.
+		 */
+		pointTest: function (plane, px, py, pz) {
+			// ax + by + cz + d
+			return plane[0]*px + plane[1]*py + plane[2]*pz + plane[3];
+		},
+
+		/**
+		 * Distance from a plane to a point. The sign of the result tells which
+		 * side of the plane the point lies. 0 means that the point lies on the
+		 * plane. Use Math.abs() to get absolute distance if that is what you
+		 * need.
+		 * @param {Plane} plane
+		 * @param {Vec3} point
+		 * @returns {number} Distance from the point to the plane, with the sign indicating which side of the plane the point lies.
+		 */
+		pointTestVec3: function (plane, point) {
+			// ax + by + cz + d
+			return plane[0]*point[0] + plane[1]*point[1] + plane[2]*point[2] + plane[3];
+		}
+
+	};
 
 	return mathlib;
 

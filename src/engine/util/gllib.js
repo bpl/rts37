@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['dep/glmatrix/glmatrix', 'engine/util/Event'], function (glmatrix, Event) {
+define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/util/Event'], function (glmatrix, Event) {
 
 	var gllib = {};
 
@@ -52,6 +52,9 @@ define(['dep/glmatrix/glmatrix', 'engine/util/Event'], function (glmatrix, Event
 	gllib.Mat3 = glmatrix.Mat3;
 	gllib.Mat4 = glmatrix.Mat4;
 	gllib.Quat4 = glmatrix.Quat4;
+
+	// Shortcuts to mathlib to simplify imports
+	gllib.Plane = mathlib.Plane;
 
 	return gllib;
 
