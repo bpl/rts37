@@ -2,6 +2,12 @@
 
 define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 'engine/util/Event'], function (mathlib, gllib, UIRenderer, Event) {
 
+	const MOUSE_IDLE = 0;
+	const MOUSE_CLICK_OR_DRAG = 1;
+	const MOUSE_DRAG = 2;
+
+	const MOUSE_DRAG_THRESHOLD = 5;
+
 	function Client(game, canvas) {
 		var self = this;
 		assert(game && typeof game === 'object', 'Client: game must be an object');
@@ -10,10 +16,16 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 		this.canvas = canvas;
 		this.gl = null;
 		this.widgets = [];
-		this.mouseOverWidget = null;
 		this.uiRenderer = new UIRenderer();
 		this.onresizewindow = null;
 		this.onDraw = new Event();
+		//
+		// Input handling state
+		//
+		this._mouseCaptureWidget = null;
+		this._mouseDownX = 0;
+		this._mouseDownY = 0;
+		this._mouseMode = MOUSE_IDLE;
 		//
 		// User interface state
 		//
@@ -75,9 +87,17 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 			self.handleClick(evt);
 		}, false);
 
+		this.canvas.addEventListener('mousedown', function (evt) {
+			self.handleMouseDown(evt);
+		});
+
 		this.canvas.addEventListener('mousemove', function (evt) {
 			self.handleMouseMove(evt);
 		}, false);
+
+		this.canvas.addEventListener('mouseup', function (evt) {
+			self.handleMouseUp(evt);
+		});
 
 		this.canvas.addEventListener('mouseout', function (evt) {
 			self.handleMouseOut(evt);
@@ -174,15 +194,29 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 
 	Client.prototype.handleClick = function (evt) {
 		evt.preventDefault();
+	};
+
+	Client.prototype.handleMouseDown = function (evt) {
+		evt.preventDefault();
 		var offset = this.normalizedOffset(evt);
-		for (var i = this.widgets.length - 1; i >= 0; --i) {
-			var widget = this.widgets[i];
-			if (offset.x >= widget.x
-					&& offset.x < widget.x + widget.width
-					&& offset.y >= widget.y
-					&& offset.y < widget.y + widget.height) {
-				if (widget.handleClick(offset.x - widget.x, offset.y - widget.y) !== false) {
-					return;
+		var x = offset.x;
+		var y = offset.y;
+
+		this._mouseDownX = x;
+		this._mouseDownY = y;
+		this._mouseMode = MOUSE_CLICK_OR_DRAG;
+
+		if (this._mouseCaptureWidget) {
+			var widget = this._mouseCaptureWidget;
+			widget.handleMouseDown(x - widget.x, y - widget.y);
+		} else {
+			for (var i = this.widgets.length - 1; i >= 0; --i) {
+				var widget = this.widgets[i];
+				if (widget.hitTest(x, y)) {
+					if (widget.handleMouseDown(offset.x - widget.x, offset.y - widget.y) !== false) {
+						this._mouseCaptureWidget = widget;
+						break;
+					}
 				}
 			}
 		}
@@ -191,35 +225,103 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 	Client.prototype.handleMouseMove = function (evt) {
 		evt.preventDefault();
 		var offset = this.normalizedOffset(evt);
-		if (this.mouseOverWidget) {
-			var widget = this.mouseOverWidget;
-			if (offset.x < widget.x
-					|| offset.x >= widget.x + widget.width
-					|| offset.y < widget.y
-					|| offset.y >= widget.y + widget.height) {
-				widget.handleMouseOut();
-				this.mouseOverWidget = null;
-			}
-		}
-		for (var i = this.widgets.length - 1; i >= 0; --i) {
-			var widget = this.widgets[i];
-			if (offset.x >= widget.x
-					&& offset.x < widget.x + widget.width
-					&& offset.y >= widget.y
-					&& offset.y < widget.y + widget.height) {
-				if (widget.handleMouseMove(offset.x - widget.x, offset.y - widget.y) !== false) {
-					this.mouseOverWidget = widget;
-					return;
+		var x = offset.x;
+		var y = offset.y;
+
+		switch (this._mouseMode) {
+			case MOUSE_IDLE:
+				if (this._mouseCaptureWidget) {
+					var widget = this._mouseCaptureWidget;
+					if (!widget.hitTest(x, y)) {
+						widget.handleMouseOut();
+						this._mouseCaptureWidget = null;
+					} else {
+						widget.handleMouseMove(x - widget.x, y - widget.y);
+					}
+				} else {
+					for (var i = this.widgets.length - 1; i >= 0; --i) {
+						var widget = this.widgets[i];
+						if (widget.hitTest(x, y)) {
+							if (widget.handleMouseMove(x - widget.x, y - widget.y) !== false) {
+								this._mouseCaptureWidget = widget;
+								break;
+							}
+						}
+					}
 				}
-			}
+			break;
+			case MOUSE_CLICK_OR_DRAG:
+				if (Math.abs(this._mouseDownX - x) > MOUSE_DRAG_THRESHOLD ||
+						Math.abs(this._mouseDownY - y) > MOUSE_DRAG_THRESHOLD) {
+					this._mouseMode = MOUSE_DRAG;
+
+					if (this._mouseCaptureWidget) {
+						var widget = this._mouseCaptureWidget;
+						widget.handleDragStart(this._mouseDownX - widget.x, this._mouseDownY - widget.y);
+						widget.handleDragMove(x - widget.x, y - widget.y);
+					} else {
+						for (var i = this.widgets.length - 1; i >= 0; --i) {
+							var widget = this.widgets[i];
+							if (widget.hitTest(x, y)) {
+								if (widget.handleDragStart(this._mouseDownX - widget.x, this._mouseDownY - widget.y) !== false) {
+									widget.handleDragMove(x - widget.x, y - widget.y);
+									this._mouseCaptureWidget = widget;
+									break;
+								}
+							}
+						}
+					}
+				}
+			break;
+			case MOUSE_DRAG:
+				if (this._mouseCaptureWidget) {
+					this._mouseCaptureWidget.handleDragMove(x, y);
+				}
+			break;
+		}
+	};
+
+	Client.prototype.handleMouseUp = function (evt) {
+		evt.preventDefault();
+		var offset = this.normalizedOffset(evt);
+		var x = offset.x;
+		var y = offset.y;
+
+		switch (this._mouseMode) {
+			case MOUSE_CLICK_OR_DRAG:
+				this._mouseMode = MOUSE_IDLE;
+				if (this._mouseCaptureWidget) {
+					var widget = this._mouseCaptureWidget;
+					widget.handleClick(x - widget.x, y - widget.y);
+					this._mouseCaptureWidget = null;
+				} else {
+					for (var i = this.widgets.length - 1; i >= 0; --i) {
+						var widget = this.widgets[i];
+						if (widget.hitTest(x, y)) {
+							if (widget.handleClick(x - widget.x, y - widget.y) !== false) {
+								break;
+							}
+						}
+					}
+				}
+			break;
+			case MOUSE_DRAG:
+				this._mouseMode = MOUSE_IDLE;
+				if (this._mouseCaptureWidget) {
+					var widget = this._mouseCaptureWidget;
+					widget.handleDragDone(x - widget.x, y - widget.y);
+					this._mouseCaptureWidget = null;
+				}
+			break;
 		}
 	};
 
 	Client.prototype.handleMouseOut = function (evt) {
 		evt.preventDefault();
-		if (this.mouseOverWidget) {
-			this.mouseOverWidget.handleMouseOut();
-			this.mouseOverWidget = null;
+
+		if (this._mouseMode === MOUSE_IDLE && this._mouseCaptureWidget) {
+			this._mouseCaptureWidget.handleMouseOut();
+			this._mouseCaptureWidget = null;
 		}
 	};
 
