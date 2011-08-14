@@ -154,10 +154,20 @@ define(function () {
 		/**
 		 * Constructs a new three-dimensional plane. The plane is represented as
 		 * parameters to the generalized planed equation.
+		 * @param {Plane} [plane] Plane to copy the contents from
 		 * @constructs
 		 */
-		create: function () {
-		    return new Float32Array(4);
+		create: function (plane) {
+			var dest = new Float32Array(4);
+
+			if (plane) {
+				dest[0] = plane[0];
+				dest[1] = plane[1];
+				dest[2] = plane[2];
+				dest[3] = plane[3];
+			}
+
+		    return dest;
 		},
 
 		/**
@@ -216,6 +226,20 @@ define(function () {
 		},
 
 		/**
+		 * Creates a plane defined by three points on the plane. The result will
+		 * be written to an existing Plane object or optionally to a new Plane
+		 * object.
+		 * @param {Vec3} p1
+		 * @param {Vec3} p2
+		 * @param {Vec3} p3
+		 * @param {Plane} [dest]
+		 * @returns {Plane} dest or a new plane object
+		 */
+		fromPointsVec3: function (p1, p2, p3, dest) {
+			return this.fromPoints(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], p3[0], p3[1], p3[2], dest);
+		},
+
+		/**
 		 * Distance from a plane to a point. The sign of the result tells which
 		 * side of the plane the point lies. 0 means that the point lies on the
 		 * plane. Use Math.abs() to get absolute distance if that is what you
@@ -243,6 +267,18 @@ define(function () {
 		pointTestVec3: function (plane, point) {
 			// ax + by + cz + d
 			return plane[0]*point[0] + plane[1]*point[1] + plane[2]*point[2] + plane[3];
+		},
+
+		getX: function (plane, y, z) {
+			return (-plane[1]*y + -plane[2]*z - plane[3]) / plane[0];
+		},
+
+		getY: function (plane, x, z) {
+			return (-plane[0]*x + -plane[2]*z - plane[3]) / plane[1];
+		},
+
+		getZ: function (plane, x, y) {
+			return (-plane[0]*x + -plane[1]*y - plane[3]) / plane[2];
 		}
 
 	};
