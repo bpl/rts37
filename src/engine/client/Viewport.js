@@ -15,6 +15,12 @@ define(['engine/client/Widget'], function (Widget) {
 		this.lastMouseY = 0;
 		this.autoScrollX = 0;
 		this.autoScrollY = 0;
+
+		this._areaSelectionActive = false;
+		this._areaSelectionStartX = 0;
+		this._areaSelectionStartY = 0;
+		this._areaSelectionEndX = 0;
+		this._areaSelectionEndY = 0;
 	}
 
 	Viewport.prototype.draw = function (gl) {
@@ -72,6 +78,30 @@ define(['engine/client/Widget'], function (Widget) {
 			this.autoScrollX = this._autoScrollDimension(x, this.x, this.width);
 			this.autoScrollY = this._autoScrollDimension(y, this.y, this.height);
 		}
+	};
+
+	Viewport.prototype.handleDragStart = function (x, y) {
+		this._areaSelectionStartX = x;
+		this._areaSelectionStartY = y;
+		this._areaSelectionActive = true;
+
+		// Cancel automatic scrolling, because it doesn't play well with area
+		// selection yet.
+		this.autoScrollX = 0;
+		this.autoScrollY = 0;
+	};
+
+	Viewport.prototype.handleDragMove = function (x, y) {
+		this._areaSelectionEndX = x;
+		this._areaSelectionEndY = y;
+	};
+
+	Viewport.prototype.handleDragDone = function (x, y) {
+		this.client.setSelection(this.getActorsInsideScreenRect(
+			this._areaSelectionStartX, this._areaSelectionStartY,
+			x, y
+		));
+		this._areaSelectionActive = false;
 	};
 
 	Viewport.prototype.handleMouseOut = function () {

@@ -2,6 +2,22 @@
 
 define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'], function (gllib, Viewport, Billboard) {
 
+	const Mat4 = gllib.Mat4;
+	const Vec3 = gllib.Vec3;
+	const Vec4 = gllib.Vec4;
+	const Plane = gllib.Plane;
+
+	var tempVec41 = Vec4.create();
+	var tempVec42 = Vec4.create();
+	var tempVec43 = Vec4.create();
+	var tempVec44 = Vec4.create();
+
+	var tempVec31 = Vec3.create();
+	var tempVec32 = Vec3.create();
+	var tempVec33 = Vec3.create();
+	var tempVec34 = Vec3.create();
+	var tempVec35 = Vec3.create();
+
 	inherits(MyViewport, Viewport);
 	function MyViewport(client, opt /* x, y, width, height */) {
 		Viewport.call(this, client, opt);
@@ -10,28 +26,28 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		this.zNear = 10;
 		this.zFar = 1500;
 
-		this.worldToView = gllib.Mat4.identity();
-		this.projection = gllib.Mat4.identity();
-		this.worldToClip = gllib.Mat4.identity();
-		this.viewToWorld = gllib.Mat4.identity();
+		this.worldToView = Mat4.identity();
+		this.projection = Mat4.identity();
+		this.worldToClip = Mat4.identity();
+		this.viewToWorld = Mat4.identity();
 		// NT = Not Translated
-		this.viewToWorldNT = gllib.Mat4.identity();
+		this.viewToWorldNT = Mat4.identity();
 
 		this.visibleArea = new Float32Array(8);
 
 		// Unit vector pointing towards the sun. The fourth component controls
 		// the intensity of sunlight.
 		// FIXME: Should reside in game or client
-		var sun = gllib.Vec4.create();
+		var sun = Vec4.create();
 		sun[0] = -1;
 		sun[1] = 1;
 		sun[2] = 1;
 		sun[3] = 0.6;
-		gllib.Vec4.normalize(sun);
+		Vec4.normalize(sun);
 		this.sunLightWorld = sun;
-		this.sunLightView = gllib.Vec4.create();
+		this.sunLightView = Vec4.create();
 
-		this._screenToWorldTempVec4 = gllib.Vec4.create();
+		this._screenToWorldTempVec4 = Vec4.create();
 	}
 
 	MyViewport.prototype.draw = function (gl) {
@@ -50,22 +66,22 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 
 		gl.viewport(this.x, this.y, this.width, this.height);
 
-		gllib.Mat4.identity(wtv);
-		gllib.Mat4.scaleVal(wtv, 1, -1, 1);
-		gllib.Mat4.rotateX(wtv, Math.PI / 12);
-		gllib.Mat4.translateVal(wtv, -this.viewX, -this.viewY - 200, -600 * this.viewZoom);
+		Mat4.identity(wtv);
+		Mat4.scaleVal(wtv, 1, -1, 1);
+		Mat4.rotateX(wtv, Math.PI / 12);
+		Mat4.translateVal(wtv, -this.viewX, -this.viewY - 200, -600 * this.viewZoom);
 
-		gllib.Mat4.identity(vtw);
-		gllib.Mat4.translateVal(vtw, this.viewX, this.viewY + 200, 600 * this.viewZoom);
-		gllib.Mat4.rotateX(vtw, -Math.PI / 12);
-		gllib.Mat4.scaleVal(vtw, 1, -1, 1);
+		Mat4.identity(vtw);
+		Mat4.translateVal(vtw, this.viewX, this.viewY + 200, 600 * this.viewZoom);
+		Mat4.rotateX(vtw, -Math.PI / 12);
+		Mat4.scaleVal(vtw, 1, -1, 1);
 
-		gllib.Mat4.identity(vtwNT);
-		gllib.Mat4.translateVal(vtwNT, 0, 200, 600 * this.viewZoom);
-		gllib.Mat4.rotateX(vtwNT, -Math.PI / 12);
-		gllib.Mat4.scaleVal(vtwNT, 1, -1, 1);
+		Mat4.identity(vtwNT);
+		Mat4.translateVal(vtwNT, 0, 200, 600 * this.viewZoom);
+		Mat4.rotateX(vtwNT, -Math.PI / 12);
+		Mat4.scaleVal(vtwNT, 1, -1, 1);
 
-		gllib.Mat4.perspective(
+		Mat4.perspective(
 			this.fov,
 			this.width / this.height,   // Aspect ratio
 			this.zNear,
@@ -73,22 +89,22 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 			prj
 		);
 
-		gllib.Mat4.multiply(prj, wtv, wtc);
+		Mat4.multiply(prj, wtv, wtc);
 
 		// Now that the matrices are done, find the visible area
 		this.getVisibleArea(this.visibleArea);
 
 		// Transform light direction from world to view space, leaving W alone
-		gllib.Mat4.multiplyNormal3(wtv, this.sunLightWorld, this.sunLightView);
-		gllib.Vec4.normalize(this.sunLightView);
+		Mat4.multiplyNormal3(wtv, this.sunLightWorld, this.sunLightView);
+		Vec4.normalize(this.sunLightView);
 		this.sunLightView[3] = this.sunLightWorld[3];
 
 		// Draw the terrain
 		this.game.map.draw(gl, client, this);
 
 		// Draw the actors
-		for (var idx in this.game.actors) {
-			this.game.actors[idx].draw(gl, client, this);
+		for (var i = 0; i < this.game.actors.length; ++i) {
+			this.game.actors[i].draw(gl, client, this);
 		}
 
 		// Draw the billboards
@@ -96,6 +112,14 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 
 		// Draw the boundaries of the playfield
 		this.client.uiRenderer.addRectWorld(wtc, 0, 0, this.game.fieldWidth, this.game.fieldHeight);
+
+		// Draw the area selection rectangle
+		if (this._areaSelectionActive) {
+			this.client.uiRenderer.addRectScreen(this,
+				this._areaSelectionStartX, this._areaSelectionStartY,
+				this._areaSelectionEndX, this._areaSelectionEndY
+			);
+		}
 	};
 
 	MyViewport.prototype._constrainView = function () {
@@ -126,7 +150,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		upp[1] = 0;
 		upp[2] = 0;
 		upp[3] = 1;
-		gllib.Mat4.multiplyVec4(this.viewToWorld, upp);
+		Mat4.multiplyVec4(this.viewToWorld, upp);
 		var xa = upp[0];
 		var ya = upp[1];
 		var za = upp[2];
@@ -135,7 +159,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		upp[1] = -2 / this.height * y + 1;
 		upp[2] = -1 / Math.tan(this.fov * Math.PI / 360);
 		upp[3] = 1;
-		gllib.Mat4.multiplyVec4(this.viewToWorld, upp);
+		Mat4.multiplyVec4(this.viewToWorld, upp);
 		var xb = upp[0];
 		var yb = upp[1];
 		var zb = upp[2];
@@ -163,7 +187,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		upp[1] = 0;
 		upp[2] = 0;
 		upp[3] = 1;
-		gllib.Mat4.multiplyVec4(this.viewToWorldNT, upp);
+		Mat4.multiplyVec4(this.viewToWorldNT, upp);
 		var xa = upp[0];
 		var ya = upp[1];
 		var za = upp[2];
@@ -173,7 +197,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 			upp[1] = (i === 0 || i === 2 ? 1 : -1);
 			upp[2] = -1 / Math.tan(this.fov * Math.PI / 360);
 			upp[3] = 1;
-			gllib.Mat4.multiplyVec4(this.viewToWorldNT, upp);
+			Mat4.multiplyVec4(this.viewToWorldNT, upp);
 			var xb = upp[0];
 			var yb = upp[1];
 			var zb = upp[2];
@@ -183,6 +207,68 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 			area[i] = xa + (xb - xa) * t;
 			area[i + 1] = ya + (yb - ya) * t;
 		}
+	};
+
+	/**
+	 * Returns an array containing all the actors that reside inside the
+	 * specified screen coordinate rectangle.
+	 * @param {number} x1
+	 * @param {number} y1
+	 * @param {number} x2
+	 * @param {number} y2
+	 * @returns {Actor[]}
+	 */
+	MyViewport.prototype.getActorsInsideScreenRect = function (x1, y1, x2, y2) {
+		var eye = tempVec31;
+		var topLeft = tempVec32;
+		var topRight = tempVec33;
+		var bottomRight = tempVec34;
+		var bottomLeft = tempVec35;
+
+		var planeTop = tempVec41;
+		var planeRight = tempVec42;
+		var planeBottom = tempVec43;
+		var planeLeft = tempVec44;
+
+		var vtw = this.viewToWorld;
+		var z = -1 / Math.tan(this.fov * Math.PI / 360);
+
+		// First calculate the planes that constrain the apparent rectangle
+
+		x1 = 2 / this.height * x1 - this.width / this.height;
+		y1 = -2 / this.height * y1 + 1;
+		x2 = 2 / this.height * x2 - this.width / this.height;
+		y2 = -2 / this.height * y2 + 1;
+
+		Mat4.multiplyVec3(vtw, Vec3.values(0, 0, 0, eye));
+		Mat4.multiplyVec3(vtw, Vec3.values(x1, y1, z, topLeft));
+		Mat4.multiplyVec3(vtw, Vec3.values(x2, y1, z, topRight));
+		Mat4.multiplyVec3(vtw, Vec3.values(x2, y2, z, bottomRight));
+		Mat4.multiplyVec3(vtw, Vec3.values(x1, y2, z, bottomLeft));
+
+		Plane.fromPointsVec3(eye, topRight, topLeft, planeTop);
+		Plane.fromPointsVec3(eye, bottomRight, topRight, planeRight);
+		Plane.fromPointsVec3(eye, bottomLeft, bottomRight, planeBottom);
+		Plane.fromPointsVec3(eye, topLeft, bottomLeft, planeLeft);
+
+		// Then loop through actors and find all actors that are on the same
+		// side of all the planes
+
+		var result = [];
+		for (var i = 0; i < this.game.actors.length; ++i) {
+			var actor = this.game.actors[i];
+			if (actor.isSelectable()) {
+				var x = actor.x >> 10;
+				var y = actor.y >> 10;
+				if (Plane.pointTest(planeTop, x, y, 0) > 0 &&
+						Plane.pointTest(planeRight, x, y, 0) > 0 &&
+						Plane.pointTest(planeBottom, x, y, 0) > 0 &&
+						Plane.pointTest(planeLeft, x, y, 0) > 0) {
+					result.push(actor);
+				}
+			}
+		}
+		return result;
 	};
 
 	MyViewport.prototype.handleKeyPress = function (key) {
