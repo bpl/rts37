@@ -8,6 +8,7 @@
  * - Added translateVal and scaleVal functions that take scalar arguments
  *   instead of a vector.
  * - Allow identity mat3 to created with a single call.
+ * - Added values function for Vec3 and Vec4.
  */
 
 /*
@@ -88,6 +89,27 @@ vec3.set = function(vec, dest) {
 	dest[1] = vec[1];
 	dest[2] = vec[2];
 
+	return dest;
+};
+
+/*
+ * vec3.values
+ * Sets the contents of vec3 to match parameters
+ *
+ * Params:
+ * x, y, z - new values
+ * dest - Optional, vec3 receiving the values. If not specified, a new vec3 is created.
+ *
+ * Returns:
+ * dest or a new vec3
+ */
+vec3.values = function(x, y, z, dest) {
+	if (!dest) {
+		dest = new glMatrixArrayType(3);
+	}
+	dest[0] = x;
+	dest[1] = y;
+	dest[2] = z;
 	return dest;
 };
 
@@ -335,7 +357,7 @@ vec3.lerp = function(vec, vec2, lerp, dest){
     dest[2] = vec[2] + lerp * (vec2[2] - vec[2]);
 
     return dest;
-}
+};
 
 /*
  * vec3.str
@@ -509,7 +531,7 @@ mat3.toMat4 = function(mat, dest) {
 	dest[15] = 1;
 
 	return dest;
-}
+};
 
 /*
  * mat3.str
@@ -1513,7 +1535,7 @@ mat4.lookAt = function(eye, center, up, dest) {
 		x0 *= len;
 		x1 *= len;
 		x2 *= len;
-	};
+	}
 
 	//vec3.normalize(vec3.cross(z, x, y));
 	y0 = z1*x2 - z2*x1;
@@ -1643,7 +1665,7 @@ quat4.calculateW = function(quat, dest) {
 	dest[2] = z;
 	dest[3] = -Math.sqrt(Math.abs(1.0 - x*x - y*y - z*z));
 	return dest;
-}
+};
 
 /*
  * quat4.inverse
@@ -1668,7 +1690,7 @@ quat4.inverse = function(quat, dest) {
 	dest[2] = -quat[2];
 	dest[3] = quat[3];
 	return dest;
-}
+};
 
 /*
  * quat4.length
@@ -1683,7 +1705,7 @@ quat4.inverse = function(quat, dest) {
 quat4.length = function(quat) {
 	var x = quat[0], y = quat[1], z = quat[2], w = quat[3];
 	return Math.sqrt(x*x + y*y + z*z + w*w);
-}
+};
 
 /*
  * quat4.normalize
@@ -1716,7 +1738,7 @@ quat4.normalize = function(quat, dest) {
 	dest[3] = w * len;
 
 	return dest;
-}
+};
 
 /*
  * quat4.multiply
@@ -1742,7 +1764,7 @@ quat4.multiply = function(quat, quat2, dest) {
 	dest[3] = qaw*qbw - qax*qbx - qay*qby - qaz*qbz;
 
 	return dest;
-}
+};
 
 /*
  * quat4.multiplyVec3
@@ -1774,7 +1796,7 @@ quat4.multiplyVec3 = function(quat, vec, dest) {
 	dest[2] = iz*qw + iw*-qz + ix*-qy - iy*-qx;
 
 	return dest;
-}
+};
 
 /*
  * quat4.toMat3
@@ -1821,7 +1843,7 @@ quat4.toMat3 = function(quat, dest) {
 	dest[8] = 1 - (xx + yy);
 
 	return dest;
-}
+};
 
 /*
  * quat4.toMat4
@@ -1876,7 +1898,7 @@ quat4.toMat4 = function(quat, dest) {
 	dest[15] = 1;
 
 	return dest;
-}
+};
 
 /*
  * quat4.slerp
@@ -1926,7 +1948,7 @@ quat4.slerp = function(quat, quat2, slerp, dest) {
 	dest[3] = (quat[3]*ratioA + quat2[3]*ratioB);
 
 	return dest;
-}
+};
 
 
 /*
@@ -1964,6 +1986,16 @@ return {
 			dest[2] = vec[2];
 			dest[3] = vec[3];
 
+			return dest;
+		},
+		'values': function(x, y, z, w, dest) {
+			if (!dest) {
+				dest = new glMatrixArrayType(4);
+			}
+			dest[0] = x;
+			dest[1] = y;
+			dest[2] = z;
+			dest[3] = w;
 			return dest;
 		},
 		'normalize': vec3.normalize
