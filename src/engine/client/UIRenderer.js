@@ -5,6 +5,7 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!e
 	function UIRenderer() {
 		this._linePoints = new Float32Array(UIRenderer.LINE_MAX_POINTS);
 		this._linePointCount = 0;
+		this._visualizations = [];
 	}
 
 	UIRenderer.LINE_MAX_POINTS = 1000;
@@ -24,6 +25,16 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!e
 			gl.DYNAMIC_DRAW
 		);
 	}, UIRenderer);
+
+	UIRenderer.prototype.addVisualization = function (type /* ...params */) {
+		if (typeof this['visualize' + type] !== 'function') {
+			throw new Error('UIRenderer.addVisualization: Unknown type ' + type);
+		}
+		this._visualizations.push({
+			'type': type,
+			'params': Array.prototype.slice.call(arguments, 1)
+		});
+	};
 
 	UIRenderer.prototype.addRectScreen4zw = function (vec1, vec2, vec3, vec4) {
 		var lps = this._linePoints;
@@ -47,37 +58,40 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!e
 		this._linePointCount += 32;
 	};
 
-	UIRenderer.prototype.addRectScreen4 = function (x1, y1, x2, y2, x3, y3, x4, y4) {
+	UIRenderer.prototype.addRectScreen4 = function (viewport, x1, y1, x2, y2, x3, y3, x4, y4) {
 		var vec1 = UIRenderer.tempVec41;
 		var vec2 = UIRenderer.tempVec42;
 		var vec3 = UIRenderer.tempVec43;
 		var vec4 = UIRenderer.tempVec44;
 
-		vec1[0] = x1;
-		vec1[1] = y1;
+		var xr = 2 / viewport.width;
+		var yr = -2 / viewport.height;
+
+		vec1[0] = x1*xr - 1;
+		vec1[1] = y1*yr + 1;
 		vec1[2] = 0;
 		vec1[3] = 1;
 
-		vec2[0] = x2;
-		vec2[1] = y2;
+		vec2[0] = x2*xr - 1;
+		vec2[1] = y2*yr + 1;
 		vec2[2] = 0;
 		vec2[3] = 1;
 
-		vec3[0] = x3;
-		vec3[1] = y3;
+		vec3[0] = x3*xr - 1;
+		vec3[1] = y3*yr + 1;
 		vec3[2] = 0;
 		vec3[3] = 1;
 
-		vec4[0] = x4;
-		vec4[1] = y4;
+		vec4[0] = x4*xr - 1;
+		vec4[1] = y4*yr + 1;
 		vec4[2] = 0;
 		vec4[3] = 1;
 
 		this.addRectScreen4zw(vec1, vec2, vec3, vec4);
 	};
 
-	UIRenderer.prototype.addRectScreen = function (x1, y1, x2, y2) {
-		this.addRectScreen4(x1, y1, x2, y1, x2, y2, x1, y2);
+	UIRenderer.prototype.addRectScreen = function (viewport, x1, y1, x2, y2) {
+		this.addRectScreen4(viewport, x1, y1, x2, y1, x2, y2, x1, y2);
 	};
 
 	UIRenderer.prototype.addRectModel = function (worldToClip, modelToWorld, w, h) {
@@ -202,6 +216,11 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!e
 	};
 
 	UIRenderer.prototype.draw = function (gl) {
+		for (var i = 0; i < this._visualizations.length; ++i) {
+			var vis = this._visualizations[i];
+			this['visualize' + vis.type].apply(this, vis.params);
+		}
+
 		// Cache all relevant variables
 		var lps = this._linePoints;
 		var lpc = this._linePointCount;
@@ -220,12 +239,29 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!e
 
 			gl.vertexAttrib4f(vectorProgram.fillColor, 0, 1, 1, 1);
 
-			gl.drawArrays(gl.LINES, 0, lpc);
+			gl.drawArrays(gl.LINES, 0, lpc / 4);
 
 			gl.disableVertexAttribArray(vectorProgram.vertexPosition);
 			gl.disable(gl.BLEND);
 			gl.useProgram(null);
 			this._linePointCount = 0;
+		}
+	};
+
+	UIRenderer.prototype.visualizePlaneGroundIntersection = function (viewport /* ...planes */) {
+		for (var i = 1; i < arguments.length; ++i) {
+			var plane = arguments[i];
+			if (Math.abs(plane[0]) > Math.abs(plane[1])) {
+				this.addPolyWorld(viewport.worldToClip, [
+					gllib.Plane.getX(plane, 0, 0), 0,
+					gllib.Plane.getX(plane, viewport.game.fieldHeight, 0), viewport.game.fieldHeight
+				]);
+			} else {
+				this.addPolyWorld(viewport.worldToClip, [
+					0, gllib.Plane.getY(plane, 0, 0),
+					viewport.game.fieldWidth, gllib.Plane.getY(plane, viewport.game.fieldWidth, 0)
+				]);
+			}
 		}
 	};
 
