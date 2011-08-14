@@ -46,8 +46,6 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		Vec4.normalize(sun);
 		this.sunLightWorld = sun;
 		this.sunLightView = Vec4.create();
-
-		this._screenToWorldTempVec4 = Vec4.create();
 	}
 
 	MyViewport.prototype.draw = function (gl) {
@@ -143,14 +141,12 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 	};
 
 	MyViewport.prototype.screenToWorld = function (x, y) {
-		// FIXME: Use Vec3
-		var upp = this._screenToWorldTempVec4;
+		var upp = tempVec31;
 
 		upp[0] = 0;
 		upp[1] = 0;
 		upp[2] = 0;
-		upp[3] = 1;
-		Mat4.multiplyVec4(this.viewToWorld, upp);
+		Mat4.multiplyVec3(this.viewToWorld, upp);
 		var xa = upp[0];
 		var ya = upp[1];
 		var za = upp[2];
@@ -158,8 +154,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		upp[0] = 2 / this.height * x - this.width / this.height;
 		upp[1] = -2 / this.height * y + 1;
 		upp[2] = -1 / Math.tan(this.fov * Math.PI / 360);
-		upp[3] = 1;
-		Mat4.multiplyVec4(this.viewToWorld, upp);
+		Mat4.multiplyVec3(this.viewToWorld, upp);
 		var xb = upp[0];
 		var yb = upp[1];
 		var zb = upp[2];
@@ -180,14 +175,12 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 	//               \      /                  +
 	//         [6][7] ------ [4][5]
 	MyViewport.prototype.getVisibleArea = function (area) {
-		// FIXME: Use Vec3
-		var upp = this._screenToWorldTempVec4;
+		var upp = tempVec31;
 
 		upp[0] = 0;
 		upp[1] = 0;
 		upp[2] = 0;
-		upp[3] = 1;
-		Mat4.multiplyVec4(this.viewToWorldNT, upp);
+		Mat4.multiplyVec3(this.viewToWorldNT, upp);
 		var xa = upp[0];
 		var ya = upp[1];
 		var za = upp[2];
@@ -196,8 +189,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 			upp[0] = (i === 0 || i === 6 ? -1 : 1) * this.width / this.height;
 			upp[1] = (i === 0 || i === 2 ? 1 : -1);
 			upp[2] = -1 / Math.tan(this.fov * Math.PI / 360);
-			upp[3] = 1;
-			Mat4.multiplyVec4(this.viewToWorldNT, upp);
+			Mat4.multiplyVec3(this.viewToWorldNT, upp);
 			var xb = upp[0];
 			var yb = upp[1];
 			var zb = upp[2];
