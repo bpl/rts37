@@ -98,20 +98,6 @@ Activator._encodeMember = function (key, value) {
 	}
 };
 
-Activator._encodeObject = function (obj) {
-	// FIXME: Obsolete?
-	var result = {};
-	for (var key in obj) {
-		if (obj.hasOwnProperty(key)) {
-			var value = Activator._encodeMember(obj[key]);
-			if (value !== undefined) {
-				result[key] = value;
-			}
-		}
-	}
-	return result;
-};
-
 Activator._stringify = function () {
 	return JSON.stringify(this, Activator._encodeMember);
 };
