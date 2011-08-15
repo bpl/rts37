@@ -34,7 +34,8 @@ void main(void) {
 
 	gl_Position = projection * (worldToView * (modelToWorld * weightedPosition));
 
-	vec3 normalInView = normalize((worldToView * (modelToWorld * vec4(vertexNormal, 0.0))).xyz);
+	vec4 normalJoint = jointMatrices[int(vertexJointA)] * vec4(vertexNormal, 0.0);
+	vec3 normalInView = normalize((worldToView * (modelToWorld * normalJoint)).xyz);
 	float sunLightIncidence = max(0.0, dot(normalInView, sunLight.xyz));
 	vertexColor = vec4(fillColor.rgb * mix(1.0, sunLightIncidence, sunLight.w), 1.0);
 }
