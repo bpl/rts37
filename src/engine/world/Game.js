@@ -321,10 +321,13 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 	};
 
 	Game.prototype.issueCommand = function (cmd) {
+		// FIXME: Direct call to Activator._stringify is something of a hack,
+		// but it's better than roundtripping via JSON. When the object system
+		// is overhauled or removed, this should be improved too.
 		if (this.isLocal) {
 			this.handleCommand(this.localPlayer, cmd);
 		} else {
-			this.connection.send('2' + JSON.stringify(cmd));
+			this.connection.send('2' + Activator._stringify.call(cmd));
 		}
 	};
 

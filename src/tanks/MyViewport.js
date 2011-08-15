@@ -268,6 +268,9 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 			case 'x':
 				this.fireWithSelected();
 				break;
+			case 'u':
+				this.createNewUnit();
+				break;
 			default:
 				Viewport.prototype.handleKeyPress.call(this, key);
 				break;
@@ -282,6 +285,17 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 				actor.issueFireAtPos(this.lastMouseX, this.lastMouseY);
 			}
 		}
+	};
+
+	MyViewport.prototype.createNewUnit = function () {
+		// FIXME: For debugging only
+		this.game.issueCommand(['AC', {
+			'$type': 'Vehicle',
+			'id': this.game.nextId(),   // FIXME: This is not going to work at all in networked setting
+			'player': this.game.localPlayer,
+			'x': this.lastMouseX,
+			'y': this.lastMouseY
+		}]);
 	};
 
 	return MyViewport;

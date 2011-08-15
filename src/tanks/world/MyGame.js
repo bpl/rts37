@@ -36,6 +36,14 @@ define(['engine/world/Game', 'engine/world/Map', 'engine/util/Image!tanks/images
 				assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
 				actor.fireAtPos(cmd[2], cmd[3]);
 				break;
+			case 'AC':
+				// Add actor to game (from parameters)
+				// [1]['$type'] is the type of the actor to add
+				// [1] is the parameters passed to the constructor
+				// FIXME: This is totally for debugging only
+				var type = Activator.getType(cmd[1]['$type']);
+				this.addActor(new type(cmd[1]));
+				break;
 			default:
 				Game.prototype.handleCommand.call(this, player, cmd);
 				break;
