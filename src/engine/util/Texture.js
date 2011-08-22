@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib'], function (gllib) {
+define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uisprite.vert!engine/shaders/uisprite.frag'], function (gllib, quadProgram) {
 
 	// NOTE: Using the texture object assumes that it is safe to change the
 	// currently active texture unit 0 and bind texture objects to it when
@@ -79,10 +79,48 @@ define(['engine/util/gllib'], function (gllib) {
 		}, this);
 	}
 
+	Texture._vertexBuffer = null;
+
 	Texture.load = function (name, req, load, config) {
 		req(['engine/util/Image!' + name], function (image) {
 			load(new Texture({'image': image}));
 		});
+	};
+
+	gllib.needsContext(function (gl) {
+		this._vertexBuffer = gllib.createArrayBuffer(new Float32Array([
+		//   X,  Y, S, T
+			-1, -1, 0, 0,
+			-1,  1, 0, 1,
+			 1, -1, 1, 0,
+			 1,  1, 1, 1
+		]));
+	}, Texture);
+
+	Texture.prototype.drawQuad = function (gl) {
+		var vertexBuffer = Texture._vertexBuffer;
+		var program = quadProgram;
+
+		gl.useProgram(program.program);
+		gl.enableVertexAttribArray(program.vertexPosition);
+		gl.enableVertexAttribArray(program.vertexTexCoord);
+		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+		gl.vertexAttribPointer(program.vertexPosition, 2, gl.FLOAT, false, 4 * 4, 0);
+		gl.vertexAttribPointer(program.vertexTexCoord, 2, gl.FLOAT, false, 4 * 4, 4 * 2);
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.texture);
+		gl.uniform1i(program.spriteTexture, 0);
+
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.disableVertexAttribArray(program.vertexNormal);
+		gl.disableVertexAttribArray(program.vertexTexCoord);
+		gl.useProgram(null);
 	};
 
 	return Texture;
