@@ -1,6 +1,10 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/mesh.frag'], function (gllib, shaderProgram) {
+define([
+	'engine/util/gllib',
+	'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/mesh.frag',
+	'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/shadowmap.frag'
+], function (gllib, viewProgram, shadowProgram) {
 
 	var SPLIT_EXT_REGEX = /^([^!]+)(\.[^.\/!]+)(!.+)$/;
 
@@ -197,10 +201,10 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 		xhr.send(null);
 	};
 
-	JointedMesh.prototype.draw = function (gl, viewport, mtw, joints, color) {
+	JointedMesh.prototype.draw = function (gl, viewport, modelToWorld, worldToView, projection, joints, color) {
 		var vertexBuffer = this._vertexBuffer;
 		var indexBuffer = this._indexBuffer;
-		var program = shaderProgram;
+		var program = (color ? viewProgram : shadowProgram);
 
 		// Copy all the joint matrices to a single array to pass an a uniform
 		var ja = this._jointArray;
@@ -229,12 +233,14 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/jointedmesh.ver
 		gl.vertexAttribPointer(program.vertexWeightB, 1, gl.UNSIGNED_BYTE, true, VERTEX_SIZE, 27);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
-		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
-		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
+		gl.uniformMatrix4fv(program.modelToWorld, false, modelToWorld);
+		gl.uniformMatrix4fv(program.worldToView, false, worldToView);
+		gl.uniformMatrix4fv(program.projection, false, projection);
 		gl.uniformMatrix4fv(program.jointMatrices, false, ja);
 		gl.uniform4fv(program.sunLight, viewport.sunLightView);
-		gl.uniform4fv(program.fillColor, color);
+		if (color) {
+			gl.uniform4fv(program.fillColor, color);
+		}
 		gl.uniform1f(program.scaleFactor, this.scaleFactor);
 
 		gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);

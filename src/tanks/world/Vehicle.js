@@ -147,6 +147,16 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		return dest;
 	};
 
+	Vehicle.prototype.drawShadowMap = function (gl, client, viewport) {
+		var factor = client.factor;
+
+		var mtw = this.getModelToWorld(factor, tempModelToWorld);
+		var joints = tempJointMatrices;
+		this.getJointMatrix(1, factor, joints[1]);
+
+		vehicleMesh.draw(gl, viewport, mtw, viewport.shadowWorldToView, viewport.shadowProjection, joints, null);
+	};
+
 	Vehicle.prototype.draw = function (gl, client, viewport) {
 		var factor = client.factor;
 
@@ -154,7 +164,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		var joints = tempJointMatrices;
 		this.getJointMatrix(1, factor, joints[1]);
 
-		vehicleMesh.draw(gl, viewport, mtw, joints, this.player.color);
+		vehicleMesh.draw(gl, viewport, mtw, viewport.worldToView, viewport.projection, joints, this.player.color);
 
 		// If selected, draw the selection indicator
 		if (client.selectedActors.indexOf(this) >= 0) {

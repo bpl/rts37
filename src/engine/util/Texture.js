@@ -10,6 +10,8 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uisprite.vert!e
 	//
 	// - image: The texture data to load (browser-provided Image object)
 	//
+	// - width / height: The size of an empty texture to generate
+	//
 	// - flip: Flip the Y axis when unpacking image data. Defaults to true.
 	//
 	// - mipmap: Generate a mipmap for the texture. Defaults to true.
@@ -21,6 +23,11 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uisprite.vert!e
 	//
 	// - mag_filter: Magnifying function to use. Either 'nearest' or 'linear'.
 	//   Default is 'linear'.
+	//
+	// - wrap_s: Texture wrapping mode for texture coordinate S. One of
+	//   'clamp_to_edge', 'mirrored_repeat', 'repeat'. Default is 'repeat'.
+	//
+	// - wrap_t: As wrap_s, but for texture coordinate T.
 	//
 	// Please see http://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameter.xml
 	// for information about min_filter and mag_filter values.
@@ -45,14 +52,28 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uisprite.vert!e
 		throw new Error('decodeMagFilter: Unknown value ' + value);
 	}
 
+	function decodeWrap(gl, value) {
+		switch (value) {
+			case 'clamp_to_edge': return gl.CLAMP_TO_EDGE;
+			case 'mirrored_repeat': return gl.MIRRORED_REPEAT;
+			case 'repeat': return gl.REPEAT;
+		}
+		throw new Error('decodeWrap: Unknown value ' + value);
+	}
+
 	function Texture(opt) {
 		this.texture = null;
+		this.width = opt.width || 0;
+		this.height = opt.height || 0;
 
 		this._image = opt.image || null;
 		this._flip = 'flip' in opt ? opt.flip : true;
+
 		this._mipmap = 'mipmap' in opt ? opt.mipmap : true;
 		this._min_filter = opt.min_filter || 'nearest_mipmap_linear';
 		this._mag_filter = opt.mag_filter || 'linear';
+		this._wrap_s = opt.wrap_s || 'repeat';
+		this._wrap_t = opt.wrap_t || 'repeat';
 
 		gllib.needsContext(function (gl) {
 			this.texture = gl.createTexture();
@@ -62,8 +83,12 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uisprite.vert!e
 
 			if (this._image) {
 				// Load texture data from image
+				this.width = this._image.width;
+				this.height = this._image.height;
 				gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, this._flip);
 				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this._image);
+			} else if (this.width && this.height) {
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 			} else {
 				throw new Error('Texture: Unknown texture type');
 			}
@@ -74,6 +99,9 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uisprite.vert!e
 
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, decodeMinFilter(gl, this._min_filter));
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, decodeMagFilter(gl, this._mag_filter));
+
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, decodeWrap(gl, this._wrap_s));
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, decodeWrap(gl, this._wrap_t));
 
 			gl.bindTexture(gl.TEXTURE_2D, null);
 		}, this);

@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'], function (gllib, Viewport, Billboard) {
+define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard', 'engine/util/Texture'], function (gllib, Viewport, Billboard, Texture) {
 
 	const Mat4 = gllib.Mat4;
 	const Vec3 = gllib.Vec3;
@@ -18,6 +18,8 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 	var tempVec34 = Vec3.create();
 	var tempVec35 = Vec3.create();
 
+	const invertYMat4 = Mat4.scaleVal(Mat4.identity(), 1, -1, 1);
+
 	inherits(MyViewport, Viewport);
 	function MyViewport(client, opt /* x, y, width, height */) {
 		Viewport.call(this, client, opt);
@@ -33,6 +35,10 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		// NT = Not Translated
 		this.viewToWorldNT = Mat4.identity();
 
+		this.shadowWorldToView = Mat4.identity();
+		this.shadowProjection = Mat4.identity();
+		this.shadowWorldToClip = Mat4.identity();
+
 		this.visibleArea = new Float32Array(8);
 
 		// Unit vector pointing towards the sun. The fourth component controls
@@ -46,6 +52,37 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		Vec4.normalize(sun);
 		this.sunLightWorld = sun;
 		this.sunLightView = Vec4.create();
+
+		this.shadowTexture = new Texture({
+			'width': 1024,
+			'height': 1024,
+			'mipmap': false,
+			'mag_filter': 'linear',
+			'min_filter': 'linear',
+			'wrap_s': 'clamp_to_edge',
+			'wrap_t': 'clamp_to_edge'
+		});
+		this.shadowFramebuffer = null;
+
+		gllib.needsContext(function (gl) {
+			// Initialize framebuffer for shadow mapping
+			this.shadowFramebuffer = gl.createFramebuffer();
+
+			var rb = gl.createRenderbuffer();
+			gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+			gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.shadowTexture.width, this.shadowTexture.height);
+			gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+			gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFramebuffer);
+			gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.shadowTexture.texture, 0);
+			gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+			var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+			if (status !== gl.FRAMEBUFFER_COMPLETE) {
+				throw new Error('MyViewport: Framebuffer not complete, status ' + status);
+			}
+		}, this);
 	}
 
 	MyViewport.prototype.draw = function (gl) {
@@ -60,9 +97,17 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		var vtw = this.viewToWorld;
 		var vtwNT = this.viewToWorldNT;
 
+		var swtv = this.shadowWorldToView;
+		var sprj = this.shadowProjection;
+		var swtc = this.shadowWorldToClip;
+
+		var sun = this.sunLightWorld;
+
 		var client = this.client;
 
-		gl.viewport(this.x, this.y, this.width, this.height);
+		//
+		// Set up matrices for view rendering
+		//
 
 		Mat4.identity(wtv);
 		Mat4.scaleVal(wtv, 1, -1, 1);
@@ -96,6 +141,59 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		Mat4.multiplyNormal3(wtv, this.sunLightWorld, this.sunLightView);
 		Vec4.normalize(this.sunLightView);
 		this.sunLightView[3] = this.sunLightWorld[3];
+
+		//
+		// Set up matrices for shadow map rendering
+		//
+
+		Mat4.lookAt(
+			Vec3.values(
+				sun[0] * 700 + this.viewX,
+				sun[1] * -700 - this.viewY,
+				sun[2] * 700,
+				tempVec31
+			),
+			Vec3.values(this.viewX, -this.viewY, 0, tempVec32),
+			Vec3.values(0, 0, 1, tempVec33),
+			swtv
+		);
+		Mat4.multiply(swtv, invertYMat4, swtv);
+
+		Mat4.ortho(
+			-500 * this.viewZoom,   // left
+			500 * this.viewZoom,   // right
+			-500 * this.viewZoom,   // bottom
+			500 * this.viewZoom,   // top
+			this.zNear,
+			this.zFar,
+			sprj
+		);
+
+		Mat4.multiply(sprj, swtv, swtc);
+
+		//
+		// Shadow map rendering
+		//
+
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFramebuffer);
+		gl.viewport(0, 0, this.shadowTexture.width, this.shadowTexture.height);
+		gl.clearColor(1, 1, 1, 1);
+		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+
+		for (var i = 0; i < this.game.actors.length; ++i) {
+			var actor = this.game.actors[i];
+			if ('drawShadowMap' in actor) {
+				actor.drawShadowMap(gl, client, this);
+			}
+		}
+
+		//
+		// View rendering
+		//
+
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.viewport(this.x, this.y, this.width, this.height);
+		gl.clearColor(0, 0, 0, 0);
 
 		// Draw the terrain
 		this.game.map.draw(gl, client, this);

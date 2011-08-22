@@ -169,10 +169,14 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, this._groundTexture.texture);
 		gl.uniform1i(program.groundTexture, 0);
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, viewport.shadowTexture.texture);
+		gl.uniform1i(program.shadowTexture, 1);
 
 		gl.uniform1f(program.tileSize, TILE_SIZE);
 		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
 		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
+		gl.uniformMatrix4fv(program.shadowWorldToClip, false, viewport.shadowWorldToClip);
 		gl.uniform4fv(program.sunLight, viewport.sunLightView);
 
 		for (var y = 0; y < this._heightInBlocks; ++y) {
@@ -191,6 +195,8 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 			}
 		}
 
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, null);
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, null);
 
