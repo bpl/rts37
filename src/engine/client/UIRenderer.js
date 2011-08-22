@@ -215,6 +215,35 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/uivector.vert!e
 		this._linePointCount = lpc;
 	};
 
+	UIRenderer.prototype.addLineWorld = function (worldToClip, sx, sy, ex, ey, z) {
+		var vec1 = UIRenderer.tempVec41;
+		var lps = this._linePoints;
+		var lpc = this._linePointCount;
+
+		z = z || 0;
+
+		if (lpc + 8 > lps.length) {
+			// FIXME: Show error in console
+			return;
+		}
+
+		vec1[0] = sx;
+		vec1[1] = sy;
+		vec1[2] = z;
+		vec1[3] = 1;
+		gllib.Mat4.multiplyVec4(worldToClip, vec1, vec1);
+		lps.set(vec1, lpc);
+
+		vec1[0] = ex;
+		vec1[1] = ey;
+		vec1[2] = z;
+		vec1[3] = 1;
+		gllib.Mat4.multiplyVec4(worldToClip, vec1, vec1);
+		lps.set(vec1, lpc + 4);
+
+		this._linePointCount = lpc + 8;
+	};
+
 	UIRenderer.prototype.draw = function (gl) {
 		for (var i = 0; i < this._visualizations.length; ++i) {
 			var vis = this._visualizations[i];

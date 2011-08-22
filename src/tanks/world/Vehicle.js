@@ -161,6 +161,19 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 			client.uiRenderer.addRectModel(viewport.worldToClip, mtw, 40, 40);
 		}
 
+		// If there is a target, draw the target indicator
+		if (typeof this.targetX === 'number' && typeof this.targetY === 'number'
+				&& this.player === this.game.localPlayer) {
+			client.uiRenderer.addLineWorld(
+				viewport.worldToClip,
+				(this.x - this.dflX * factor) / 1024,
+				(this.y - this.dflY * factor) / 1024,
+				this.targetX / 1024,
+				this.targetY / 1024,
+				0
+			);
+		}
+
 		/*
 			// If reloading, draw the reload indicator
 			if (this.reloadingCount > 0 && this.player == this.game.localPlayer) {
@@ -172,40 +185,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 						ctx.strokeRect(-15, -35 - 6 * i, 30, 4);
 					}
 				}
-			}
-			// If there is a target, draw the target indicator
-			if (this.targetX && this.targetY && this.player == this.game.localPlayer) {
-				var distance = mathlib.distance(
-					this.x - this.dflX * factor,
-					this.y - this.dflY * factor,
-					this.targetX,
-					this.targetY
-				);
-				ctx.strokeStyle = uiCtx.indicatorStyle;
-				if (distance > 49152) {
-					ctx.beginPath();
-					var angle = mathlib.angle(
-						this.x - this.dflX * factor,
-						this.y - this.dflY * factor,
-						this.targetX,
-						this.targetY
-					);
-					var delta = mathlib.anglePoint(angle, 35);
-					ctx.moveTo(delta[0], delta[1]);
-					delta = mathlib.anglePoint(angle - Math.PI, 13);
-					ctx.lineTo(
-						(this.targetX - (this.x - this.dflX * factor)) / 1024 + delta[0],
-						(this.targetY - (this.y - this.dflY * factor)) / 1024 + delta[1]
-					);
-					ctx.stroke();
-				}
-				ctx.beginPath();
-				ctx.arc(
-					(this.targetX - (this.x - this.dflX * factor)) / 1024,
-					(this.targetY - (this.y - this.dflY * factor)) / 1024,
-					5, 0, Math.PI * 2, false
-				);
-				ctx.stroke();
 			}
 		*/
 	};
