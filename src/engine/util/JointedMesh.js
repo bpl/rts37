@@ -2,7 +2,7 @@
 
 define([
 	'engine/util/gllib',
-	'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/mesh.frag',
+	'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/shadowedsolid.frag',
 	'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/shadowmap.frag'
 ], function (gllib, viewProgram, shadowProgram) {
 
@@ -233,9 +233,14 @@ define([
 		gl.vertexAttribPointer(program.vertexWeightB, 1, gl.UNSIGNED_BYTE, true, VERTEX_SIZE, 27);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, viewport.shadowTexture.texture);
+		gl.uniform1i(program.shadowTexture, 0);
+
 		gl.uniformMatrix4fv(program.modelToWorld, false, modelToWorld);
 		gl.uniformMatrix4fv(program.worldToView, false, worldToView);
 		gl.uniformMatrix4fv(program.projection, false, projection);
+		gl.uniformMatrix4fv(program.shadowWorldToClip, false, viewport.shadowWorldToClip);
 		gl.uniformMatrix4fv(program.jointMatrices, false, ja);
 		gl.uniform4fv(program.sunLight, viewport.sunLightView);
 		if (color) {
@@ -244,6 +249,9 @@ define([
 		gl.uniform1f(program.scaleFactor, this.scaleFactor);
 
 		gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);

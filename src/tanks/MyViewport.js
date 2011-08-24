@@ -171,6 +171,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		gl.viewport(0, 0, this.shadowTexture.width, this.shadowTexture.height);
 		gl.clearColor(1, 1, 1, 1);
 		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+		gl.cullFace(gl.FRONT);
 
 		for (var i = 0; i < this.game.actors.length; ++i) {
 			var actor = this.game.actors[i];
@@ -186,6 +187,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport(this.x, this.y, this.width, this.height);
 		gl.clearColor(0, 0, 0, 0);
+		gl.cullFace(gl.BACK);
 
 		// Draw the terrain
 		this.game.map.draw(gl, client, this);

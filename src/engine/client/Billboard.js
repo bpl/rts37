@@ -68,9 +68,9 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 	gllib.needsContext(function (gl) {
 		var vertices = [
 			// One half
-			-1, -1,   1, -1,   -1, 1,
+			-1, -1,   -1, 1,   1, -1,
 			// Second half
-			-1, 1,   1, -1,   1, 1
+			-1, 1,   1, 1,   1, -1
 		];
 		var arr = new Float32Array(Billboard.CAPACITY * vertices.length);
 		var pos = 0;

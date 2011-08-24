@@ -128,6 +128,9 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 
 		gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		gl.clearDepth(1.0);
+
+		gl.enable(gl.CULL_FACE);
+		gl.frontFace(gl.CW);   // Notice that this is NOT the default
 	}
 
 	// Set the currently selected actors to certain array
