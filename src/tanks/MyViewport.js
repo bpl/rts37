@@ -159,15 +159,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		);
 		Mat4.multiply(swtv, invertYMat4, swtv);
 
-		Mat4.ortho(
-			-500 * this.viewZoom,   // left
-			500 * this.viewZoom,   // right
-			-500 * this.viewZoom,   // bottom
-			500 * this.viewZoom,   // top
-			this.zNear,
-			this.zFar,
-			sprj
-		);
+		this._calculateShadowMapFrustrum();
 
 		Mat4.multiply(sprj, swtv, swtc);
 
@@ -297,6 +289,74 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 			area[i] = xa + (xb - xa) * t;
 			area[i + 1] = ya + (yb - ya) * t;
 		}
+	};
+
+	/**
+	 * Calculates a view frustrum for the shadow map, to make good use of the
+	 * available shadow map space. This routine will make use of visibleArea and
+	 * shadowWorldToView and will put the result to shadowProjection.
+	 */
+	MyViewport.prototype._calculateShadowMapFrustrum = function () {
+		var swtv = this.shadowWorldToView;
+		var va = this.visibleArea;
+		var pos = tempVec31;
+		var z = 0;   // This will need to be the maximum height of an object a shadow is casted on
+
+		// Essentially, we calculate the bounding box of the four corners of the
+		// visible area plus those corners extruded by Z in the coordinate space
+		// of the light.
+
+		// FIXME: Only render backfaces when rendering the shadow map. Also,
+		// self-shadow shadow casters.
+
+		// TODO: The area given by this routine (as it currenly stands) doesn't
+		// take into account shadow casters residing just outside the visible
+		// area. They too should be able to cast shadows here.
+		//
+		// A tighter fit could be achieved by calculating the bounding box of
+		// shadow casters instead of visible area.
+		//
+		// Due to the use of simple (single) shadow map, either shadow map
+		// resolution is wasted on far-away objects or near objects will
+		// experience terrible shadow aliasing. A technique such as PSSM could
+		// fix this.
+
+		var left = 0;
+		var right = 0;
+		var bottom = 0;
+		var top = 0;
+		var near = Infinity;
+		var far = 0;
+
+		for (var i = 0; i < 2; ++i) {
+			for(var j = 0; j < 8; j += 2) {
+				pos[0] = va[j] + this.viewX;
+				pos[1] = va[j + 1] + this.viewY;
+				pos[2] = (i ? z : 0);
+				Mat4.multiplyVec3(swtv, pos);
+
+				if (pos[0] < left) {
+					left = pos[0];
+				}
+				if (pos[0] > right) {
+					right = pos[0];
+				}
+				if (pos[1] < bottom) {
+					bottom = pos[1];
+				}
+				if (pos[1] > top) {
+					top = pos[1];
+				}
+				if (-pos[2] < near) {
+					near = -pos[2];
+				}
+				if (-pos[2] > far) {
+					far = -pos[2];
+				}
+			}
+		}
+
+		Mat4.ortho(left, right, bottom, top, near, far, this.shadowProjection);
 	};
 
 	/**
