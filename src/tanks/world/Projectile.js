@@ -2,12 +2,11 @@
 
 define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'engine/util/Color', 'engine/client/Billboard', 'engine/util/Mesh!tanks/models/cone.json', 'engine/util/Image!tanks/textures/cuzco_exp2.jpg'], function (gllib, mathlib, Actor, Player, Color, Billboard, projectileMesh, explosionImage) {
 
-	register('Projectile', Projectile);
 	inherits(Projectile, Actor);
 	function Projectile(opt /* player, x, y, angle, range, speed */) {
 		assert(opt.player && typeof opt.player === 'object', 'Projectile: player must be an object');
 		Actor.call(this, opt);
-		this.defaults(opt, {
+		defaults.call(this, opt, {
 			player: Player,
 			angle: Number,
 			range: Number,

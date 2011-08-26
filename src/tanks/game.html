@@ -61,15 +61,18 @@
 
 <div class="sheet" id="local">
 
-<p><label for="f-local-state">Initial game state</label><br><textarea name="state" id="f-local-state" cols="60" rows="5">
-&quot;AC&quot;, {&quot;$type&quot;: &quot;Player&quot;, &quot;id&quot;: 1, &quot;playerId&quot;: &quot;p1&quot;, &quot;color&quot;: &quot;#ff0000&quot;}
-&quot;AC&quot;, {&quot;$type&quot;: &quot;Player&quot;, &quot;id&quot;: 2, &quot;playerId&quot;: &quot;p2&quot;, &quot;color&quot;: &quot;#0000ff&quot;}
-&quot;AC&quot;, {&quot;$type&quot;: &quot;Vehicle&quot;, &quot;id&quot;: 3, &quot;player&quot;: {&quot;$id&quot;: 1}, &quot;x&quot;: 102400, &quot;y&quot;: 102400}
-&quot;AC&quot;, {&quot;$type&quot;: &quot;Vehicle&quot;, &quot;id&quot;: 4, &quot;player&quot;: {&quot;$id&quot;: 1}, &quot;x&quot;: 204800, &quot;y&quot;: 102400}
-&quot;AC&quot;, {&quot;$type&quot;: &quot;AIVehicle&quot;, &quot;id&quot;: 5, &quot;player&quot;: {&quot;$id&quot;: 2}, &quot;x&quot;: 204800, &quot;y&quot;: 204800, &quot;waypoints&quot;: [[102400, 512000], [716800, 563200]]}
+<p><label for="f-local-spec">Game specification</label><br><textarea name="spec" id="f-local-spec" cols="60" rows="5">
+{
+	"scenarioLocation": "/tanks/scenario.json",
+	"scenarioName": "#singleplayer",
+	"players": [
+		{"publicId": 1, "color": "#ff0000"},
+		{"publicId": 2, "color": "#0000ff"}
+	]
+}
 </textarea></p>
 
-<p><label for="f-local-playerId">Player ID</label><input type="text" name="playerId" id="f-local-playerId" value="p1"></p>
+<p><label for="f-local-playerId">Player Actor ID</label><input type="text" name="playerId" id="f-local-playerId" value="1"></p>
 
 <p><button id="start-local-game">Start local game</button></p>
 

@@ -2,8 +2,9 @@
 
 define(function () {
 
-	function Actor(opt /* x, y */) {
-		this.game = null;
+	function Actor(opt /* game, x, y */) {
+		assert(opt['game'] && typeof opt['game'] === 'object', 'Actor: game must be an object');
+		this.game = opt['game'];
 		this.id = null;
 		this.x = opt.x || 0;
 		this.y = opt.y || 0;
@@ -11,15 +12,10 @@ define(function () {
 		// negative if the value has decreased since last tick. It will be multiplied with
 		// the interpolation factor and *substracted* from the current value (yes, the interpolation
 		// factor is a bit backwards, but removes one calculation step).
+		// TODO: Premature and unnecessary optimization. Use saner approach.
 		this.dflX = 0;
 		this.dflY = 0;
 	}
-
-	Actor.prototype.setGame = function (game) {
-		assert(game && typeof game === 'object', 'Actor.setGame: game must be an object');
-		assert(this.game === null, 'Actor.setGame: must not set game twice');
-		this.game = game;
-	};
 
 	Actor.prototype.afterRemove = function () {
 		// this function intentionally left blank

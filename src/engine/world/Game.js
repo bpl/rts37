@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
+define(['engine/util/Event'], function (Event) {
 
 	function Game(isLocal) {
 		this.localPlayer = null;
@@ -32,6 +32,14 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 		this.lastTickAt = 0;
 		this.setTicksPerSecond(5);
 		//
+		// Scenario information
+		//
+		this.players = [];   // FIXME: [] or {}?
+		this.map = null;
+		this.fieldWidth = 0;
+		this.fieldHeight = 0;
+		this.unitTypes = {};
+		//
 		// Server communication
 		//
 		this.isLocal = isLocal;
@@ -41,7 +49,6 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 		this.commandQueues = [[]];
 		this.acknowledgeAt = 0;
 		this.connection = null;
-		this.decoder = Activator.getDecoder(this);
 		//
 		// Events
 		//
@@ -49,7 +56,45 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 		this.onTick = new Event();
 	}
 
-	Game.prototype.setLocalPlayer = function (player) {
+	/**
+	 * Adds a player to the list of players. Typically call by the scenario
+	 * object in the course of loading the scenario.
+	 * @param {Player} player
+	 */
+	Game.prototype.addPlayer = function (player) {
+		this.players[player.publicId] = player;
+	};
+
+	/**
+	 * Sets the current map. Typically called by the scenario object in the
+	 * course of loading the scenario.
+	 * @param {Map} map
+	 */
+	Game.prototype.setMap = function (map) {
+		this.map = map;
+		this.fieldWidth = map.width * map.tileSize;
+		this.fieldHeight = map.height * map.tileSize;
+	};
+
+	/**
+	 * Adds an unit type to the list of unit types. Typically called by the
+	 * scenario object in the course of loading the scenario.
+	 * @param {string} unitTypeName
+	 * @param {object} unitType
+	 */
+	Game.prototype.addUnitType = function (unitTypeName, unitType) {
+		this.unitTypes[unitTypeName] = unitType;
+	};
+
+	/**
+	 * Sets the local player. Typically called by the scenario object in the
+	 * course of loading the scenario.
+	 * @param {number} publicId
+	 */
+	Game.prototype.setLocalPlayerId = function (publicId) {
+		assert(!this.localPlayer, 'Game.setLocalPlayerId: local player is already set');
+		var player = this.playerWithPublicId(publicId);
+		assert(player, 'Game.setLocalPlayerId: player not found');
 		this.localPlayer = player;
 	};
 
@@ -94,10 +139,7 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 		return ++this.previousId;
 	};
 
-	Game.prototype.addActor = function (actor /* or: type, opt */) {
-		if (arguments.length == 2) {
-			actor = new arguments[0](arguments[1]);
-		}
+	Game.prototype.addActor = function (actor) {
 		if (this.running) {
 			this.additionQueue.push(actor);
 		} else {
@@ -106,8 +148,16 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 		if (actor.id !== null) {
 			this.actorByIdHash[actor.id] = actor;
 		}
-		actor.setGame(this);
 		return actor;
+	};
+
+	Game.prototype.createActor = function (type, opt) {
+		var newOpt = {};
+		for (var key in opt) {
+			newOpt[key] = opt[key];
+		}
+		newOpt['game'] = this;
+		this.addActor(new type(newOpt));
 	};
 
 	Game.prototype.removeActor = function (actor) {
@@ -131,16 +181,27 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 
 	Game.prototype.resolveId = Game.prototype.actorWithId;
 
-	Game.prototype.playerWithPlayerId = function (playerId) {
-		for (var i = 0; i < this.actors.length; ++i) {
-			var actor = this.actors[i];
-			if (actor instanceof Player) {
-				if (actor.playerId == playerId) {
-					return actor;
-				}
-			}
-		}
-		return null;
+	/**
+	 * Returns the player that has the specified public player ID.
+	 * @param {number} publicId
+	 * @returns {Player} Player object or null
+	 */
+	Game.prototype.playerWithPublicId = function (publicId) {
+		var player = this.players[publicId];
+		return (player && typeof player === 'object' ? player : null);
+	};
+
+	/**
+	 * Returns the unit type with the specified name or null if it hasn't been
+	 * added.
+	 * @param {string} unitTypeName
+	 * @returns {object} unit type object or null
+	 */
+	Game.prototype.getUnitType = function (unitTypeName) {
+		return (Object.prototype.hasOwnProperty.call(this.unitTypes, unitTypeName)
+			? this.unitTypes[unitTypeName]
+			: null
+		);
 	};
 
 	// The main game loop. This should be called repeatedly from a timer.
@@ -225,7 +286,7 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 
 	// Decodes the specified message string and handles the individual messages contained there
 	Game.prototype.handleMessageString = function (str) {
-		var msg = JSON.parse('{"d":[' + str + ']}', this.decoder)['d'];
+		var msg = JSON.parse('{"d":[' + str + ']}')['d'];
 		// [0] is the delivery tag
 		// [1] is the type of the message
 		this.handleMessage(msg);
@@ -260,10 +321,10 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 		switch (msg[1]) {
 			case 'C':
 				// Command
-				// [2] is the actor id of the player the command is from
+				// [2] is the public ID of the player the command is from
 				// [3] is the properties of the command
-				var player = this.actorWithId(msg[2]);
-				assert(player instanceof Player, 'Game.handleMessage: player of C must be a Player');
+				var player = this.playerWithPublicId(msg[2]);
+				assert(player, 'Game.handleMessage: player not found for C');
 				this.commandQueues[0].push([player, msg[3]]);
 				break;
 			case 'tick':
@@ -285,20 +346,12 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 					}
 				}
 				break;
-			case 'AC':
-				// Add actor to game (from parameters)
-				// [2]['$type'] is the type of the actor to add
-				// [2] is the parameters passed to the constructor
-				var type = Activator.getType(msg[2]['$type']);
-				this.addActor(new type(msg[2]));
-				break;
-			case 'youAre':
-				// Set the local player
-				// [2] is the actor id of the local player
-				assert(!this.localPlayer, 'Game.handleMessage: local player is already set');
-				var player = this.actorWithId(msg[2]);
-				assert(player instanceof Player, 'Game.handleMessage: player of youAre must be a Player');
-				this.setLocalPlayer(player);
+			case 'scenario':
+				// Received scenario information from server
+				// [2] is the URL of the scenario document to load
+				// [3] is the reference to the scenario to play
+				// [4] is the id of the current player
+				this.loadScenario(msg[2], msg[3], msg[4]);
 				break;
 			case 'hello':
 				// Server hello
@@ -321,20 +374,19 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 	};
 
 	Game.prototype.issueCommand = function (cmd) {
-		// FIXME: Direct call to Activator._stringify is something of a hack,
-		// but it's better than roundtripping via JSON. When the object system
-		// is overhauled or removed, this should be improved too.
 		if (this.isLocal) {
 			this.handleCommand(this.localPlayer, cmd);
 		} else {
-			this.connection.send('2' + Activator._stringify.call(cmd));
+			this.connection.send('2' + JSON.stringify(cmd));
 		}
 	};
 
 	// Guaranteed delivery of a message to the server
 	Game.prototype.issueMessage = function (msg) {
-		// FIXME: Make this actually work. The server doesn't currently expect the
-		// client to send a message tag.
+		// FIXME: Make this actually work. The server doesn't currently expect
+		// the client to send a message tag. Guaranteed delivery is, however,
+		// necessary to make sure the server knowns when all the assets have
+		// been loaded by all players and the game is ready to start.
 	};
 
 	// Non-guaranteed delivery of a message to the server
@@ -354,11 +406,6 @@ define(['engine/util/Event', 'engine/world/Player'], function (Event, Player) {
 		if (this.acknowledgeAt <= 0) {
 			this.acknowledgeAt = (new Date()).getTime() + 100;
 		}
-	};
-
-	// Convenience function for setting up local games
-	Game.prototype.createActor = function (type, opt) {
-		return this.addActor(new type(opt));
 	};
 
 	return Game;

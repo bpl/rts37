@@ -2,7 +2,7 @@
 
 // Bootstrap
 
-define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/MyGame', 'engine/world/Player', 'tanks/world/Vehicle', 'tanks/world/AIVehicle'], function ($, clientlib, MyViewport, MyGame) {
+define(['jquery', 'engine/client/clientlib', 'engine/world/Scenario', 'tanks/MyViewport', 'tanks/world/MyGame'], function ($, clientlib, Scenario, MyViewport, MyGame) {
 
 	var Button = clientlib.Button,
 		Client = clientlib.Client,
@@ -109,30 +109,22 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 		});
 
 		$('#start-local-game').click(function () {
-			var state = $('#f-local-state').val(),
-				playerId = $('#f-local-playerId').val();
+			// this.scenario.load(scenarioLocation, scenarioReference, localPlayerId)
+			var gameSpecString = $('#f-local-spec').val();
+			var playerIdString = $('#f-local-playerId').val();
 			try {
-				state = stateSpecToArray(state);
+				var gameSpec = JSON.parse(gameSpecString);
 			} catch (e) {
 				alert('Parse error in initial game state. Check console for details.');
 				throw e;
 			}
 			var game = initGame(true);
-			for (var i = 0; i < state.length; ++i) {
-				var msg = state[i],
-					parts = ['0'];
-				for (var j = 0; j < msg.length; ++j) {
-					parts.push(JSON.stringify(msg[j]));
+			var scenario = new Scenario(game, {
+				'didLoadAllAssets': function () {
+					game.setRunning(true);
 				}
-				game.handleMessageString(parts.join(','));
-			}
-			var player = game.playerWithPlayerId(playerId);
-			if (!player) {
-				alert('Incorrect player ID');
-				return;
-			}
-			game.handleMessage([0, 'youAre', player.id]);
-			game.setRunning(true);
+			});
+			scenario.load(gameSpec, Number(playerIdString));
 		});
 
 	});
