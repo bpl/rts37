@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/world/Player', 'engine/world/Map'], function (Player, Map) {
+define(['engine/util/Event', 'engine/world/Player', 'engine/world/Map'], function (Event, Player, Map) {
 
 	const STATE_WAITING = 0;
 	const STATE_LOADING_DOCUMENT = 1;
@@ -15,23 +15,27 @@ define(['engine/world/Player', 'engine/world/Map'], function (Player, Map) {
 	// - createActor(type:object, opt:object)
 	// - setLocalPlayerId(actorId:number)
 	//
-	// Scenario will also attempt to call these members of the progressDelegate
-	// to report progress:
+	// Scenario will also report asset loading progress by using these named
+	// global events:
 	//
 	// - willLoadAsset(assetName:string, queued:number, loaded:number)
 	// - didLoadAsset(assetName:string, queued:number, loaded:number)
 	// - didLoadAllAssets(loaded:number)
 
-	function Scenario(delegate, progressDelegate) {
+	function Scenario(delegate) {
 		assert(typeof delegate === 'object' && delegate != null, 'Scenario: delegate is not an object');
 
 		this.delegate = delegate;
-		this.progressDelegate = progressDelegate;
 
 		this.state = STATE_WAITING;
 		this.assetsQueued = 0;
 		this.assetsLoaded = 0;
 		this.everythingQueued = false;
+		this.everythingLoaded = false;
+
+		this.willLoadAsset = new Event('willLoadAsset');
+		this.didLoadAsset = new Event('didLoadAsset');
+		this.didLoadAllAssets = new Event('didLoadAllAssets');
 	}
 
 	Scenario.prototype.load = function (gameSpec, localPlayerId) {
@@ -104,17 +108,13 @@ define(['engine/world/Player', 'engine/world/Map'], function (Player, Map) {
 		function willLoadAsset(assetName) {
 			++this.assetsQueued;
 
-			if (this.progressDelegate && 'willLoadAsset' in this.progressDelegate) {
-				this.progressDelegate.willLoadAsset(assetName, this.assetsQueued, this.assetsLoaded);
-			}
+			this.willLoadAsset.emit(assetName, this.assetsQueued, this.assetsLoaded);
 		}
 
 		function didLoadAsset(assetName) {
 			++this.assetsLoaded;
 
-			if (this.progressDelegate && 'didLoadAsset' in this.progressDelegate) {
-				this.progressDelegate.didLoadAsset(assetName, this.assetsQueued, this.assetsLoaded);
-			}
+			this.didLoadAsset.emit(assetName, this.assetsQueued, this.assetsLoaded);
 
 			checkEverythingLoaded.call(this);
 		}
@@ -125,9 +125,8 @@ define(['engine/world/Player', 'engine/world/Map'], function (Player, Map) {
 				didLoadEverything.call(this);
 				// Let the progress delegate know that all assets have been
 				// downloaded.
-				if (this.progressDelegate && 'didLoadAllAssets' in this.progressDelegate) {
-					this.progressDelegate.didLoadAllAssets(this.assetsLoaded);
-				}
+				this.everythingLoaded = true;
+				this.didLoadAllAssets.emit(this.assetsLoaded);
 			}
 		}
 

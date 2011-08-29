@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/Event'], function (Event) {
+define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario) {
 
 	function Game(isLocal) {
 		this.localPlayer = null;
@@ -34,6 +34,7 @@ define(['engine/util/Event'], function (Event) {
 		//
 		// Scenario information
 		//
+		this.scenario = null;
 		this.players = [];   // FIXME: [] or {}?
 		this.map = null;
 		this.fieldWidth = 0;
@@ -49,12 +50,51 @@ define(['engine/util/Event'], function (Event) {
 		this.commandQueues = [[]];
 		this.acknowledgeAt = 0;
 		this.connection = null;
+		this.notifyAssetReadyAt = 0;
 		//
 		// Events
 		//
 		// Emitted after a tick has been processed
 		this.onTick = new Event();
 	}
+
+	/**
+	 * Loads scenario information and starts the game when everything is ready.
+	 * @param {object} gameSpec
+	 * @param {number} localPlayerId
+	 */
+	Game.prototype.loadScenario = function (gameSpec, localPlayerId) {
+		this.scenario = new Scenario(this);
+		this.scenario.didLoadAsset.register(this._didLoadAsset, this);
+		this.scenario.didLoadAllAssets.register(this._didLoadAllAssets, this);
+		this.scenario.load(gameSpec, localPlayerId);
+	};
+
+	/**
+	 * Called by the scenario object when an asset has finished loading.
+	 * @param {string} assetName
+	 * @param {number} queued The number of assets queued so far
+	 * @param {number} loaded The number of assets loaded so far
+	 */
+	Game.prototype._didLoadAsset = function (assetName, queued, loaded) {
+		if (!this.isLocal) {
+			// Send acknowledgement at most every 1000 milliseconds
+			if (this.notifyAssetReadyAt <= 0) {
+				// FIXME: Last of these has to be a guaranteed message
+				this.notifyAssetReadyAt = (new Date()).getTime() + 1000;
+			}
+		}
+	};
+
+	/**
+	 * Called by the scenario object when all assets have finished loading.
+	 * @param {number} loaded Total number of loaded assets
+	 */
+	Game.prototype._didLoadAllAssets = function (loaded) {
+		if (this.isLocal) {
+			this.setRunning(true);
+		}
+	};
 
 	/**
 	 * Adds a player to the list of players. Typically call by the scenario
@@ -211,13 +251,18 @@ define(['engine/util/Event'], function (Event) {
 		// FIXME: Soft adjustment for situations where the client has a tendency to
 		// speed past the server.
 		//
-		// Acknowledgement handling. Send acknowledgement 100 msecs after receiving
-		// a message that has not been acknowledgement yet, and after processing a
-		// new tick.
+		// Acknowledgement handling. Send general acknowledgement 100 msecs
+		// after receiving a message that has not been acknowledgement yet, and
+		// after processing a new tick. Send asset loading acknowledgement one
+		// second after a new asset has been loaded.
 		if (!this.isLocal) {
 			if (this.acknowledgeAt > 0 && this.acknowledgeAt <= (new Date()).getTime()) {
 				this.acknowledgeAt = 0;
 				this.notifyServer(['ack', this.lastTagReceived, this.lastProcessedTick]);
+			}
+			if (this.notifyAssetReadyAt > 0 && this.notifyAssetReadyAt <= (new Date()).getTime()) {
+				this.notifyAssetReadyAt = 0;
+				this.notifyServer(['assetReady', this.scenario.assetsLoaded, this.scenario.assetsQueued, this.scenario.everythingLoaded]);
 			}
 		}
 		// If the game loop is not running, check if we can start or resume it
@@ -348,10 +393,9 @@ define(['engine/util/Event'], function (Event) {
 				break;
 			case 'scenario':
 				// Received scenario information from server
-				// [2] is the URL of the scenario document to load
-				// [3] is the reference to the scenario to play
-				// [4] is the id of the current player
-				this.loadScenario(msg[2], msg[3], msg[4]);
+				// [2] is the public ID of the current player
+				// [3] is the scenario specification object
+				this.loadScenario(msg[3], msg[2]);
 				break;
 			case 'hello':
 				// Server hello

@@ -48,7 +48,7 @@ SERVER> 2,"scenario",1,{
 
 # The client tells the server that it has loaded all the resources
 
-CLIENT> 1,"assetReady",6,6
+CLIENT> 1,"assetReady",6,6,true
 
 # The server starts the game
 
@@ -117,7 +117,7 @@ received yet. Parameter tick is the tick number of the last tick processed, or 0
 when no ticks have been processed yet. The client MUST send an "ack" message as the
 first message after having received the server hello.
 
-"assetReady",done(integer),known(integer)
+"assetReady",done(integer),known(integer),everythingDone(boolean)
 Notifies the server that the client has successfully loaded "done" number of game
 assets out of "known" number of game assets the server has instructed the client to
 load so far.

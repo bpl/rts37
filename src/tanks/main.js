@@ -2,7 +2,7 @@
 
 // Bootstrap
 
-define(['jquery', 'engine/client/clientlib', 'engine/world/Scenario', 'tanks/MyViewport', 'tanks/world/MyGame'], function ($, clientlib, Scenario, MyViewport, MyGame) {
+define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/MyGame'], function ($, clientlib, MyViewport, MyGame) {
 
 	var Button = clientlib.Button,
 		Client = clientlib.Client,
@@ -109,7 +109,6 @@ define(['jquery', 'engine/client/clientlib', 'engine/world/Scenario', 'tanks/MyV
 		});
 
 		$('#start-local-game').click(function () {
-			// this.scenario.load(scenarioLocation, scenarioReference, localPlayerId)
 			var gameSpecString = $('#f-local-spec').val();
 			var playerIdString = $('#f-local-playerId').val();
 			try {
@@ -119,12 +118,7 @@ define(['jquery', 'engine/client/clientlib', 'engine/world/Scenario', 'tanks/MyV
 				throw e;
 			}
 			var game = initGame(true);
-			var scenario = new Scenario(game, {
-				'didLoadAllAssets': function () {
-					game.setRunning(true);
-				}
-			});
-			scenario.load(gameSpec, Number(playerIdString));
+			game.loadScenario(gameSpec, Number(playerIdString));
 		});
 
 	});
