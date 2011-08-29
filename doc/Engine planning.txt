@@ -29,27 +29,34 @@ SERVER> 1,"hello"
 
 CLIENT> 1,"ack",0,0
 
-# The server tells the client which map to use
+# The server tells the client the scenario and who the player is
 
-SERVER> 2,"loadMap","http://localhost:8000/fs/maps/map.js"
+SERVER> 2,"scenario",1,{
+	"scenarioLocation": "http://localhost:8000/fs/scenario.json",
+	"scenarioName": "#multiplayer",
+	"players": [
+		{
+			"publicId": 1,
+			"color": "#ff0000"
+		},
+		{
+			"publicId": 2,
+			"color": "#0000ff"
+		}
+	]
+}
 
-# The server tells the client who the players are
+# The client tells the server that it has loaded all the resources
 
-SERVER> 3,"AC",{"$type": "Player", "id": 1, "playerId": "tim", "color": "#ff0000"}
-SERVER> 4,"AC",{"$type": "Player", "id": 2, "playerId": "tom", "color": "#0000ff"}
-SERVER> 5,"youAre",1
-
-# The client tells the server that it has loaded the map
-
-CLIENT> 1,"mapDone"
+CLIENT> 1,"assetReady",6,6,true
 
 # The server starts the game
 
-SERVER> 6,"gameStart"
+SERVER> 3,"gameStart"
 
 # The server notifies that a tick has completed from its point of view
 
-SERVER> 7,"tick",0
+SERVER> 4,"tick",0
 
 # The client notifies that it wishes to send a command
 
@@ -57,11 +64,11 @@ CLIENT> 2{"$": "construct", "what": "PowerPlant"}
 
 # The server echoes the command back to all clients
 
-SERVER> 8,"C",1,{"$": "construct", "what": "PowerPlant"}
+SERVER> 5,"C",1,{"$": "construct", "what": "PowerPlant"}
 
 # The server notifies again that a tick has completed
 
-SERVER> 9,"tick",1
+SERVER> 6,"tick",1
 
 -----------------
 Message type list
@@ -85,19 +92,9 @@ SERVER>
 "hello"
 Notifies the client that the connection has been established.
 
-"loadMap",src(string)
-Tells the client to load a map from the specified source URL.
-
-"loadAsset",src(string)
-Tells the client to load a game asset from the specified source URL.
-
-"AC",{$type: string, id: integer, ...}
-Tells the client to create an actor with the specified parameters and add it to the
-game.
-
-"youAre",actor(number)
-Tells the client the id of the actor that represents the player the client is
-associated with.
+"scenario",player(number),scenario(object)
+Tells the client the actor ID of the player object of the local player and the
+base scenario for this game (see below).
 
 "gameStart"
 Notifies the client that the game has started.
@@ -120,11 +117,27 @@ received yet. Parameter tick is the tick number of the last tick processed, or 0
 when no ticks have been processed yet. The client MUST send an "ack" message as the
 first message after having received the server hello.
 
-"mapReady"
-Notifies the server that the client has successfully loaded the map as instructed by
-the server.
-
-"assetReady",done(integer),known(integer)
+"assetReady",done(integer),known(integer),everythingDone(boolean)
 Notifies the server that the client has successfully loaded "done" number of game
 assets out of "known" number of game assets the server has instructed the client to
 load so far.
+
+-----------------------
+Scenario message format
+-----------------------
+
+{
+	// The URL or a RequireJS location from which the scenario document is loaded from
+	"scenarioLocation": "location",
+	// The name of a scenario inside the scenario file
+	"scenarioName": "#reference",
+	// Players participating in this game
+	"players": [
+		{
+			// Public ID of this player
+			"publicId": 0,
+			// Player color of this player
+			"color": "#ff0000"
+		}
+	]
+}

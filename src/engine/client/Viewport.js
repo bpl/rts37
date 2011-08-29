@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/client/Widget'], function (Widget) {
+define(['engine/util/Event', 'engine/client/Widget'], function (Event, Widget) {
 
 	inherits(Viewport, Widget);
 	function Viewport(client, opt /* x, y, width, height */) {
@@ -8,8 +8,8 @@ define(['engine/client/Widget'], function (Widget) {
 		this.game = this.client.game;
 		this.autoScrollRegion = 100;
 		this.autoScrollMultiplier = 2.5;
-		this.viewX = this.game.fieldWidth / 2;
-		this.viewY = this.game.fieldHeight / 2;
+		this.viewX = 0;
+		this.viewY = 0;
 		this.viewZoom = 1;
 		this.lastMouseX = 0;
 		this.lastMouseY = 0;
@@ -21,7 +21,17 @@ define(['engine/client/Widget'], function (Widget) {
 		this._areaSelectionStartY = 0;
 		this._areaSelectionEndX = 0;
 		this._areaSelectionEndY = 0;
+
+		Event.register('didLoadAsset', this._didLoadAsset, this);
 	}
+
+	Viewport.prototype._didLoadAsset = function () {
+		if (this.game.map) {
+			this.viewX = this.game.fieldWidth / 2;
+			this.viewY = this.game.fieldHeight / 2;
+			return Event.STOP;
+		}
+	};
 
 	Viewport.prototype.draw = function (gl) {
 		// To make autoscrolling work, this should be called as the first thing

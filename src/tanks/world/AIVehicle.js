@@ -2,11 +2,10 @@
 
 define(['tanks/world/Vehicle'], function (Vehicle) {
 
-	register('AIVehicle', AIVehicle);
 	inherits(AIVehicle, Vehicle);
-	function AIVehicle(opt /* id, player, x, y, waypoints */) {
+	function AIVehicle(opt /* id, playerId, x, y, waypoints */) {
 		Vehicle.call(this, opt);
-		this.defaults(opt, {
+		defaults.call(this, opt, {
 			waypoints: [],
 			currentWaypoint: 0
 		});

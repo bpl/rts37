@@ -88,6 +88,10 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 	MyViewport.prototype.draw = function (gl) {
 		Viewport.prototype.draw.call(this, gl);
 
+		if (!this.game.map) {
+			return;
+		}
+
 		// M_model->screen =
 		//    M_ndc->screen * M_projection * M_world->view * M_model->world
 
@@ -452,7 +456,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		this.game.issueCommand(['AC', {
 			'$type': 'Vehicle',
 			'id': this.game.nextId(),   // FIXME: This is not going to work at all in networked setting
-			'player': this.game.localPlayer,
+			'playerId': this.game.localPlayer.publicId,
 			'x': this.lastMouseX,
 			'y': this.lastMouseY
 		}]);

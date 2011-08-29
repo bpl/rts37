@@ -2,7 +2,6 @@
 
 define(function () {
 
-	register('Color', Color);
 	function Color(opt /* red */, green, blue, alpha) {
 		if (typeof opt == 'string') {
 			return Color.fromString(opt);

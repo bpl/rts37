@@ -9,13 +9,13 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 	];
 	var tempVec3 = gllib.Vec3.create();
 
-	register('Vehicle', Vehicle);
 	inherits(Vehicle, Actor);
-	function Vehicle(opt /* id, player, x, y */) {
+	function Vehicle(opt /* id, playerId, game, x, y */) {
 		Actor.call(this, opt);
-		this.defaults(opt, {
+		this.player = opt['game'].playerWithPublicId(opt['playerId']);
+		assert(this.player, 'Vehicle: player is required');
+		defaults.call(this, opt, {
 			id: Number,
-			player: Player,
 			angle: 0,
 			turretAngle: 0,
 			rotationSpeed: 3,

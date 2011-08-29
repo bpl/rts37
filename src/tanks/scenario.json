@@ -1,0 +1,41 @@
+{
+	"#singleplayer": {
+		"map": {
+			"mapImage": "tanks/images/map.png",
+			"groundTextureImage": "tanks/textures/dim_grass2.jpg"
+		},
+		"unitTypes": {
+			"tank": {
+				"class": "tanks/world/Vehicle"
+			},
+			"aiTank": {
+				"class": "tanks/world/AIVehicle"
+			}
+		},
+		"startingUnits": [
+			{"$type": "tank", "id": 3, "playerId": 1, "x": 102400, "y": 102400},
+			{"$type": "tank", "id": 4, "playerId": 1, "x": 204800, "y": 102400},
+			{"$type": "aiTank", "id": 5, "playerId": 2, "x": 204800, "y": 204800, "waypoints": [[102400, 512000], [716800, 563200]]}
+		]
+	},
+	"#multiplayer": {
+		"map": {
+			"mapImage": "tanks/images/map.png",
+			"groundTextureImage": "tanks/textures/dim_grass2.jpg"
+		},
+		"unitTypes": {
+			"tank": {
+				"class": "tanks/world/Vehicle"
+			},
+			"aiTank": {
+				"class": "tanks/world/AIVehicle"
+			}
+		},
+		"startingUnits": [
+			{"$type": "tank", "id": 3, "playerId": 1, "x": 102400, "y": 102400},
+			{"$type": "tank", "id": 4, "playerId": 1, "x": 204800, "y": 102400},
+			{"$type": "tank", "id": 5, "playerId": 2, "x": 700000, "y": 500000},
+			{"$type": "tank", "id": 6, "playerId": 2, "x": 702400, "y": 400000}
+		]
+	}
+}
