@@ -5,7 +5,7 @@
 var sys = require('sys');
 var net = require('net');
 var repl = require('repl');
-var server = require('./server');
+var Server = require('./Server').Server;
 
 var options = {
 	// The TCP port this server will listen to for HTTP and WebSocket
@@ -30,7 +30,7 @@ var options = {
 	acceptedLagMsecs: 5000
 };
 
-var serverInstance = server.createServer(options);
+var serverInstance = new Server(options);
 
 serverInstance.listen();
 

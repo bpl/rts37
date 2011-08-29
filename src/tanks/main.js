@@ -90,11 +90,11 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 		});
 
 		$('#create-remote-game').click(function () {
-			var state = $('#f-create-state').val(),
-				gameId = $('#f-create-gameId').val(),
-				playerId = $('#f-create-playerId').val(),
-				game = initGame(false),
-				connection = new Connection(game, 'ws://localhost:8000/?game=' + escape(gameId) + '&player=' + escape(playerId) + '&state=' + escape(state));
+			var gameSpecString = $('#f-create-spec').val();
+			var gameId = $('#f-create-gameId').val();
+			var playerId = $('#f-create-playerId').val();
+			var game = initGame(false);
+			var connection = new Connection(game, 'ws://localhost:8000/?game=' + escape(gameId) + '&player=' + escape(playerId) + '&spec=' + escape(gameSpecString));
 			connection.setLogging(true);
 			game.setConnection(connection);
 		});
