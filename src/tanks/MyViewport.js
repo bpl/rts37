@@ -57,8 +57,8 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 			'width': 1024,
 			'height': 1024,
 			'mipmap': false,
-			'mag_filter': 'linear',
-			'min_filter': 'linear',
+			'mag_filter': 'nearest',
+			'min_filter': 'nearest',
 			'wrap_s': 'clamp_to_edge',
 			'wrap_t': 'clamp_to_edge'
 		});
