@@ -94,7 +94,7 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 			var gameId = $('#f-create-gameId').val();
 			var playerId = $('#f-create-playerId').val();
 			var game = initGame(false);
-			var connection = new Connection(game, 'ws://localhost:8000/?game=' + escape(gameId) + '&player=' + escape(playerId) + '&spec=' + escape(gameSpecString));
+			var connection = new Connection('ws://localhost:8000/?game=' + escape(gameId) + '&player=' + escape(playerId) + '&spec=' + escape(gameSpecString));
 			connection.setLogging(true);
 			game.setConnection(connection);
 		});
@@ -103,7 +103,7 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 			var gameId = $('#f-join-gameId').val(),
 				playerId = $('#f-join-playerId').val(),
 				game = initGame(false),
-				connection = new Connection(game, 'ws://localhost:8000/?game=' + escape(gameId) + '&player=' + escape(playerId));
+				connection = new Connection('ws://localhost:8000/?game=' + escape(gameId) + '&player=' + escape(playerId));
 			connection.setLogging(true);
 			game.setConnection(connection);
 		});

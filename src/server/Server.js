@@ -10,9 +10,13 @@ var http = require('http');
 var ws = require('../dep/node-websocket-server/ws');
 var util = require('./serverutil');
 var assert = require('../engine/util').assert;
-var Manager = require('./Manager').Manager;
-var Game = require('./Game').Game;
-var Player = require('./Player').Player;
+var Manager = require('./Manager');
+var Game = require('./Game');
+var Player = require('./Player');
+
+// FIXME: Currently the server exits if a connection is interrupted while
+// connecting. Do something about this. An 'error' event no getting handled
+// somewhere?
 
 // Current plan for tick (turn) handling
 //
@@ -155,20 +159,24 @@ Server.prototype.handleConnection = function (conn) {
 		return;
 	}
 
-	player.setConnection(conn);
-	player.serverHello();
+	// Extend connection with onopen and onmessage properties to make it more
+	// similar to WebSocket. Connection already has a send method.
+	assert(!conn.onopen && !conn.onmessage, 'Server.handleConnection: Connection now has onopen and onmessage properties');
+	conn.onopen = null;
+	conn.onmessage = null;
 
-	sys.log('<' + conn.id + '> logged in to game ' + game.id + ' as player ' + player.id);
+	player.setConnection(conn);
+	conn.onopen();
+
+	sys.log('<' + conn.id + '> logged in to game ' + game.id + ' as player ' + player.secretId);
+
+	conn.addListener('message', conn.onmessage.bind(conn));
 
 	conn.addListener('close', function () {
 		sys.log('<' + conn.id + '> disconnected');
-		if (player.connection == conn) {
+		if (player.connection === conn) {
 			player.setConnection(null);
 		}
-	});
-
-	conn.addListener('message', function (msg) {
-		player.handleMessage(msg);
 	});
 };
 
@@ -276,4 +284,4 @@ Server.prototype.handleRequest = function (request, response) {
 	});
 };
 
-exports.Server = Server;
+module.exports = Server;

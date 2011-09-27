@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario) {
+define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], function (Event, Channel, Scenario) {
 
 	function Game(isLocal) {
 		this.localPlayer = null;
@@ -44,12 +44,13 @@ define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario
 		// Server communication
 		//
 		this.isLocal = isLocal;
-		this.lastTagReceived = 0;
+		this.channel = new Channel();
+		this.channel.didReceiveMessage.register(this.handleMessage, this);
+		this.channel.didEncounterError.register(this._channelDidEncounterError, this);
 		// The last item is an array (queue) of commands to process at the next tick.
 		// The commands received during this turn are pushed to item 0.
 		this.commandQueues = [[]];
 		this.acknowledgeAt = 0;
-		this.connection = null;
 		this.notifyAssetReadyAt = 0;
 		//
 		// Events
@@ -57,6 +58,10 @@ define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario
 		// Emitted after a tick has been processed
 		this.onTick = new Event();
 	}
+
+	Game.prototype._channelDidEncounterError = function (errorString) {
+		console.error('Channel error: ' + errorString);
+	};
 
 	/**
 	 * Loads scenario information and starts the game when everything is ready.
@@ -139,9 +144,9 @@ define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario
 	};
 
 	Game.prototype.setConnection = function (connection) {
-		assert(typeof connection == 'object', 'Game.setConnection: connection is not an object');
-		assert(connection === null || typeof connection.send == 'function', 'Game.setConnection: connection.send is not a function');
-		this.connection = connection;
+		assert(typeof connection === 'object', 'Game.setConnection: connection is not an object');
+		assert(connection && typeof connection.send === 'function', 'Game.setConnection: connection.send is not a function');
+		this.channel.setConnection(connection);
 	};
 
 	Game.prototype.setTicksPerSecond = function (value) {
@@ -251,14 +256,13 @@ define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario
 		// FIXME: Soft adjustment for situations where the client has a tendency to
 		// speed past the server.
 		//
-		// Acknowledgement handling. Send general acknowledgement 100 msecs
-		// after receiving a message that has not been acknowledgement yet, and
-		// after processing a new tick. Send asset loading acknowledgement one
-		// second after a new asset has been loaded.
+		// Acknowledgement handling. Send general acknowledgement after
+		// processing a new tick. Send asset loading acknowledgement one second
+		// after a new asset has been loaded.
 		if (!this.isLocal) {
 			if (this.acknowledgeAt > 0 && this.acknowledgeAt <= (new Date()).getTime()) {
 				this.acknowledgeAt = 0;
-				this.notifyServer(['ack', this.lastTagReceived, this.lastProcessedTick]);
+				this.notifyServer(['ack', this.lastProcessedTick]);
 			}
 			if (this.notifyAssetReadyAt > 0 && this.notifyAssetReadyAt <= (new Date()).getTime()) {
 				this.notifyAssetReadyAt = 0;
@@ -329,14 +333,6 @@ define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario
 		}
 	};
 
-	// Decodes the specified message string and handles the individual messages contained there
-	Game.prototype.handleMessageString = function (str) {
-		var msg = JSON.parse('{"d":[' + str + ']}')['d'];
-		// [0] is the delivery tag
-		// [1] is the type of the message
-		this.handleMessage(msg);
-	};
-
 	Game.prototype.handleCommand = function (player, cmd) {
 		// The command is a JavaScript array, where cmd[0] is a string indicating
 		// the type of the command. Commands may need to be validated because the server
@@ -345,38 +341,28 @@ define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario
 	};
 
 	Game.prototype.handleMessage = function (msg) {
-		// The message is a JavaScript array where msg[0] is the delivery tag of the
-		// message, msg[1] indicates the type of the message and the rest of the items
-		// are message-specific parameters. Not much validation is necessary for
-		// messages, because they are issued by the server.
-		//
-		// Delivery tag handling
-		assert(typeof msg[0] == 'number', 'Game.handleMessage: message has no delivery tag');
-		if (msg[0] > 0) {
-			// If the message has been handled already, there is no need to handle it
-			// again.
-			if (msg[0] <= this.lastTagReceived) {
-				return;
-			}
-			this.lastTagReceived = msg[0];
-			this.queueAcknowledgement();
-		}
+		// The message is a JavaScript array where msg[0] indicates the type of
+		// the message and the rest of the items are message-specific
+		// parameters. Not much validation is necessary for messages, because
+		// they are issued by the server.
+		// FIXME: Who is responsible for sending acknowledgements now?
+		this.queueAcknowledgement();
 		// Message type switch
-		assert(typeof msg[1] == 'string', 'Game.handleMessage: message type is not a string');
-		switch (msg[1]) {
+		assert(typeof msg[0] == 'string', 'Game.handleMessage: message type is not a string');
+		switch (msg[0]) {
 			case 'C':
 				// Command
-				// [2] is the public ID of the player the command is from
-				// [3] is the properties of the command
-				var player = this.playerWithPublicId(msg[2]);
+				// [1] is the public ID of the player the command is from
+				// [2] is the properties of the command
+				var player = this.playerWithPublicId(msg[1]);
 				assert(player, 'Game.handleMessage: player not found for C');
-				this.commandQueues[0].push([player, msg[3]]);
+				this.commandQueues[0].push([player, msg[2]]);
 				break;
 			case 'tick':
 				// Tick permitted
-				// [2] is the number of the tick we are now permitted to process
+				// [1] is the number of the tick we are now permitted to process
 				// FIXME: Should we handle here returning to a paused game
-				var tick = msg[2];
+				var tick = msg[1];
 				assert(typeof tick == 'number', 'Game.handleMessage: tick must be a number');
 				if (tick == this.lastPermittedTick + 1) {
 					// Increase the last permitted tick to let the game loop proceed
@@ -393,26 +379,26 @@ define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario
 				break;
 			case 'scenario':
 				// Received scenario information from server
-				// [2] is the public ID of the current player
-				// [3] is the scenario specification object
-				this.loadScenario(msg[3], msg[2]);
+				// [1] is the public ID of the current player
+				// [2] is the scenario specification object
+				// FIXME: Change one or another so that these will have the same order
+				this.loadScenario(msg[2], msg[1]);
 				break;
 			case 'hello':
 				// Server hello
-				// Send the last delivery tag received and last tick processed in
-				// response.
-				this.notifyServer(['ack', this.lastTagReceived, this.lastProcessedTick]);
+				// Send the last tick processed in response
+				this.notifyServer(['ack', this.lastProcessedTick]);
 				break;
 			case 'error':
 				// Error
-				// [2] is the error object
-				// [2]['msg'] is a textual description of the error
+				// [1] is the error object
+				// [1]['msg'] is a textual description of the error
 				if (typeof console != 'undefined') {
-					console.log('Server error: ' + msg[2]['msg']);
+					console.log('Server error: ' + msg[1]['msg']);
 				}
 				break;
 			default:
-				assert(false, 'Game.handleMessage: unrecognized message type "' + msg[1] + '"');
+				assert(false, 'Game.handleMessage: unrecognized message type "' + msg[0] + '"');
 				break;
 		}
 	};
@@ -421,28 +407,19 @@ define(['engine/util/Event', 'engine/world/Scenario'], function (Event, Scenario
 		if (this.isLocal) {
 			this.handleCommand(this.localPlayer, cmd);
 		} else {
-			this.connection.send('2' + JSON.stringify(cmd));
+			this.channel.deliver(cmd);
 		}
 	};
 
 	// Guaranteed delivery of a message to the server
 	Game.prototype.issueMessage = function (msg) {
-		// FIXME: Make this actually work. The server doesn't currently expect
-		// the client to send a message tag. Guaranteed delivery is, however,
-		// necessary to make sure the server knowns when all the assets have
-		// been loaded by all players and the game is ready to start.
+		this.channel.deliver.apply(this.channel, msg);
 	};
 
 	// Non-guaranteed delivery of a message to the server
 	Game.prototype.notifyServer = function (msg) {
-		assert(!this.isLocal, 'Game.notifyServer: can\'t send because the game is local');
-		if (this.connection) {
-			var parts = ['1'];
-			for (var i = 0; i < msg.length; ++i) {
-				parts.push(JSON.stringify(msg[i]));
-			}
-			this.connection.send(parts.join(','));
-		}
+		assert(!this.isLocal, 'Game.notifyServer: cannot send because the game is local');
+		this.channel.notify.apply(this.channel, msg);
 	};
 
 	// Send acknowledgement to server after at most 100 milliseconds

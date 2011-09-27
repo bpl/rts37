@@ -5,7 +5,7 @@
 var sys = require('sys');
 var net = require('net');
 var repl = require('repl');
-var Server = require('./Server').Server;
+var Server = require('./Server');
 
 var options = {
 	// The TCP port this server will listen to for HTTP and WebSocket

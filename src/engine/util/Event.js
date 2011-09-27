@@ -1,6 +1,16 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(function () {
+// AMD support in Node.js only comes in two flavours, nonexistent (pre-0.5) and
+// completely borken (0.5), so we need this shim.
+(function (callback) {
+	if (typeof module === 'object' && 'exports' in module) {
+		module.exports = callback();
+	} else if (typeof define === 'function') {
+		define(callback);
+	} else {
+		throw new Error('Both Require.js and Node.js globals missing');
+	}
+})(function () {
 
 	// Sentinel object to indicate that the event handler should be deregistered
 	const STOP = Object.freeze({});

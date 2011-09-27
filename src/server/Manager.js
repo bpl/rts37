@@ -68,4 +68,4 @@ Manager.prototype.tryDequeue = function (now) {
 	return result;
 };
 
-exports.Manager = Manager;
+module.exports = Manager;
