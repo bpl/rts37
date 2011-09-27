@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-var Player = require('./Player').Player;
+var Player = require('./Player');
 var assert = require('../engine/util').assert;
 
 function Game(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
@@ -114,4 +114,4 @@ Game.prototype.wake = function (now) {
 	this.running = true;
 };
 
-exports.Game = Game;
+module.exports = Game;

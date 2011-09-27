@@ -19,19 +19,20 @@ Sample communication of how the game should start:
 # - random: A random string to make the data unguessable
 # - mac: Message authentication code that proves who the user is
 
-# The server responds with a server hello
+# The server and client both send a recap request / hello
 
-SERVER> 1,"hello"
+SERVER> -1,0
 
-# The client tells the server that the client is ready to receive the initial game
-# state. From the server's perspective initial game state is not much different from
-# backlogged messages.
+CLIENT> -1,0
 
-CLIENT> 1,"ack",0,0
+# The client tells the server that the client is ready to receive the initial
+# game state. (FIXME: Outdated?)
+
+CLIENT> 1,0,"ack",0
 
 # The server tells the client the scenario and who the player is
 
-SERVER> 2,"scenario",1,{
+SERVER> 1,1,"scenario",1,{
 	"scenarioLocation": "http://localhost:8000/fs/scenario.json",
 	"scenarioName": "#multiplayer",
 	"players": [
@@ -48,27 +49,27 @@ SERVER> 2,"scenario",1,{
 
 # The client tells the server that it has loaded all the resources
 
-CLIENT> 1,"assetReady",6,6,true
+CLIENT> 1,1,"assetReady",6,6,true
 
 # The server starts the game
 
-SERVER> 3,"gameStart"
+SERVER> 2,1,"gameStart"
 
 # The server notifies that a tick has completed from its point of view
 
-SERVER> 4,"tick",0
+SERVER> 3,1,"tick",0
 
 # The client notifies that it wishes to send a command
 
-CLIENT> 2{"$": "construct", "what": "PowerPlant"}
+CLIENT> 2,3,{"$": "construct", "what": "PowerPlant"}
 
 # The server echoes the command back to all clients
 
-SERVER> 5,"C",1,{"$": "construct", "what": "PowerPlant"}
+SERVER> 4,2,"C",1,{"$": "construct", "what": "PowerPlant"}
 
 # The server notifies again that a tick has completed
 
-SERVER> 6,"tick",1
+SERVER> 5,2,"tick",1
 
 -----------------
 Message type list
@@ -89,9 +90,6 @@ one of the following values:
 
 SERVER>
 
-"hello"
-Notifies the client that the connection has been established.
-
 "scenario",player(number),scenario(object)
 Tells the client the actor ID of the player object of the local player and the
 base scenario for this game (see below).
@@ -110,12 +108,11 @@ Server-to-client command broadcast
 
 CLIENT>
 
-"ack",tag(integer),tick(integer)
-Acknowledges the receipt of message(s) and processing of tick(s). Parameter tag is
-the message tag of the last server message received, or 0 when no messages have been
-received yet. Parameter tick is the tick number of the last tick processed, or 0
-when no ticks have been processed yet. The client MUST send an "ack" message as the
-first message after having received the server hello.
+"ack",tick(integer)
+Acknowledges processing of tick(s). Parameter tick is the tick number of the
+last tick processed, or 0 when no ticks have been processed yet. The client MUST
+send an "ack" message as the first message after having received the server
+hello. (FIXME: Is this outdated?)
 
 "assetReady",done(integer),known(integer),everythingDone(boolean)
 Notifies the server that the client has successfully loaded "done" number of game

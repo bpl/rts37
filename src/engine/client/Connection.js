@@ -8,32 +8,36 @@ define(function () {
 
 	var OUTGOING_LOG_FILTER = /^\d+,"ack",\d+,\d+$/;
 
-	function Connection(game, url) {
-		var self = this;
-		this.game = game;
+	function Connection(url) {
 		this.logging = false;
+
+		this.onopen = null;
+		this.onmessage = null;
+
 		this.socket = new WebSocket(url);
-		this.socket.onopen = function () {
-			self.handleOpen();
-		};
-		this.socket.onmessage = function (evt) {
-			self.handleMessage(evt);
-		};
+		this.socket.onopen = this._handleOpen.bind(this);
+		this.socket.onmessage = this._handleMessage.bind(this);
 	}
 
 	Connection.prototype.setLogging = function (value) {
 		this.logging = value && typeof console != 'undefined';
 	};
 
-	Connection.prototype.handleOpen = function () {
+	Connection.prototype._handleOpen = function () {
+		if (this.logging) {
+			console.info('WebSocket connected');
+		}
+		if (this.onopen) {
+			this.onopen();
+		}
 	};
 
-	Connection.prototype.handleMessage = function (evt) {
+	Connection.prototype._handleMessage = function (evt) {
 		if (this.logging && !evt.data.match(INCOMING_LOG_FILTER)) {
 			console.info('Received: ' + evt.data);
 		}
-		if (evt.data) {
-			this.game.handleMessageString(evt.data);
+		if (this.onmessage) {
+			this.onmessage(evt);
 		}
 	};
 
