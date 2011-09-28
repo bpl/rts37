@@ -4,9 +4,9 @@
 
 define(function () {
 
-	var INCOMING_LOG_FILTER = /^\d+,"tick",\d+$/;
+	var INCOMING_LOG_FILTER = /^\d+,\d+,"tick",\d+$/;
 
-	var OUTGOING_LOG_FILTER = /^\d+,"ack",\d+,\d+$/;
+	var OUTGOING_LOG_FILTER = /^\d+,\d+,"ack",\d+$/;
 
 	function Connection(url) {
 		this.logging = false;
@@ -14,7 +14,15 @@ define(function () {
 		this.onopen = null;
 		this.onmessage = null;
 
-		this.socket = new WebSocket(url);
+		// TODO: Firefox should drop the Moz prefix soon. This can then be removed.
+		if (typeof WebSocket !== 'undefined') {
+			this.socket = new WebSocket(url);
+		} else if (typeof MozWebSocket !== 'undefined') {
+			this.socket = new MozWebSocket(url);
+		} else {
+			throw new Error('Neither WebSocker nor MozWebSocket global was found');
+		}
+
 		this.socket.onopen = this._handleOpen.bind(this);
 		this.socket.onmessage = this._handleMessage.bind(this);
 	}
