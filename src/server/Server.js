@@ -7,16 +7,19 @@ var fs = require('fs');
 var path = require('path');
 var url = require('url');
 var http = require('http');
-var ws = require('../dep/node-websocket-server/ws');
+
+var WebSocketServer = require('../dep/WebSocket-Node').server;
+
 var util = require('./serverutil');
 var assert = require('../engine/util').assert;
+
 var Manager = require('./Manager');
 var Game = require('./Game');
 var Player = require('./Player');
 
 // FIXME: Currently the server exits if a connection is interrupted while
-// connecting. Do something about this. An 'error' event no getting handled
-// somewhere?
+// connecting. Do something about this. An 'error' event not getting handled
+// in the connection?
 
 // Current plan for tick (turn) handling
 //
@@ -41,36 +44,34 @@ var Player = require('./Player');
 function Server(opt) {
 	// Please see runserver.js for a list of options
 	this.options = opt;
-	// The WebSocket server we will be using
-	this.server = ws.createServer();
 	// Holds a list of games
 	this.manager = new Manager();
 
-	var self = this;
+	// HTTP server configuration
 
-	this.server.addListener('error', function (exception) {
-		self.handleError(exception);
+	this.httpServer = http.createServer();
+
+	this.httpServer
+		.on('listening', this.handleListening.bind(this))
+		.on('request', this.handleRequest.bind(this))
+		.on('error', this.handleError.bind(this))
+		.on('clientError', this.handleClientError.bind(this));
+
+	// WebSocket server configuration
+
+	this.server = new WebSocketServer({
+		httpServer: this.httpServer,
+		keepalive: false,   // We'll implement our own at application level
+		// Default, show here just for documentation
+		disableNagleAlgorithm: true,
+		autoAcceptConnections: false
 	});
 
-	this.server.addListener('clientError', function (exception) {
-		self.handleClientError(exception);
-	});
-
-	this.server.addListener('listening', function () {
-		self.handleListening();
-	});
-
-	this.server.addListener('connection', function (conn) {
-		self.handleConnection(conn);
-	});
-
-	this.server.addListener('request', function (request, response) {
-		self.handleRequest(request, response);
-	});
+	this.server.on('request', this.handleWebSocketRequest.bind(this));
 }
 
 Server.prototype.listen = function () {
-	this.server.listen(this.options.listenPort);
+	this.httpServer.listen(this.options.listenPort);
 	// Send the notifications for ticks having ended etc.
 	var self = this;
 	setInterval(function () {
@@ -88,8 +89,7 @@ Server.prototype.handleError = function (exception) {
 	sys.log('Server error ' + sys.inspect(exception));
 };
 
-// This gets called for example when the request listener throws an exception.
-// It is shared by WebSocket and HTTP listeners.
+// This gets called if a client connection emits an 'error' event
 Server.prototype.handleClientError = function (exception) {
 	sys.log('Client error ' + (exception.stack || exception));
 };
@@ -98,24 +98,29 @@ Server.prototype.handleListening = function () {
 	sys.log('Listening for connections on port ' + this.options.listenPort);
 };
 
-// WebSocket request handling
-Server.prototype.handleConnection = function (conn) {
-	sys.log('<' + conn.id + '> connected');
-	// FIXME: Access to a private member, not good but currently required to gain
-	// access to the query string.
-	var query = url.parse(conn._req.url, true).query || {};
+// WebSocket request handling. WebSocket-Node contains no way to get a reference
+// to the initial HTTP request from connection, so the connection needs to be
+// validated here.
+Server.prototype.handleWebSocketRequest = function (req) {
+	var clientId = req.remoteAddress;
+
+	sys.log('<' + clientId + '> request');
+	var query = url.parse(req.httpRequest.url, true).query || {};
 	var gameId = query['game'] || '';
 	var playerId = query['player'] || '';
 	var gameSpecString = query['spec'] || '';
 
+	// FIXME: Check origin (important to stop people from misusing resources)
+	// FIXME: Better rejection status codes
+	// FIXME: Remove static notifyError (and other statics?) from Player and
+	// Channel because we shouldn't need them any longer.
+
 	if (!gameId) {
-		Player.notifyError(conn, 'Game ID was not specified');
-		conn.close();
+		req.reject(500, 'Game ID was not specified');
 		return;
 	}
 	if (!playerId) {
-		Player.notifyError(conn, 'Player ID was not specified');
-		conn.close();
+		req.reject(500, 'Player ID was not specified');
 		return;
 	}
 
@@ -127,15 +132,13 @@ Server.prototype.handleConnection = function (conn) {
 		// should be loaded from somewhere. For now we'll just use the game
 		// state sent by the client.
 		if (!gameSpecString) {
-			Player.notifyError(conn, 'No game specification specified');
-			conn.close();
+			req.reject(500, 'No game specification specified');
 			return;
 		}
 		try {
 			var gameSpec = JSON.parse(gameSpecString);
 		} catch (e) {
-			Player.notifyError(conn, 'Error was encountered while parsing the game specification: ' + sys.inspect(e));
-			conn.close();
+			req.reject(500, 'Error was encountered while parsing the game specification: ' + sys.inspect(e));
 			return;
 		}
 		// FIXME: Hard-coded game options
@@ -154,30 +157,39 @@ Server.prototype.handleConnection = function (conn) {
 	if (!player) {
 		// The doesn't appear to exist a player with this player id, so we just send
 		// an error message and sever the connection.
-		Player.notifyError(conn, 'Unknown player secret ID "' + playerId + '"');
-		conn.close();
+		req.reject(500, 'Unknown player secret ID "' + playerId + '"');
 		return;
 	}
 
-	// Extend connection with onopen and onmessage properties to make it more
-	// similar to WebSocket. Connection already has a send method.
-	assert(!conn.onopen && !conn.onmessage, 'Server.handleConnection: Connection now has onopen and onmessage properties');
-	conn.onopen = null;
-	conn.onmessage = null;
+	// Everything checks out, so accept the request and create a wrapper for the
+	// connection to make it look more like browser WebSocket.
 
-	player.setConnection(conn);
-	conn.onopen();
+	req.on('requestAccepted', function (conn) {
+		sys.log('<' + clientId + '> connected to game ' + game.id + ' as player ' + player.secretId);
 
-	sys.log('<' + conn.id + '> logged in to game ' + game.id + ' as player ' + player.secretId);
+		var wrapper = {
+			send: conn.sendUTF.bind(conn),
+			onopen: null,
+			onmessage: null
+		};
 
-	conn.addListener('message', conn.onmessage.bind(conn));
+		player.setConnection(wrapper);
 
-	conn.addListener('close', function () {
-		sys.log('<' + conn.id + '> disconnected');
-		if (player.connection === conn) {
-			player.setConnection(null);
-		}
+		conn.on('message', function (message) {
+			wrapper.onmessage(message.utf8Data);
+		});
+
+		conn.on('close', function () {
+			sys.log('<' + clientId + '> disconnected');
+			if (player.connection === wrapper) {
+				player.setConnection(null);
+			}
+		});
+
+		wrapper.onopen();
 	});
+
+	req.accept(null, req.origin);
 };
 
 // HTTP request handling
