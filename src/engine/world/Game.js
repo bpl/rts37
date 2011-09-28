@@ -345,9 +345,6 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 		// the message and the rest of the items are message-specific
 		// parameters. Not much validation is necessary for messages, because
 		// they are issued by the server.
-		// FIXME: Who is responsible for sending acknowledgements now?
-		this.queueAcknowledgement();
-		// Message type switch
 		assert(typeof msg[0] == 'string', 'Game.handleMessage: message type is not a string');
 		switch (msg[0]) {
 			case 'C':
