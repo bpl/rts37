@@ -107,6 +107,7 @@ define(['engine/util/Event', 'engine/client/Widget'], function (Event, Widget) {
 	};
 
 	Viewport.prototype.handleDragDone = function (x, y) {
+		// FIXME: This might not work depending on which direction the drag happens
 		this.client.setSelection(this.getActorsInsideScreenRect(
 			this._areaSelectionStartX, this._areaSelectionStartY,
 			x, y

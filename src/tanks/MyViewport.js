@@ -312,9 +312,6 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		// visible area plus those corners extruded by Z in the coordinate space
 		// of the light.
 
-		// FIXME: Only render backfaces when rendering the shadow map. Also,
-		// self-shadow shadow casters.
-
 		// TODO: The area given by this routine (as it currenly stands) doesn't
 		// take into account shadow casters residing just outside the visible
 		// area. They too should be able to cast shadows here.

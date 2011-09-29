@@ -9,7 +9,6 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 	const MOUSE_DRAG_THRESHOLD = 5;
 
 	function Client(game, canvas) {
-		var self = this;
 		assert(game && typeof game === 'object', 'Client: game must be an object');
 		assert(canvas, 'Client: canvas is required');
 		this.game = game;
@@ -72,65 +71,57 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 					setTimeout(callback, 10);
 				};
 
+		// handleAnimationFrame needs to be a var instead of a named function
+		// expression due to bind.
+		var handleAnimationFrame = function () {
+			requestAnimationFrame.call(window, handleAnimationFrame, canvas);
+			this.drawLoop();
+		}.bind(this);
+
 		// If contexts are available, set up event handlers
 
 		window.setInterval(function () {
-			self.game.gameLoop();
-		}, 10);
+			this.game.gameLoop();
+		}.bind(this), 10);
 
-		requestAnimationFrame.call(window, function handleAnimationFrame() {
-			requestAnimationFrame.call(window, handleAnimationFrame, canvas);
-			self.drawLoop();
-		}, canvas);
+		requestAnimationFrame.call(window, handleAnimationFrame, canvas);
 
-		this.canvas.addEventListener('click', function (evt) {
-			self.handleClick(evt);
-		}, false);
+		this.canvas.addEventListener('click', this.handleClick.bind(this), false);
 
-		this.canvas.addEventListener('mousedown', function (evt) {
-			self.handleMouseDown(evt);
-		});
+		this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this), false);
 
-		this.canvas.addEventListener('mousemove', function (evt) {
-			self.handleMouseMove(evt);
-		}, false);
+		this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this), false);
 
-		this.canvas.addEventListener('mouseup', function (evt) {
-			self.handleMouseUp(evt);
-		});
+		this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this), false);
 
-		this.canvas.addEventListener('mouseout', function (evt) {
-			self.handleMouseOut(evt);
-		}, false);
+		this.canvas.addEventListener('mouseout', this.handleMouseOut.bind(this), false);
 
-		document.addEventListener('keypress', function (evt) {
-			self.handleKeyPress(evt);
-		}, false);
+		document.addEventListener('keypress', this.handleKeyPress.bind(this), false);
 
 		window.addEventListener('resize', function (evt) {
-			var func = self.onresizewindow;
+			var func = this.onresizewindow;
 			if (func) {
-				func.call(self, evt);
+				func.call(this, evt);
 			}
-		}, false);
+		}.bind(this), false);
 
 		// WebGL context initialization
-		// FIXME: Must be done again if the context is lost and restored
 
-		var gl = this.gl;
-		gllib.provideContext(gl);
+		gllib.provideContext(this.gl);
 
-		// Enable depth buffering
-		// Defaults to depth mask enabled and depth range of 0 to 1
-		gl.enable(gl.DEPTH_TEST);
-		gl.depthFunc(gl.LEQUAL);
-		gl.depthMask(true);   // It's already the default, though
+		gllib.needsContext(function (gl) {
+			// Enable depth buffering
+			// Defaults to depth mask enabled and depth range of 0 to 1
+			gl.enable(gl.DEPTH_TEST);
+			gl.depthFunc(gl.LEQUAL);
+			gl.depthMask(true);   // It's already the default, though
 
-		gl.clearColor(0.0, 0.0, 0.0, 0.0);
-		gl.clearDepth(1.0);
+			gl.clearColor(0.0, 0.0, 0.0, 0.0);
+			gl.clearDepth(1.0);
 
-		gl.enable(gl.CULL_FACE);
-		gl.frontFace(gl.CW);   // Notice that this is NOT the default
+			gl.enable(gl.CULL_FACE);
+			gl.frontFace(gl.CW);   // Notice that this is NOT the default
+		}, this);
 	}
 
 	// Set the currently selected actors to certain array

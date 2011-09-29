@@ -52,19 +52,17 @@ define(['engine/util/Event', 'engine/world/Player', 'engine/world/Map'], functio
 			this.delegate.addPlayer(new Player(players[i]));
 		}
 
-		var that = this;
 		require(['engine/util/json!' + gameSpec['scenarioLocation']], function (scenarioDocument) {
 			// FIXME: Optionally report this type of errors back to the server
 			assert(gameSpec['scenarioName'] in scenarioDocument, 'Scenario.load: scenario not found in scenario document');
-			that.loadAssets(scenarioDocument[gameSpec['scenarioName']], localPlayerId);
-		});
+			this.loadAssets(scenarioDocument[gameSpec['scenarioName']], localPlayerId);
+		}.bind(this));
 	};
 
 	Scenario.prototype.loadAssets = function (scenario, localPlayerId) {
 		assert(this.state < STATE_LOADING_ASSETS, 'Scenario.loadAssets: asset loading has already started');
 		this.state = STATE_LOADING_ASSETS;
 
-		var that = this;
 		var unitTypes = {};
 
 		// Load and create the map
@@ -77,10 +75,10 @@ define(['engine/util/Event', 'engine/world/Player', 'engine/world/Map'], functio
 			'engine/util/Image!' + groundTextureImageLocation
 		], function (mapImage, groundTextureImage) {
 			var map = new Map(mapImage, groundTextureImage);
-			that.delegate.setMap(map);
-			didLoadAsset.call(that, mapImageLocation);
-			didLoadAsset.call(that, groundTextureImageLocation);
-		});
+			this.delegate.setMap(map);
+			didLoadAsset.call(this, mapImageLocation);
+			didLoadAsset.call(this, groundTextureImageLocation);
+		}.bind(this));
 
 		// Load and create unit types
 		var unitTypeSpecs = scenario['unitTypes'];
@@ -90,15 +88,15 @@ define(['engine/util/Event', 'engine/world/Player', 'engine/world/Map'], functio
 				var unitClass = unitTypeSpec['class'];
 				// Here we are assuming that the scenario file is from a trusted source
 				// TODO: Maybe allow scenarios but not classes from an untrusted source
-				// TODO: Use bind or let to fix parameters
+				// TODO: Use let to fix the parameters when it is more widely supported
 				(function (key, unitClass) {
-					willLoadAsset.call(that, unitClass);
+					willLoadAsset.call(this, unitClass);
 					require([unitClass], function (unitType) {
-						that.delegate.addUnitType(key, unitType);
+						this.delegate.addUnitType(key, unitType);
 						unitTypes[key] = unitType;
-						didLoadAsset.call(that, unitClass);
-					});
-				}(key, unitClass));
+						didLoadAsset.call(this, unitClass);
+					}.bind(this));
+				}.call(this, key, unitClass));
 			}
 		}
 

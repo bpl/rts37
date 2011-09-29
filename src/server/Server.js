@@ -73,16 +73,15 @@ function Server(opt) {
 Server.prototype.listen = function () {
 	this.httpServer.listen(this.options.listenPort);
 	// Send the notifications for ticks having ended etc.
-	var self = this;
 	setInterval(function () {
 		var now = (new Date()).getTime();
 		var game;
-		while (game = self.manager.tryDequeue(now)) {
+		while (game = this.manager.tryDequeue(now)) {
 			// FIXME: What if there is an exception?
 			game.wake(now);
-			self.manager.enqueue(game);
+			this.manager.enqueue(game);
 		}
-	}, 10);
+	}.bind(this), 10);
 };
 
 Server.prototype.handleError = function (exception) {
