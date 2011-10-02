@@ -263,11 +263,11 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 		if (!this.isLocal) {
 			if (this.acknowledgeAt > 0 && this.acknowledgeAt <= (new Date()).getTime()) {
 				this.acknowledgeAt = 0;
-				this.notifyServer(['ack', this.lastProcessedTick]);
+				this.notifyServer('ack', this.lastProcessedTick);
 			}
 			if (this.notifyAssetReadyAt > 0 && this.notifyAssetReadyAt <= (new Date()).getTime()) {
 				this.notifyAssetReadyAt = 0;
-				this.notifyServer(['assetReady', this.scenario.assetsLoaded, this.scenario.assetsQueued, this.scenario.everythingLoaded]);
+				this.notifyServer('assetReady', this.scenario.assetsLoaded, this.scenario.assetsQueued, this.scenario.everythingLoaded);
 			}
 		}
 		// If the game loop is not running, check if we can start or resume it
@@ -385,7 +385,7 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 			case 'hello':
 				// Server hello
 				// Send the last tick processed in response
-				this.notifyServer(['ack', this.lastProcessedTick]);
+				this.notifyServer('ack', this.lastProcessedTick);
 				break;
 			case 'error':
 				// Error
@@ -410,14 +410,14 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 	};
 
 	// Guaranteed delivery of a message to the server
-	Game.prototype.issueMessage = function (msg) {
-		this.channel.deliver.apply(this.channel, msg);
+	Game.prototype.deliverServer = function (/* ...arguments */) {
+		this.channel.deliver.apply(this.channel, arguments);
 	};
 
 	// Non-guaranteed delivery of a message to the server
-	Game.prototype.notifyServer = function (msg) {
+	Game.prototype.notifyServer = function (/* ...arguments */) {
 		assert(!this.isLocal, 'Game.notifyServer: cannot send because the game is local');
-		this.channel.notify.apply(this.channel, msg);
+		this.channel.notify.apply(this.channel, arguments);
 	};
 
 	// Send acknowledgement to server after at most 100 milliseconds
