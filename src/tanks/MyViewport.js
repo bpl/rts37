@@ -500,7 +500,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 	MyViewport.prototype.createNewUnit = function () {
 		// FIXME: For debugging only
 		this.game.issueCommand(['AC', {
-			'$type': 'Vehicle',
+			'$type': 'tank',
 			'id': this.game.nextId(),   // FIXME: This is not going to work at all in networked setting
 			'playerId': this.game.localPlayer.publicId,
 			'x': this.lastMouseX,
