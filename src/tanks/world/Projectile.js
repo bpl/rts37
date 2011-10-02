@@ -6,6 +6,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 	function Projectile(opt /* player, x, y, angle, range, speed */) {
 		assert(opt.player && typeof opt.player === 'object', 'Projectile: player must be an object');
 		Actor.call(this, opt);
+		this.batchName = 'Projectile';
 		defaults.call(this, opt, {
 			player: Player,
 			angle: Number,
@@ -40,6 +41,31 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		'scaleFactor': 10
 	});
 
+	Projectile.drawMultiple = function (gl, client, viewport, visibleSet, begin, end) {
+		projectileMesh.beforeDrawInstances(gl, client, viewport);
+
+		var mtw = Projectile.modelToWorld;
+		var factor = client.factor;
+
+		for (var i = begin; i < end; ++i) {
+			var obj = visibleSet[i];
+
+			// FIXME: The math code is repeated here and in Vehicle class
+			var angleRad = obj.angle;
+			// Rotation
+			mtw[0] = Math.cos(angleRad);
+			mtw[4] = -Math.sin(angleRad);
+			mtw[1] = Math.sin(angleRad);
+			mtw[5] = Math.cos(angleRad);
+			// Translation
+			mtw[12] = (obj.x - obj.dflX * factor) / 1024;
+			mtw[13] = (obj.y - obj.dflY * factor) / 1024;
+			mtw[14] = 10;
+
+			projectileMesh.draw(gl, viewport, mtw, Projectile.meshColor);
+		}
+	};
+
 	Projectile.prototype.tick = function () {
 		var speedPerTick = Math.round(this.speed / this.game.ticksPerSecond);
 		if (this.range > speedPerTick) {
@@ -60,25 +86,6 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 			}
 			this.game.removeActor(this);
 		}
-	};
-
-	Projectile.prototype.draw = function (gl, client, viewport) {
-		// FIXME: The math code is repeated here and in Vehicle class
-
-		var mtw = Projectile.modelToWorld;
-		var factor = client.factor;
-		var angleRad = this.angle;
-		// Rotation
-		mtw[0] = Math.cos(angleRad);
-		mtw[4] = -Math.sin(angleRad);
-		mtw[1] = Math.sin(angleRad);
-		mtw[5] = Math.cos(angleRad);
-		// Translation
-		mtw[12] = (this.x - this.dflX * factor) / 1024;
-		mtw[13] = (this.y - this.dflY * factor) / 1024;
-		mtw[14] = 10;
-
-		projectileMesh.draw(gl, viewport, mtw, Projectile.meshColor);
 	};
 
 	return Projectile;

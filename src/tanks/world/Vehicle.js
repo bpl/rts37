@@ -12,6 +12,7 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 	inherits(Vehicle, Actor);
 	function Vehicle(opt /* id, playerId, game, x, y */) {
 		Actor.call(this, opt);
+		this.batchName = 'Vehicle';
 		this.player = opt['game'].playerWithPublicId(opt['playerId']);
 		assert(this.player, 'Vehicle: player is required');
 		defaults.call(this, opt, {
@@ -32,6 +33,26 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		this.dflAngle = 0;
 		this.dflTurretAngle = 0;
 	}
+
+	Vehicle.drawShadowMapMultiple = function (gl, client, viewport, visibleSet, begin, end) {
+		vehicleMesh.beforeDrawInstances(gl, client, viewport, true);
+
+		for (var i = begin; i < end; ++i) {
+			visibleSet[i]._drawShadowMapInstance(gl, client, viewport);
+		}
+
+		vehicleMesh.afterDrawInstances(gl, client, viewport, true);
+	};
+
+	Vehicle.drawMultiple = function (gl, client, viewport, visibleSet, begin, end) {
+		vehicleMesh.beforeDrawInstances(gl, client, viewport, false);
+
+		for (var i = begin; i < end; ++i) {
+			visibleSet[i]._drawInstance(gl, client, viewport);
+		}
+
+		vehicleMesh.afterDrawInstances(gl, client, viewport, false);
+	};
 
 	Vehicle.prototype.setPosition = function (x, y) {
 		this.dflX += x - this.x;
@@ -147,24 +168,26 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 		return dest;
 	};
 
-	Vehicle.prototype.drawShadowMap = function (gl, client, viewport) {
+	Vehicle.prototype._drawShadowMapInstance = function (gl, client, viewport) {
 		var factor = client.factor;
 
 		var mtw = this.getModelToWorld(factor, tempModelToWorld);
 		var joints = tempJointMatrices;
 		this.getJointMatrix(1, factor, joints[1]);
 
-		vehicleMesh.draw(gl, viewport, mtw, viewport.shadowWorldToView, viewport.shadowProjection, joints, null);
+		vehicleMesh.drawInstance(gl, null, mtw, joints);
 	};
 
-	Vehicle.prototype.draw = function (gl, client, viewport) {
+	Vehicle.prototype._drawInstance = function (gl, client, viewport) {
 		var factor = client.factor;
 
 		var mtw = this.getModelToWorld(factor, tempModelToWorld);
 		var joints = tempJointMatrices;
 		this.getJointMatrix(1, factor, joints[1]);
 
-		vehicleMesh.draw(gl, viewport, mtw, viewport.worldToView, viewport.projection, joints, this.player.color);
+		vehicleMesh.drawInstance(gl, this.player.color, mtw, joints);
+
+		// FIXME: These are currently actually per client, not per viewport
 
 		// If selected, draw the selection indicator
 		if (client.selectedActors.indexOf(this) >= 0) {

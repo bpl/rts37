@@ -166,12 +166,11 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 		gl.enableVertexAttribArray(program.vertexNormal);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, commonIndexBuffer);
 
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, this._groundTexture.texture);
-		gl.uniform1i(program.groundTexture, 0);
+		gl.uniform1i(program.shadowTexture, 0);   // By application-wide convention
+
 		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, viewport.shadowTexture.texture);
-		gl.uniform1i(program.shadowTexture, 1);
+		gl.bindTexture(gl.TEXTURE_2D, this._groundTexture.texture);
+		gl.uniform1i(program.groundTexture, 1);
 
 		gl.uniform1f(program.tileSize, TILE_SIZE);
 		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
@@ -196,8 +195,6 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 		}
 
 		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, null);
-		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, null);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);

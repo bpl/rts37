@@ -6,6 +6,7 @@ define(function () {
 		assert(opt['game'] && typeof opt['game'] === 'object', 'Actor: game must be an object');
 		this.game = opt['game'];
 		this.id = null;
+		this.batchName = '';
 		this.x = opt.x || 0;
 		this.y = opt.y || 0;
 		// Delta from last. This should be positive if the value has increased since last tick and

@@ -76,12 +76,13 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engin
 		return new Uint16Array(mesh.f[0]);
 	};
 
-	Mesh.prototype.draw = function (gl, viewport, mtw, color) {
+	Mesh.prototype.beforeDrawInstances = function (gl, client, viewport) {
 		var vertexBuffer = this._vertexBuffer;
 		var indexBuffer = this._indexBuffer;
 		var program = shaderProgram;
 
 		gl.useProgram(program.program);
+
 		gl.enableVertexAttribArray(program.vertexPosition);
 		gl.enableVertexAttribArray(program.vertexNormal);
 		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -89,14 +90,23 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engin
 		gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, 4 * 6, 4 * 3);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
 		gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
 		gl.uniformMatrix4fv(program.projection, false, viewport.projection);
 		gl.uniform4fv(program.sunLight, viewport.sunLightView);
-		gl.uniform4fv(program.fillColor, color);
 		gl.uniform1f(program.scaleFactor, 7);   // FIXME: Make configurable
+	};
+
+	Mesh.prototype.draw = function (gl, viewport, mtw, color) {
+		var program = shaderProgram;
+
+		gl.uniformMatrix4fv(program.modelToWorld, false, mtw);
+		gl.uniform4fv(program.fillColor, color);
 
 		gl.drawElements(gl.TRIANGLES, this._indexArray.length, gl.UNSIGNED_SHORT, 0);
+	};
+
+	Mesh.prototype.afterDrawInstances = function (gl, client, viewport) {
+		var program = shaderProgram;
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);

@@ -201,9 +201,43 @@ define([
 		xhr.send(null);
 	};
 
-	JointedMesh.prototype.draw = function (gl, viewport, modelToWorld, worldToView, projection, joints, color) {
+	JointedMesh.prototype.beforeDrawInstances = function (gl, client, viewport, isShadowMap) {
+		var program = (isShadowMap ? shadowProgram : viewProgram);
+
 		var vertexBuffer = this._vertexBuffer;
 		var indexBuffer = this._indexBuffer;
+
+		gl.useProgram(program.program);
+
+		gl.enableVertexAttribArray(program.vertexPosition);
+		gl.enableVertexAttribArray(program.vertexNormal);
+		gl.enableVertexAttribArray(program.vertexJointA);
+		gl.enableVertexAttribArray(program.vertexWeightA);
+		gl.enableVertexAttribArray(program.vertexJointB);
+		gl.enableVertexAttribArray(program.vertexWeightB);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, VERTEX_SIZE, 0);
+		gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, VERTEX_SIZE, 12);
+		gl.vertexAttribPointer(program.vertexJointA, 1, gl.UNSIGNED_BYTE, false, VERTEX_SIZE, 24);
+		gl.vertexAttribPointer(program.vertexWeightA, 1, gl.UNSIGNED_BYTE, true, VERTEX_SIZE, 25);
+		gl.vertexAttribPointer(program.vertexJointB, 1, gl.UNSIGNED_BYTE, false, VERTEX_SIZE, 26);
+		gl.vertexAttribPointer(program.vertexWeightB, 1, gl.UNSIGNED_BYTE, true, VERTEX_SIZE, 27);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+		if (isShadowMap) {
+			gl.uniformMatrix4fv(program.worldToView, false, viewport.shadowWorldToView);
+			gl.uniformMatrix4fv(program.projection, false, viewport.shadowProjection);
+		} else {
+			gl.uniformMatrix4fv(program.worldToView, false, viewport.worldToView);
+			gl.uniformMatrix4fv(program.projection, false, viewport.projection);
+			gl.uniformMatrix4fv(program.shadowWorldToClip, false, viewport.shadowWorldToClip);
+			gl.uniform4fv(program.sunLight, viewport.sunLightView);
+			gl.uniform1i(program.shadowTexture, 0);   // By application-wide convention
+		}
+	};
+
+	JointedMesh.prototype.drawInstance = function (gl, color, modelToWorld, joints) {
 		var program = (color ? viewProgram : shadowProgram);
 
 		// Copy all the joint matrices to a single array to pass an a uniform
@@ -217,50 +251,30 @@ define([
 			pos += 16;
 		}
 
-		gl.useProgram(program.program);
-		gl.enableVertexAttribArray(program.vertexPosition);
-		gl.enableVertexAttribArray(program.vertexNormal);
-		gl.enableVertexAttribArray(program.vertexJointA);
-		gl.enableVertexAttribArray(program.vertexWeightA);
-		gl.enableVertexAttribArray(program.vertexJointB);
-		gl.enableVertexAttribArray(program.vertexWeightB);
-		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-		gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, VERTEX_SIZE, 0);
-		gl.vertexAttribPointer(program.vertexNormal, 3, gl.FLOAT, false, VERTEX_SIZE, 12);
-		gl.vertexAttribPointer(program.vertexJointA, 1, gl.UNSIGNED_BYTE, false, VERTEX_SIZE, 24);
-		gl.vertexAttribPointer(program.vertexWeightA, 1, gl.UNSIGNED_BYTE, true, VERTEX_SIZE, 25);
-		gl.vertexAttribPointer(program.vertexJointB, 1, gl.UNSIGNED_BYTE, false, VERTEX_SIZE, 26);
-		gl.vertexAttribPointer(program.vertexWeightB, 1, gl.UNSIGNED_BYTE, true, VERTEX_SIZE, 27);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, viewport.shadowTexture.texture);
-		gl.uniform1i(program.shadowTexture, 0);
+		gl.uniformMatrix4fv(program.jointMatrices, false, ja);
 
 		gl.uniformMatrix4fv(program.modelToWorld, false, modelToWorld);
-		gl.uniformMatrix4fv(program.worldToView, false, worldToView);
-		gl.uniformMatrix4fv(program.projection, false, projection);
-		gl.uniformMatrix4fv(program.shadowWorldToClip, false, viewport.shadowWorldToClip);
-		gl.uniformMatrix4fv(program.jointMatrices, false, ja);
-		gl.uniform4fv(program.sunLight, viewport.sunLightView);
+		gl.uniform1f(program.scaleFactor, this.scaleFactor);
 		if (color) {
 			gl.uniform4fv(program.fillColor, color);
 		}
-		gl.uniform1f(program.scaleFactor, this.scaleFactor);
 
 		gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
+	};
 
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, null);
+	JointedMesh.prototype.afterDrawInstances = function (gl, client, viewport, isShadowMap) {
+		var program = (isShadowMap ? shadowProgram : viewProgram);
+
+		gl.disableVertexAttribArray(program.vertexWeightB);
+		gl.disableVertexAttribArray(program.vertexPosition);
+		gl.disableVertexAttribArray(program.vertexNormal);
+		gl.disableVertexAttribArray(program.vertexJointA);
+		gl.disableVertexAttribArray(program.vertexWeightA);
+		gl.disableVertexAttribArray(program.vertexJointB);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-		gl.disableVertexAttribArray(program.vertexWeightB);
-		gl.disableVertexAttribArray(program.vertexJointB);
-		gl.disableVertexAttribArray(program.vertexWeightA);
-		gl.disableVertexAttribArray(program.vertexJointA);
-		gl.disableVertexAttribArray(program.vertexNormal);
-		gl.disableVertexAttribArray(program.vertexPosition);
+
 		gl.useProgram(null);
 	};
 

@@ -41,6 +41,8 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 
 		this.visibleArea = new Float32Array(8);
 
+		this.visibleSet = [];
+
 		// Unit vector pointing towards the sun. The fourth component controls
 		// the intensity of sunlight.
 		// FIXME: Should reside in game or client
@@ -167,6 +169,10 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 
 		Mat4.multiply(sprj, swtv, swtc);
 
+		// Determine which actors to draw (the visible set) and sort them into
+		// batches for faster drawing.
+		this._determineSortedVisibleSet();
+
 		//
 		// Shadow map rendering
 		//
@@ -177,12 +183,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 		gl.cullFace(gl.FRONT);
 
-		for (var i = 0; i < this.game.actors.length; ++i) {
-			var actor = this.game.actors[i];
-			if ('drawShadowMap' in actor) {
-				actor.drawShadowMap(gl, client, this);
-			}
-		}
+		this._drawVisibleSet(gl, 'drawShadowMapMultiple');
 
 		//
 		// View rendering
@@ -193,13 +194,15 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 		gl.clearColor(0, 0, 0, 0);
 		gl.cullFace(gl.BACK);
 
+		// We use a convention that texture unit 0 is reserved for the shadow map
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.shadowTexture.texture);
+
 		// Draw the terrain
 		this.game.map.draw(gl, client, this);
 
 		// Draw the actors
-		for (var i = 0; i < this.game.actors.length; ++i) {
-			this.game.actors[i].draw(gl, client, this);
-		}
+		this._drawVisibleSet(gl, 'drawMultiple');
 
 		// Draw the billboards
 		Billboard.draw(gl, client, this);
@@ -213,6 +216,52 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 				this._areaSelectionStartX, this._areaSelectionStartY,
 				this._areaSelectionEndX, this._areaSelectionEndY
 			);
+		}
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+	};
+
+	MyViewport.prototype._determineSortedVisibleSet = function () {
+		var vs = this.visibleSet;
+
+		// FIXME: Actually determine the visible set
+		vs.length = 0;
+		for (var i = 0; i < this.game.actors.length; ++i) {
+			var actor = this.game.actors[i];
+			vs.push(actor);
+		}
+
+		// FIXME: Do some other kind of sorting
+		vs.sort(function (a, b) {
+			if (a.batchName < b.batchName) {
+				return -1;
+			}
+			if (a.batchName > b.batchName) {
+				return 1;
+			}
+			return 0;
+		});
+	};
+
+	MyViewport.prototype._drawVisibleSet = function (gl, drawMethodName) {
+		var client = this.client;
+		var vs = this.visibleSet;
+		var begin = 0;
+		while (begin < vs.length) {
+			var currentType = vs[begin].constructor;
+
+			var end = begin + 1;
+			while (end < vs.length && vs[end].constructor === currentType) {
+				++end;
+			}
+
+			var drawMethod = currentType[drawMethodName];
+			if (drawMethod) {
+				drawMethod.call(currentType, gl, client, this, vs, begin, end);
+			}
+
+			begin = end;
 		}
 	};
 

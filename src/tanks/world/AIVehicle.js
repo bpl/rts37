@@ -15,6 +15,10 @@ define(['tanks/world/Vehicle'], function (Vehicle) {
 		}
 	}
 
+	AIVehicle.drawShadowMapMultiple = Vehicle.drawShadowMapMultiple;
+
+	AIVehicle.drawMultiple = Vehicle.drawMultiple;
+
 	AIVehicle.prototype.tick = function () {
 		if (!this.targetX && !this.targetY) {
 			this.currentWaypoint++;
