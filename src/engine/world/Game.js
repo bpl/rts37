@@ -128,6 +128,7 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 	 * @param {object} unitType
 	 */
 	Game.prototype.addUnitType = function (unitTypeName, unitType) {
+		assert(!Object.prototype.hasOwnProperty.call(this.unitTypes, unitTypeName), 'Game.addUnitType: unit type with name ' + unitTypeName + ' already exists');
 		this.unitTypes[unitTypeName] = unitType;
 	};
 
