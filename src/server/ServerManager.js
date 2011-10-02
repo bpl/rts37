@@ -5,7 +5,7 @@ var assert = require('../engine/util').assert;
 // Keeps track of active games on this server and when they need to be woken up
 // to do whatever periodical processing they need to do.
 
-function Manager() {
+function ServerManager() {
 	// Games by game ID
 	this.games = {};
 	// Games sorted from the first to wake up to the last to wake up as a
@@ -17,7 +17,7 @@ function Manager() {
 
 // Returns the active game with the specified id, or null, if no such game
 // exists on this server.
-Manager.prototype.gameWithId = function (id) {
+ServerManager.prototype.gameWithId = function (id) {
 	if (this.games.hasOwnProperty(id)) {
 		return this.games[id] || null;
 	}
@@ -26,15 +26,15 @@ Manager.prototype.gameWithId = function (id) {
 
 // Adds a game to the list of active games and enqueues it to wake up when it
 // wants.
-Manager.prototype.add = function (game) {
-	assert(!this.games.hasOwnProperty(game.id), 'Manager.add: duplicate game ID');
+ServerManager.prototype.add = function (game) {
+	assert(!this.games.hasOwnProperty(game.id), 'ServerManager.add: duplicate game ID');
 	this.games[game.id] = game;
 	this.enqueue(game);
 };
 
 // Enqueues a game to the wake queue, a priority queue of games sorted by the
 // time they want to wake up the next time, starting from the earliest.
-Manager.prototype.enqueue = function (game) {
+ServerManager.prototype.enqueue = function (game) {
 	if (game.wakeAt > 0) {
 		for (var i = this.wakeQueue.length - 1; i >= this.emptySpace; --i) {
 			if (this.wakeQueue[i].wakeAt <= game.wakeAt) {
@@ -54,7 +54,7 @@ Manager.prototype.enqueue = function (game) {
 // If there are one or more games that want to wake up at or after the current
 // time (passed in as the 'now' parameter), returns the first such game.
 // Otherwise, returns null.
-Manager.prototype.tryDequeue = function (now) {
+ServerManager.prototype.tryDequeue = function (now) {
 	if (this.emptySpace >= this.wakeQueue.length ||
 			this.wakeQueue[this.emptySpace].wakeAt > now) {
 		return null;
@@ -68,4 +68,4 @@ Manager.prototype.tryDequeue = function (now) {
 	return result;
 };
 
-module.exports = Manager;
+module.exports = ServerManager;

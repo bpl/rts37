@@ -1,9 +1,9 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-var Player = require('./Player');
+var ServerPlayer = require('./ServerPlayer');
 var assert = require('../engine/util').assert;
 
-function Game(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
+function ServerGame(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
 	//
 	// Properties with static default values
 	//
@@ -13,11 +13,11 @@ function Game(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
 	//
 	// Properties that depend on game options
 	//
-	assert(typeof opt['id'] === 'string', 'Game: id is not a string');
-	assert(opt['ticksPerSecond'] > 0, 'Game: ticksPerSecond is not a positive number');
-	assert(typeof opt['gameSpec'] === 'object', 'Game: gameSpec is not an object');
+	assert(typeof opt['id'] === 'string', 'ServerGame: id is not a string');
+	assert(opt['ticksPerSecond'] > 0, 'ServerGame: ticksPerSecond is not a positive number');
+	assert(typeof opt['gameSpec'] === 'object', 'ServerGame: gameSpec is not an object');
 	var gameSpec = opt['gameSpec'];
-	assert(gameSpec['players'].length > 0, 'Game: No players specified');
+	assert(gameSpec['players'].length > 0, 'ServerGame: No players specified');
 	this.id = opt['id'];
 	this.ticksPerSecond = opt['ticksPerSecond'];
 	this.msecsPerTick = 1000 / this.ticksPerSecond;
@@ -26,7 +26,7 @@ function Game(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
 	this.players = {};
 	for (var i = 0; i < gameSpec['players'].length; ++i) {
 		var playerData = gameSpec['players'][i];
-		var player = new Player({
+		var player = new ServerPlayer({
 			'game': this,
 			'secretId': playerData['secretId'],
 			'publicId': playerData['publicId']
@@ -35,7 +35,7 @@ function Game(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
 	}
 }
 
-Game.prototype.playerWithSecretId = function (secretId) {
+ServerGame.prototype.playerWithSecretId = function (secretId) {
 	if (Object.prototype.hasOwnProperty.call(this.players, secretId)) {
 		return this.players[secretId];
 	}
@@ -45,7 +45,7 @@ Game.prototype.playerWithSecretId = function (secretId) {
 // Guaranteed delivery of a message to all players. This version of this
 // function accepts a single parameter, containing the message as a
 // JSON-formatted string.
-Game.prototype.deliverAllRaw = function (msg) {
+ServerGame.prototype.deliverAllRaw = function (msg) {
 	for (var id in this.players) {
 		this.players[id].deliverRaw(msg);
 	}
@@ -53,7 +53,7 @@ Game.prototype.deliverAllRaw = function (msg) {
 
 // Guaranteed delivery of a message to all players. This version of this
 // function accepts the parts of the message as arguments.
-Game.prototype.deliverAll = function () {
+ServerGame.prototype.deliverAll = function () {
 	var parts = [];
 	for (var i = 0; i < arguments.length; ++i) {
 		parts.push(JSON.stringify(arguments[i]));
@@ -66,7 +66,7 @@ Game.prototype.deliverAll = function () {
  * who have not joined yet. This must be called exactly once, after all player
  * objects have been added to the game.
  */
-Game.prototype.deliverScenario = function () {
+ServerGame.prototype.deliverScenario = function () {
 	// FIXME: Make sure that secret player IDs don't accidentally get sent to other players
 	for (var id in this.players) {
 		var player = this.players[id];
@@ -76,7 +76,7 @@ Game.prototype.deliverScenario = function () {
 
 // Called by the server when the current server clock exceeds time specified in
 // wakeAt property.
-Game.prototype.wake = function (now) {
+ServerGame.prototype.wake = function (now) {
 	// TODO: Is it necessary to try to prevent bunching here to keep the server
 	// load stable?
 	//
@@ -114,4 +114,4 @@ Game.prototype.wake = function (now) {
 	this.running = true;
 };
 
-module.exports = Game;
+module.exports = ServerGame;

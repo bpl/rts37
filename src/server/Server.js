@@ -13,9 +13,8 @@ var WebSocketServer = require('../dep/WebSocket-Node').server;
 var util = require('./serverutil');
 var assert = require('../engine/util').assert;
 
-var Manager = require('./Manager');
-var Game = require('./Game');
-var Player = require('./Player');
+var ServerManager = require('./ServerManager');
+var ServerGame = require('./ServerGame');
 
 // FIXME: Currently the server exits if a connection is interrupted while
 // connecting. Do something about this. An 'error' event not getting handled
@@ -45,7 +44,7 @@ function Server(opt) {
 	// Please see runserver.js for a list of options
 	this.options = opt;
 	// Holds a list of games
-	this.manager = new Manager();
+	this.manager = new ServerManager();
 
 	// HTTP server configuration
 
@@ -111,7 +110,7 @@ Server.prototype.handleWebSocketRequest = function (req) {
 
 	// FIXME: Check origin (important to stop people from misusing resources)
 	// FIXME: Better rejection status codes
-	// FIXME: Remove static notifyError (and other statics?) from Player and
+	// FIXME: Remove static notifyError (and other statics?) from ServerPlayer and
 	// Channel because we shouldn't need them any longer.
 
 	if (!gameId) {
@@ -141,7 +140,7 @@ Server.prototype.handleWebSocketRequest = function (req) {
 			return;
 		}
 		// FIXME: Hard-coded game options
-		game = new Game({
+		game = new ServerGame({
 			'id': gameId,
 			'ticksPerSecond': 5,
 			'acceptedLagMsecs': this.options.acceptedLagMsecs,

@@ -2,7 +2,7 @@
 
 var Channel = require('../engine/util/Channel');
 
-function Player(opt /* game, secretId, publicId */) {
+function ServerPlayer(opt /* game, secretId, publicId */) {
 	this.game = opt.game;
 	this.secretId = opt.secretId;
 	this.publicId = opt.publicId;
@@ -17,7 +17,7 @@ function Player(opt /* game, secretId, publicId */) {
 	this.channel.didEncounterError.register(this.notifyError, this);
 }
 
-Player.prototype.setConnection = function (connection) {
+ServerPlayer.prototype.setConnection = function (connection) {
 	this.channel.setConnection(connection);
 };
 
@@ -26,30 +26,30 @@ Player.prototype.setConnection = function (connection) {
 // tag, a monotonically incrementing integer. The client will periodically echo
 // the most recent tag received back to the server, so that the server knows
 // which messages are safe to discard from the queue.
-Player.prototype.deliverRaw = function (messageString) {
+ServerPlayer.prototype.deliverRaw = function (messageString) {
 	this.channel.deliverRaw(messageString);
 };
 
 // Guaranteed delivery of a message to this player, with the parts of the
 // message given as parameters. The parameters will be converted into JSON
-// format. See Game.deliverAll for more information.
-Player.prototype.deliver = function (/* ...arguments */) {
+// format. See ServerGame.deliverAll for more information.
+ServerPlayer.prototype.deliver = function (/* ...arguments */) {
 	this.channel.deliver.apply(this.channel, arguments);
 };
 
 // Let the player know that there is a problem
 // This will also be called in response to an event from channel
-Player.prototype.notifyError = function (text) {
+ServerPlayer.prototype.notifyError = function (text) {
 	this.channel.notify('error', {'msg': text});
 };
 
 // Let the player know that there is a problem (with guaranteed delivery)
-Player.prototype.deliverError = function (text) {
+ServerPlayer.prototype.deliverError = function (text) {
 	this.channel.deliver('error', {'msg': text});
 };
 
 // Handle a message received from the player
-Player.prototype._channelDidReceiveMessage = function (payload) {
+ServerPlayer.prototype._channelDidReceiveMessage = function (payload) {
 	if (payload.length <= 0) {
 		this.deliverError('Empty message payload');
 		return;
@@ -120,4 +120,4 @@ Player.prototype._channelDidReceiveMessage = function (payload) {
 	}
 };
 
-module.exports = Player;
+module.exports = ServerPlayer;
