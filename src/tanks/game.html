@@ -5,10 +5,13 @@
 	<link href="game.css" rel="stylesheet">
 	<script>
 	var require = {
-		'baseUrl': '/'
+		'baseUrl': '/',
+		'paths': {
+			'jquery': 'dep/jquery/dist/jquery'
+		}
 	};
 	</script>
-	<script src="../dep/require-jquery/require-jquery.js"></script>
+	<script src="../dep/requirejs/require.js"></script>
 	<script src="../dep/DataViewJs/DataView.js"></script>
 	<script src="../engine/util.js"></script>
 	<script src="../engine/ooputil.js"></script>

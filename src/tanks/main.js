@@ -68,7 +68,7 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 		return game;
 	}
 
-	require.ready(function () {
+	$(function () {
 
 		$('.tabs a').live('click', function (evt) {
 			var $this = $(this);
