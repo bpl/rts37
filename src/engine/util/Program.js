@@ -5,10 +5,6 @@
 
 define(['engine/util/gllib'], function (gllib) {
 
-	// Ugly hack to work around the fact that req.nameToUrl expects that non-JS
-	// files will give it an extension.
-	var TRUTHY_BLANK = {'toString': function () { return ''; }};
-
 	function Program(/* ...shaders */) {
 		if (arguments.length === 1 && arguments[0] instanceof Array) {
 			this.shaders = arguments[0].concat();
