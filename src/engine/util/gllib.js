@@ -2,14 +2,15 @@
 
 define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/util/Event'], function (glmatrix, mathlib, Event) {
 
-	var gllib = {};
+	var _gl = null;
 
-	gllib._gl = null;
+	var gllib = {};
 
 	gllib._contextProvided = new Event();
 
 	gllib.createArrayBuffer = function (arrayOrNumber, usage) {
-		var gl = this._gl;
+		// TODO: Unnecessary micro-optimization? Maybe just rename _gl to gl and use it directly?
+		var gl = _gl;
 		if (!gl) {
 			throw new Error('gllib.createArrayBuffer: WebGL context has not been provided');
 		}
@@ -21,7 +22,7 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/util/Event'], fu
 	};
 
 	gllib.createElementArrayBuffer = function (arrayOrNumber, usage) {
-		var gl = this._gl;
+		var gl = _gl;
 		if (!gl) {
 			throw new Error('gllib.createElementArrayBuffer: WebGL context has not been provided');
 		}
@@ -33,17 +34,29 @@ define(['dep/glmatrix/glmatrix', 'engine/util/mathlib', 'engine/util/Event'], fu
 	};
 
 	gllib.needsContext = function (callback, context) {
-		this._contextProvided.register(callback, context);
-		if (this._gl) {
-			callback.call(context || null, this._gl);
+		gllib._contextProvided.register(callback, context);
+		if (_gl) {
+			callback.call(context || null, _gl);
 		}
 	};
 
 	gllib.provideContext = function (gl) {
-		if (this._gl !== gl) {
-			this._gl = gl;
-			this._contextProvided.emit(gl);
+		if (_gl !== gl) {
+			_gl = gl;
+			gllib._contextProvided.emit(gl);
 		}
+	};
+
+	gllib.guard = function (result) {
+		var error = _gl.getError();
+		if (error) {
+			var errors = [error];
+			while ((error = _gl.getError())) {
+				errors.push(error);
+			}
+			throw new Error('WebGL error: ' + errors.join(', '));
+		}
+		return result;
 	};
 
 	// Shortcuts to glmatrix to simplify imports
