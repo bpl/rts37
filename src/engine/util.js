@@ -18,10 +18,6 @@
 		}
 	}
 
-	function splitLines(s) {
-		return s.match(/^.*$/mg);
-	}
-
 	// Converts a number to string and pads it to three digits
 	function padToThree(value) {
 		if (value < 10) {
@@ -85,7 +81,6 @@
 
 	return {
 		assert: assert,
-		splitLines: splitLines,
 		padToThree: padToThree,
 		AssertionFailure: AssertionFailure,
 		inherits: inherits,
