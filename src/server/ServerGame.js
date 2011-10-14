@@ -23,7 +23,7 @@ function ServerGame(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
 	this.msecsPerTick = 1000 / this.ticksPerSecond;
 	this.acceptedLagMsecs = opt['acceptedLagMsecs'];
 	this.gameSpec = gameSpec;
-	this.players = {};
+	this.players = new util.Map();
 	for (var i = 0; i < gameSpec['players'].length; ++i) {
 		var playerData = gameSpec['players'][i];
 		var player = new ServerPlayer({
@@ -31,24 +31,21 @@ function ServerGame(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
 			'secretId': playerData['secretId'],
 			'publicId': playerData['publicId']
 		});
-		this.players[player.secretId] = player;
+		this.players.set(player.secretId, player);
 	}
 }
 
 ServerGame.prototype.playerWithSecretId = function (secretId) {
-	if (Object.prototype.hasOwnProperty.call(this.players, secretId)) {
-		return this.players[secretId];
-	}
-	return null;
+	return this.players.get(secretId) || null;
 };
 
 // Guaranteed delivery of a message to all players. This version of this
 // function accepts a single parameter, containing the message as a
 // JSON-formatted string.
 ServerGame.prototype.deliverAllRaw = function (msg) {
-	for (var id in this.players) {
-		this.players[id].deliverRaw(msg);
-	}
+	this.players.forEach(function (player) {
+		player.deliverRaw(msg);
+	}, this);
 };
 
 // Guaranteed delivery of a message to all players. This version of this
@@ -68,10 +65,9 @@ ServerGame.prototype.deliverAll = function () {
  */
 ServerGame.prototype.deliverScenario = function () {
 	// FIXME: Make sure that secret player IDs don't accidentally get sent to other players
-	for (var id in this.players) {
-		var player = this.players[id];
+	this.players.forEach(function (player) {
 		player.deliver('scenario', player.publicId, this.gameSpec);
-	}
+	}, this);
 };
 
 // Called by the server when the current server clock exceeds time specified in
@@ -94,10 +90,10 @@ ServerGame.prototype.wake = function (now) {
 		// Check that no player is lagging
 		// FIXME: Only restart when the lagging player has catched up fully
 		// FIXME: Let other players know about the lag
-		for (var id in this.players) {
-			if (this.players[id].lastProcessedTick < this.currentTick - this.acceptedLagMsecs / this.msecsPerTick) {
-				return;
-			}
+		if (this.players.some(function (player) {
+			return player.lastProcessedTick < this.currentTick - this.acceptedLagMsecs / this.msecsPerTick;
+		}, this)) {
+			return;
 		}
 		// Nobody is lagging, so we are cleared to advance
 		this.deliverAll('tick', this.currentTick++);
@@ -105,10 +101,10 @@ ServerGame.prototype.wake = function (now) {
 	}
 	// Start the game when all players have confirmed that all assets have been
 	// loaded.
-	for (var id in this.players) {
-		if (!this.players[id].allAssetsLoaded) {
-			return;
-		}
+	if (this.players.some(function (player) {
+		return !player.allAssetsLoaded;
+	}, this)) {
+		return;
 	}
 	// FIXME: Do this also if one of the players has failed to appear
 	this.running = true;

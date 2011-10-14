@@ -22,13 +22,13 @@
 
 	function Event(globalEventName) {
 		if (globalEventName) {
-			if (Object.prototype.hasOwnProperty.call(Event._globalEvents, globalEventName)) {
-				var oldEvent = Event._globalEvents[globalEventName];
+			var oldEvent = Event._globalEvents.get(globalEventName);
+			if (oldEvent) {
 				util.assert(!oldEvent._alreadyCreated, 'Event: global event created twice: ' + globalEventName);
 				oldEvent._alreadyCreated = true;
 				return oldEvent;
 			}
-			Event._globalEvents[globalEventName] = this;
+			Event._globalEvents.set(globalEventName, this);
 		}
 		this._alreadyCreated = true;
 		this._handlers = [];
@@ -36,7 +36,7 @@
 
 	Event.STOP = STOP;
 
-	Event._globalEvents = {};
+	Event._globalEvents = new util.Map();
 
 	/**
 	 * Registers a listener to an event handler by the global name of the event.
@@ -45,11 +45,11 @@
 	 * @param {object} context
 	 */
 	Event.register = function (globalEventName, callback, context) {
-		if (!Object.prototype.hasOwnProperty.call(Event._globalEvents, globalEventName)) {
+		if (!Event._globalEvents.has(globalEventName)) {
 			var newEvent = new Event(globalEventName);
 			newEvent._alreadyCreated = false;
 		}
-		Event._globalEvents[globalEventName].register(callback, context);
+		Event._globalEvents.get(globalEventName).register(callback, context);
 	};
 
 	// Registers an event handler to this event. This function specified in the

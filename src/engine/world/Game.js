@@ -10,7 +10,7 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 		this.actors = [];
 		this.additionQueue = [];
 		this.deletionQueue = [];
-		this.actorByIdHash = {};
+		this._actorsById = new util.Map();
 		// FIXME: Use some other method to create unique IDs
 		this.previousId = 10000;
 		//
@@ -39,7 +39,7 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 		this.map = null;
 		this.fieldWidth = 0;
 		this.fieldHeight = 0;
-		this.unitTypes = {};
+		this.unitTypes = new util.Map();
 		//
 		// Server communication
 		//
@@ -128,8 +128,8 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 	 * @param {object} unitType
 	 */
 	Game.prototype.addUnitType = function (unitTypeName, unitType) {
-		util.assert(!Object.prototype.hasOwnProperty.call(this.unitTypes, unitTypeName), 'Game.addUnitType: unit type with name ' + unitTypeName + ' already exists');
-		this.unitTypes[unitTypeName] = unitType;
+		util.assert(!this.unitTypes.has(unitTypeName), 'Game.addUnitType: unit type with name ' + unitTypeName + ' already exists');
+		this.unitTypes.set(unitTypeName, unitType);
 	};
 
 	/**
@@ -192,7 +192,7 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 			this.actors.push(actor);
 		}
 		if (actor.id !== null) {
-			this.actorByIdHash[actor.id] = actor;
+			this._actorsById.set(actor.id, actor);
 		}
 		return actor;
 	};
@@ -217,12 +217,12 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 			}
 		}
 		if (actor.id !== null) {
-			delete this.actorByIdHash[actor.id];
+			this._actorsById['delete'](actor.id);
 		}
 	};
 
 	Game.prototype.actorWithId = function (id) {
-		return this.actorByIdHash[id];
+		return this._actorsById.get(id) || null;
 	};
 
 	Game.prototype.resolveId = Game.prototype.actorWithId;
@@ -244,10 +244,7 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 	 * @returns {object} unit type object or null
 	 */
 	Game.prototype.getUnitType = function (unitTypeName) {
-		return (Object.prototype.hasOwnProperty.call(this.unitTypes, unitTypeName)
-			? this.unitTypes[unitTypeName]
-			: null
-		);
+		return this.unitTypes.get(unitTypeName) || null;
 	};
 
 	// The main game loop. This should be called repeatedly from a timer.

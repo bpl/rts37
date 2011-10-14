@@ -12,6 +12,7 @@ var WebSocketServer = require('../dep/WebSocket-Node').server;
 
 var util = require('./serverutil');
 var assert = require('../engine/util').assert;
+var hop = require('../engine/util').hop;
 
 var ServerManager = require('./ServerManager');
 var ServerGame = require('./ServerGame');
@@ -271,7 +272,7 @@ Server.prototype.handleRequest = function (request, response) {
 			if (!headerWritten) {
 				var extname = util.removePrefix('.', path.extname(path.basename(requestFile)));
 				response.writeHead(200, {
-					'Content-Type': (self.options.mimeTypes.hasOwnProperty(extname) ? self.options.mimeTypes[extname] : 'text/plain'),
+					'Content-Type': (hop(self.options.mimeTypes, extname) ? self.options.mimeTypes[extname] : 'text/plain'),
 					'Content-Length': stats.size
 				});
 				headerWritten = true;

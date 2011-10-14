@@ -1,13 +1,13 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-var assert = require('../engine/util').assert;
+var util = require('../engine/util');
 
 // Keeps track of active games on this server and when they need to be woken up
 // to do whatever periodical processing they need to do.
 
 function ServerManager() {
 	// Games by game ID
-	this.games = {};
+	this.games = new util.Map();
 	// Games sorted from the first to wake up to the last to wake up as a
 	// delayed shift priority queue.
 	this.wakeQueue = [];
@@ -18,17 +18,14 @@ function ServerManager() {
 // Returns the active game with the specified id, or null, if no such game
 // exists on this server.
 ServerManager.prototype.gameWithId = function (id) {
-	if (this.games.hasOwnProperty(id)) {
-		return this.games[id] || null;
-	}
-	return null;
+	return this.games.get(id) || null;
 };
 
 // Adds a game to the list of active games and enqueues it to wake up when it
 // wants.
 ServerManager.prototype.add = function (game) {
-	util.assert(!this.games.hasOwnProperty(game.id), 'ServerManager.add: duplicate game ID');
-	this.games[game.id] = game;
+	util.assert(!this.games.has(game.id), 'ServerManager.add: duplicate game ID');
+	this.games.set(game.id, game);
 	this.enqueue(game);
 };
 

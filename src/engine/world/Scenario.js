@@ -63,7 +63,7 @@ define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world
 		util.assert(this.state < STATE_LOADING_ASSETS, 'Scenario.loadAssets: asset loading has already started');
 		this.state = STATE_LOADING_ASSETS;
 
-		var unitTypes = {};
+		var unitTypes = new util.Map();
 
 		// Load and create the map
 		var mapImageLocation = scenario['map']['mapImage'];
@@ -83,7 +83,7 @@ define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world
 		// Load and create unit types
 		var unitTypeSpecs = scenario['unitTypes'];
 		for (var key in unitTypeSpecs) {
-			if (Object.prototype.hasOwnProperty.call(unitTypeSpecs, key)) {
+			if (util.hop(unitTypeSpecs, key)) {
 				var unitTypeSpec = unitTypeSpecs[key];
 				var unitClass = unitTypeSpec['class'];
 				// Here we are assuming that the scenario file is from a trusted source
@@ -93,7 +93,7 @@ define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world
 					willLoadAsset.call(this, unitClass);
 					require([unitClass], function (unitType) {
 						this.delegate.addUnitType(key, unitType);
-						unitTypes[key] = unitType;
+						unitTypes.set(key, unitType);
 						didLoadAsset.call(this, unitClass);
 					}.bind(this));
 				}.call(this, key, unitClass));
@@ -134,8 +134,9 @@ define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world
 			for (var i = 0; i < startingUnits.length; ++i) {
 				var unitSpec = startingUnits[i];
 				var unitTypeName = unitSpec['$type'];
-				util.assert(Object.prototype.hasOwnProperty.call(unitTypes, unitTypeName), 'Scenario.loadAssets: Unknown unit type ' + unitTypeName);
-				this.delegate.createActor(unitTypes[unitTypeName], unitSpec);
+				var unitType = unitTypes.get(unitTypeName);
+				util.assert(unitType, 'Scenario.loadAssets: Unknown unit type ' + unitTypeName);
+				this.delegate.createActor(unitType, unitSpec);
 			}
 
 			// Set the local player
