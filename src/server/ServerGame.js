@@ -1,7 +1,7 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
 var ServerPlayer = require('./ServerPlayer');
-var assert = require('../engine/util').assert;
+var util = require('../engine/util');
 
 function ServerGame(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
 	//
@@ -13,11 +13,11 @@ function ServerGame(opt /* id, ticksPerSecond, acceptedLagMsecs, gameSpec */) {
 	//
 	// Properties that depend on game options
 	//
-	assert(typeof opt['id'] === 'string', 'ServerGame: id is not a string');
-	assert(opt['ticksPerSecond'] > 0, 'ServerGame: ticksPerSecond is not a positive number');
-	assert(typeof opt['gameSpec'] === 'object', 'ServerGame: gameSpec is not an object');
+	util.assert(typeof opt['id'] === 'string', 'ServerGame: id is not a string');
+	util.assert(opt['ticksPerSecond'] > 0, 'ServerGame: ticksPerSecond is not a positive number');
+	util.assert(typeof opt['gameSpec'] === 'object', 'ServerGame: gameSpec is not an object');
 	var gameSpec = opt['gameSpec'];
-	assert(gameSpec['players'].length > 0, 'ServerGame: No players specified');
+	util.assert(gameSpec['players'].length > 0, 'ServerGame: No players specified');
 	this.id = opt['id'];
 	this.ticksPerSecond = opt['ticksPerSecond'];
 	this.msecsPerTick = 1000 / this.ticksPerSecond;

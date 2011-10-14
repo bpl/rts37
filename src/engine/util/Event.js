@@ -2,15 +2,15 @@
 
 // AMD support in Node.js only comes in two flavours, nonexistent (pre-0.5) and
 // completely borken (0.5), so we need this shim.
-(function (callback) {
+(function (injects, callback) {
 	if (typeof module === 'object' && 'exports' in module) {
-		module.exports = callback();
+		module.exports = callback(require('../util'));
 	} else if (typeof define === 'function') {
-		define(callback);
+		define(injects, callback);
 	} else {
 		throw new Error('Both Require.js and Node.js globals missing');
 	}
-})(function () {
+})(['engine/util'], function (util) {
 
 	// Sentinel object to indicate that the event handler should be deregistered
 	const STOP = Object.freeze({});
@@ -24,7 +24,7 @@
 		if (globalEventName) {
 			if (Object.prototype.hasOwnProperty.call(Event._globalEvents, globalEventName)) {
 				var oldEvent = Event._globalEvents[globalEventName];
-				assert(!oldEvent._alreadyCreated, 'Event: global event created twice: ' + globalEventName);
+				util.assert(!oldEvent._alreadyCreated, 'Event: global event created twice: ' + globalEventName);
 				oldEvent._alreadyCreated = true;
 				return oldEvent;
 			}

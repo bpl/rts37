@@ -1,8 +1,8 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/Event', 'engine/client/Widget'], function (Event, Widget) {
+define(['engine/util', 'engine/util/Event', 'engine/client/Widget'], function (util, Event, Widget) {
 
-	inherits(Viewport, Widget);
+	util.inherits(Viewport, Widget);
 	function Viewport(client, opt /* x, y, width, height */) {
 		Widget.call(this, client, opt);
 		this.game = this.client.game;

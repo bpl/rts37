@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard', 'engine/util/Texture'], function (gllib, Viewport, Billboard, Texture) {
+define(['engine/util', 'engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard', 'engine/util/Texture'], function (util, gllib, Viewport, Billboard, Texture) {
 
 	const Mat4 = gllib.Mat4;
 	const Vec3 = gllib.Vec3;
@@ -20,7 +20,7 @@ define(['engine/util/gllib', 'engine/client/Viewport', 'engine/client/Billboard'
 
 	const invertYMat4 = Mat4.scaleVal(Mat4.identity(), 1, -1, 1);
 
-	inherits(MyViewport, Viewport);
+	util.inherits(MyViewport, Viewport);
 	function MyViewport(client, opt /* x, y, width, height */) {
 		Viewport.call(this, client, opt);
 

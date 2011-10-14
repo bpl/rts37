@@ -1,9 +1,9 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(function () {
+define(['engine/util'], function (util) {
 
 	function Actor(opt /* game, x, y */) {
-		assert(opt['game'] && typeof opt['game'] === 'object', 'Actor: game must be an object');
+		util.assert(opt['game'] && typeof opt['game'] === 'object', 'Actor: game must be an object');
 		this.game = opt['game'];
 		this.id = null;
 		this.batchName = '';

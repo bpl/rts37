@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/shaders/terrain.vert!engine/shaders/terrain.frag'], function (gllib, Texture, shaderProgram) {
+define(['engine/util', 'engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/shaders/terrain.vert!engine/shaders/terrain.frag'], function (util, gllib, Texture, shaderProgram) {
 
 	// The map consists of square blocks of square tiles. One pixel in the
 	// source image corresponds to one tile in the map. Block contains the
@@ -19,12 +19,12 @@ define(['engine/util/gllib', 'engine/util/Texture', 'engine/util/Program!engine/
 	var Z_BASE_LEVEL = 64;
 
 	function Map(image, groundTextureImage) {
-		assert(image && 'getPixelData' in image, 'Map: must be able to get pixels from image');
+		util.assert(image && 'getPixelData' in image, 'Map: must be able to get pixels from image');
 
 		this.width = +image.width | 0;
 		this.height = +image.height | 0;
-		assert(this.width > 0, 'Map: width must be a positive integer');
-		assert(this.height > 0, 'Map: height must be a positive integer');
+		util.assert(this.width > 0, 'Map: width must be a positive integer');
+		util.assert(this.height > 0, 'Map: height must be a positive integer');
 
 		this.tileSize = TILE_SIZE;
 

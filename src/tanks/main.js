@@ -2,7 +2,7 @@
 
 // Bootstrap
 
-define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/MyGame'], function ($, clientlib, MyViewport, MyGame) {
+define(['jquery', 'engine/util', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/MyGame'], function ($, util, clientlib, MyViewport, MyGame) {
 
 	var Button = clientlib.Button,
 		Client = clientlib.Client,
@@ -14,7 +14,7 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 		var performanceIndicator = document.getElementById('performance');
 
 		splash.parentNode.removeChild(splash);
-		assert(canvas, 'initGame: canvas not found');
+		util.assert(canvas, 'initGame: canvas not found');
 		var game = new MyGame(isLocal);
 		game.setTicksPerSecond(5);
 		game.setCappedToFps(30);
@@ -32,8 +32,8 @@ define(['jquery', 'engine/client/clientlib', 'tanks/MyViewport', 'tanks/world/My
 			performanceIndicator.firstChild.nodeValue =
 					'permitted ' + game.lastPermittedTick +
 					', processed ' + game.lastProcessedTick +
-					', sinceTick ' + padToThree(game.msecsSinceTick) +
-					', sinceDrawn ' + padToThree(client.msecsSinceDrawn);
+					', sinceTick ' + util.padToThree(game.msecsSinceTick) +
+					', sinceDrawn ' + util.padToThree(client.msecsSinceDrawn);
 		});
 
 		/*

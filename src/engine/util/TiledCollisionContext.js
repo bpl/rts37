@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(function () {
+define(['engine/util'], function (util) {
 
 	// The code assumes that there will be at most (safety factor) * (maximum
 	// ball count) feet. Safety factor of four provides full safety if the
@@ -24,19 +24,19 @@ define(function () {
 		this._tileXShift = Math.round(log2(tileWidth));
 		this._tileYShift = Math.round(log2(tileHeight));
 
-		assert(this._tileXShift >= 0, 'TiledCollisionContext: Tile width must be a power-of-two >= 1');
-		assert(this._tileYShift >= 0, 'TiledCollisionContext: Tile height must be a power-of-two >= 1');
+		util.assert(this._tileXShift >= 0, 'TiledCollisionContext: Tile width must be a power-of-two >= 1');
+		util.assert(this._tileYShift >= 0, 'TiledCollisionContext: Tile height must be a power-of-two >= 1');
 
 		this.tileXCount = Math.ceil(width / tileWidth);
 		this.tileYCount = Math.ceil(height / tileHeight);
 		this._tileCount = this.tileXCount * this.tileYCount;
 
-		assert(this._tileCount < 32768, 'TiledCollisionContext: Too many tiles. Tiles X * Tiles Y must be below 32768');
+		util.assert(this._tileCount < 32768, 'TiledCollisionContext: Too many tiles. Tiles X * Tiles Y must be below 32768');
 
 		this._footCounts = new Uint16Array(this._tileCount);
 		this._tileIndices = new Uint16Array(this._tileCount + 1);
 
-		assert(maxBallCount < 65536, 'TiledCollisionContext: Too many balls. Maximum ball count must be below 65536');
+		util.assert(maxBallCount < 65536, 'TiledCollisionContext: Too many balls. Maximum ball count must be below 65536');
 
 		this._unsortedFeet = new Int32Array(maxBallCount * 4 * SAFETY_FACTOR);
 		this._feetByTile = new Int32Array(maxBallCount * 4 * SAFETY_FACTOR);

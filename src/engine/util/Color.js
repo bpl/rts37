@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(function () {
+define(['engine/util'], function (util) {
 
 	function Color(opt /* red */, green, blue, alpha) {
 		if (typeof opt == 'string') {
@@ -24,7 +24,7 @@ define(function () {
 
 	Color.fromString = function (s) {
 		var values = s.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-		assert(values, 'Color.fromString: s is not a valid color');
+		util.assert(values, 'Color.fromString: s is not a valid color');
 		var red = parseInt(values[1], 16);
 		var green = parseInt(values[2], 16);
 		var blue = parseInt(values[3], 16);
@@ -49,7 +49,7 @@ define(function () {
 		if (typeof color == 'string') {
 			return new Color(color);
 		}
-		assert(color.length === 4, 'Color.require: color must be an array of 4 items');
+		util.assert(color.length === 4, 'Color.require: color must be an array of 4 items');
 		return color;
 	};
 

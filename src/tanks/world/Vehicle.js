@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank3.json!Tank,Turret'], function (gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
+define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank3.json!Tank,Turret'], function (util, gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
 
 	var tempModelToWorld = gllib.Mat4.identity();
 	var tempJointMatrices = [
@@ -9,13 +9,13 @@ define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engin
 	];
 	var tempVec3 = gllib.Vec3.create();
 
-	inherits(Vehicle, Actor);
+	util.inherits(Vehicle, Actor);
 	function Vehicle(opt /* id, playerId, game, x, y */) {
 		Actor.call(this, opt);
 		this.batchName = 'Vehicle';
 		this.player = opt['game'].playerWithPublicId(opt['playerId']);
-		assert(this.player, 'Vehicle: player is required');
-		defaults.call(this, opt, {
+		util.assert(this.player, 'Vehicle: player is required');
+		util.defaults.call(this, opt, {
 			id: Number,
 			angle: 0,
 			turretAngle: 0,

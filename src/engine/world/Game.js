@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], function (Event, Channel, Scenario) {
+define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], function (util, Event, Channel, Scenario) {
 
 	function Game(isLocal) {
 		this.localPlayer = null;
@@ -128,7 +128,7 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 	 * @param {object} unitType
 	 */
 	Game.prototype.addUnitType = function (unitTypeName, unitType) {
-		assert(!Object.prototype.hasOwnProperty.call(this.unitTypes, unitTypeName), 'Game.addUnitType: unit type with name ' + unitTypeName + ' already exists');
+		util.assert(!Object.prototype.hasOwnProperty.call(this.unitTypes, unitTypeName), 'Game.addUnitType: unit type with name ' + unitTypeName + ' already exists');
 		this.unitTypes[unitTypeName] = unitType;
 	};
 
@@ -138,15 +138,15 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 	 * @param {number} publicId
 	 */
 	Game.prototype.setLocalPlayerId = function (publicId) {
-		assert(!this.localPlayer, 'Game.setLocalPlayerId: local player is already set');
+		util.assert(!this.localPlayer, 'Game.setLocalPlayerId: local player is already set');
 		var player = this.playerWithPublicId(publicId);
-		assert(player, 'Game.setLocalPlayerId: player not found');
+		util.assert(player, 'Game.setLocalPlayerId: player not found');
 		this.localPlayer = player;
 	};
 
 	Game.prototype.setConnection = function (connection) {
-		assert(typeof connection === 'object', 'Game.setConnection: connection is not an object');
-		assert(connection && typeof connection.send === 'function', 'Game.setConnection: connection.send is not a function');
+		util.assert(typeof connection === 'object', 'Game.setConnection: connection is not an object');
+		util.assert(connection && typeof connection.send === 'function', 'Game.setConnection: connection.send is not a function');
 		this.channel.setConnection(connection);
 	};
 
@@ -338,7 +338,7 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 		// The command is a JavaScript array, where cmd[0] is a string indicating
 		// the type of the command. Commands may need to be validated because the server
 		// echoes command from the clients without parsing them.
-		assert(false, 'Game.handleCommand: unknown command "' + cmd + '"');
+		util.assert(false, 'Game.handleCommand: unknown command "' + cmd + '"');
 	};
 
 	Game.prototype.handleMessage = function (msg) {
@@ -346,14 +346,14 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 		// the message and the rest of the items are message-specific
 		// parameters. Not much validation is necessary for messages, because
 		// they are issued by the server.
-		assert(typeof msg[0] == 'string', 'Game.handleMessage: message type is not a string');
+		util.assert(typeof msg[0] == 'string', 'Game.handleMessage: message type is not a string');
 		switch (msg[0]) {
 			case 'C':
 				// Command
 				// [1] is the public ID of the player the command is from
 				// [2] is the properties of the command
 				var player = this.playerWithPublicId(msg[1]);
-				assert(player, 'Game.handleMessage: player not found for C');
+				util.assert(player, 'Game.handleMessage: player not found for C');
 				this.commandQueues[0].push([player, msg[2]]);
 				break;
 			case 'tick':
@@ -361,7 +361,7 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 				// [1] is the number of the tick we are now permitted to process
 				// FIXME: Should we handle here returning to a paused game
 				var tick = msg[1];
-				assert(typeof tick == 'number', 'Game.handleMessage: tick must be a number');
+				util.assert(typeof tick == 'number', 'Game.handleMessage: tick must be a number');
 				if (tick == this.lastPermittedTick + 1) {
 					// Increase the last permitted tick to let the game loop proceed
 					this.lastPermittedTick++;
@@ -396,7 +396,7 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 				}
 				break;
 			default:
-				assert(false, 'Game.handleMessage: unrecognized message type "' + msg[0] + '"');
+				util.assert(false, 'Game.handleMessage: unrecognized message type "' + msg[0] + '"');
 				break;
 		}
 	};
@@ -416,7 +416,7 @@ define(['engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], fu
 
 	// Non-guaranteed delivery of a message to the server
 	Game.prototype.notifyServer = function (/* ...arguments */) {
-		assert(!this.isLocal, 'Game.notifyServer: cannot send because the game is local');
+		util.assert(!this.isLocal, 'Game.notifyServer: cannot send because the game is local');
 		this.channel.notify.apply(this.channel, arguments);
 	};
 

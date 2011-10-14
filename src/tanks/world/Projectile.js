@@ -1,13 +1,13 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'engine/util/Color', 'engine/client/Billboard', 'engine/util/Mesh!tanks/models/cone.json', 'engine/util/Image!tanks/textures/cuzco_exp2.jpg'], function (gllib, mathlib, Actor, Player, Color, Billboard, projectileMesh, explosionImage) {
+define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'engine/util/Color', 'engine/client/Billboard', 'engine/util/Mesh!tanks/models/cone.json', 'engine/util/Image!tanks/textures/cuzco_exp2.jpg'], function (util, gllib, mathlib, Actor, Player, Color, Billboard, projectileMesh, explosionImage) {
 
-	inherits(Projectile, Actor);
+	util.inherits(Projectile, Actor);
 	function Projectile(opt /* player, x, y, angle, range, speed */) {
-		assert(opt.player && typeof opt.player === 'object', 'Projectile: player must be an object');
+		util.assert(opt.player && typeof opt.player === 'object', 'Projectile: player must be an object');
 		Actor.call(this, opt);
 		this.batchName = 'Projectile';
-		defaults.call(this, opt, {
+		util.defaults.call(this, opt, {
 			player: Player,
 			angle: Number,
 			range: Number,

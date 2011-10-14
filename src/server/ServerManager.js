@@ -27,7 +27,7 @@ ServerManager.prototype.gameWithId = function (id) {
 // Adds a game to the list of active games and enqueues it to wake up when it
 // wants.
 ServerManager.prototype.add = function (game) {
-	assert(!this.games.hasOwnProperty(game.id), 'ServerManager.add: duplicate game ID');
+	util.assert(!this.games.hasOwnProperty(game.id), 'ServerManager.add: duplicate game ID');
 	this.games[game.id] = game;
 	this.enqueue(game);
 };

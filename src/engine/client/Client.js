@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 'engine/util/Event'], function (mathlib, gllib, UIRenderer, Event) {
+define(['engine/util', 'engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 'engine/util/Event'], function (util, mathlib, gllib, UIRenderer, Event) {
 
 	const MOUSE_IDLE = 0;
 	const MOUSE_CLICK_OR_DRAG = 1;
@@ -9,8 +9,8 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 	const MOUSE_DRAG_THRESHOLD = 5;
 
 	function Client(game, canvas) {
-		assert(game && typeof game === 'object', 'Client: game must be an object');
-		assert(canvas, 'Client: canvas is required');
+		util.assert(game && typeof game === 'object', 'Client: game must be an object');
+		util.assert(canvas, 'Client: canvas is required');
 		this.game = game;
 		this.canvas = canvas;
 		this.gl = null;
@@ -130,7 +130,7 @@ define(['engine/util/mathlib', 'engine/util/gllib', 'engine/client/UIRenderer', 
 	};
 
 	Client.prototype.add = function (widget) {
-		assert(
+		util.assert(
 			widget.handleClick && widget.handleMouseMove && widget.handleKeyPress,
 			'Client.add: widget must handle clicks, mouse moves and key presses'
 		);

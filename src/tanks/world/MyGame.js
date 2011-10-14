@@ -1,8 +1,8 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/world/Game'], function (Game) {
+define(['engine/util', 'engine/world/Game'], function (util, Game) {
 
-	inherits(MyGame, Game);
+	util.inherits(MyGame, Game);
 	function MyGame(isLocal) {
 		Game.prototype.constructor.call(this, isLocal);
 	}
@@ -28,7 +28,7 @@ define(['engine/world/Game'], function (Game) {
 				// [2] is the target X coordinate
 				// [3] is the target Y coordinate
 				var actor = this.actorWithId(cmd[1]);
-				assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
+				util.assert(actor.player === player, 'MyGame.handleCommand: player mismatch');
 				actor.fireAtPos(cmd[2], cmd[3]);
 				break;
 			case 'AC':

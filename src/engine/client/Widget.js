@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(function () {
+define(['engine/util'], function (util) {
 
 	// The order of mouse events is:
 	//
@@ -12,7 +12,7 @@ define(function () {
 		if (!opt) {
 			opt = {};
 		}
-		assert(typeof client === 'object', 'Viewport: client must be an object');
+		util.assert(typeof client === 'object', 'Viewport: client must be an object');
 		this.client = client;
 		this.x = opt.x || 0;
 		this.y = opt.y || 0;
