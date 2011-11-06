@@ -16,7 +16,7 @@ var options = {
 	// access. Disabling REPL is pretty much mandatory for *all* public
 	// installations, as currently no authentication or encryption is provided
 	// at all.
-	replPort: 8001,
+	replPort: 0,
 	// The document root for HTTP requests
 	documentRoot: '../',
 	// File extension to MIME type associations
