@@ -18,6 +18,13 @@
 		}
 	}
 
+	function required(value) {
+		if (typeof value === 'undefined') {
+			throw new Error('Required value missing in options array');
+		}
+		return value;
+	}
+
 	// Less wordy way to call hasOwnProperty without fear of collision
 	var hop = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 
@@ -158,6 +165,7 @@
 
 	return {
 		assert: assert,
+		required: required,
 		hop: hop,
 		padToThree: padToThree,
 		inherits: inherits,

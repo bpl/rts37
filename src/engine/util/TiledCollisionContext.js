@@ -36,14 +36,25 @@ define(['engine/util'], function (util) {
 		this._footCounts = new Uint16Array(this._tileCount);
 		this._tileIndices = new Uint16Array(this._tileCount + 1);
 
-		util.assert(maxBallCount < 65536, 'TiledCollisionContext: Too many balls. Maximum ball count must be below 65536');
+		// We need to stuff two indexes into an Int32, so there are only 15 bits
+		// available per index.
+		util.assert(maxBallCount < 32768, 'TiledCollisionContext: Too many balls. Maximum ball count must be below 32768');
 
 		this._unsortedFeet = new Int32Array(maxBallCount * 4 * SAFETY_FACTOR);
 		this._feetByTile = new Int32Array(maxBallCount * 4 * SAFETY_FACTOR);
 
+		this._maxBallCount = maxBallCount;
 		this._ballCount = 0;
 		this._footTotal = 0;
 	}
+
+	TiledCollisionContext.prototype.createCollisionArray = function (safetyFactor) {
+		return new Int32Array(this._maxBallCount * safetyFactor);
+	};
+
+	TiledCollisionContext.prototype.createIndexArray = function () {
+		return new Uint16Array(this._maxBallCount + 1);
+	};
 
 	TiledCollisionContext.prototype.sortIntoTiles = function (balls, ballCount) {
 		const TILE_X_COUNT = this.tileXCount;
@@ -73,6 +84,10 @@ define(['engine/util'], function (util) {
 		var idx = 0;
 		for (var i = 0; i < ballCount; ++i) {
 			var ball = balls[i];
+
+			if (!('radius' in ball)) {
+				continue;
+			}
 
 			var br = ball.radius;
 			var bx = ball.x - br;
@@ -165,21 +180,121 @@ define(['engine/util'], function (util) {
 			var ay = feetByTile[idx + 2];
 			var ar = feetByTile[idx + 3];
 
-			var bl = tileIndices[ab];
 			var bh = tileIndices[ab + 1];
-			for (var j = bl; j < bh; ++j) {
-				if (i !== j) {
-					var bidx = j << 2;
-					var dx = ax - feetByTile[bidx + 1];
-					var dy = ay - feetByTile[bidx + 2];
-					var radii = ar + feetByTile[bidx + 3];
+			for (var j = i + 1; j < bh; ++j) {
+				var bidx = j << 2;
+				var dx = ax - feetByTile[bidx + 1];
+				var dy = ay - feetByTile[bidx + 2];
+				var radii = ar + feetByTile[bidx + 3];
 
-					if (dx * dx + dy * dy < radii * radii) {
-						collidedArray[ai] = 1;
-					}
+				if (dx * dx + dy * dy < radii * radii) {
+					var bi = feetByTile[bidx] & INDEX_BIT_MASK;
+					collidedArray[ai] = 1;
+					collidedArray[bi] = 1;
 				}
 			}
 		}
+	};
+
+	/**
+	 * Gets a complete list of collisions. The high 16 bits of each value
+	 * collision item will indicate one party of the collision and the low 16
+	 * bits will indicate the second party. The values will not have duplicates
+	 * and will be sorted.
+	 * @param {Array} collisionArray This array will be modified to contain a
+	 * sorted list of all collisions detected.
+	 * @returns {number} Total number of collisions detected.
+	 */
+	TiledCollisionContext.prototype.getCollisions = function (collisionArray) {
+		const FOOT_TOTAL = this._footTotal;
+
+		var tileIndices = this._tileIndices;
+		var feetByTile = this._feetByTile;
+
+		var unsortedCollisions = 0;
+
+		// Find all collisions, unsorted and possibly redundant
+		for (var i = 0, idx = 0; i < FOOT_TOTAL; ++i, idx += 4) {
+			var ab = feetByTile[idx] >> INDEX_BIT_COUNT;
+			var ai = feetByTile[idx] & INDEX_BIT_MASK;
+			var ax = feetByTile[idx + 1];
+			var ay = feetByTile[idx + 2];
+			var ar = feetByTile[idx + 3];
+
+			var bh = tileIndices[ab + 1];
+			for (var j = i + 1; j < bh; ++j) {
+				var bidx = j << 2;
+				var dx = ax - feetByTile[bidx + 1];
+				var dy = ay - feetByTile[bidx + 2];
+				var radii = ar + feetByTile[bidx + 3];
+
+				if (dx * dx + dy * dy < radii * radii) {
+					var bi = feetByTile[bidx] & INDEX_BIT_MASK;
+					collisionArray[unsortedCollisions++] = (ai << INDEX_BIT_COUNT) + bi;
+					collisionArray[unsortedCollisions++] = (bi << INDEX_BIT_COUNT) + ai;
+				}
+			}
+		}
+
+		// Sort collision records using insertion sort
+		// TODO: Should really use something better here
+		for (var i = 0; i < unsortedCollisions; ++i) {
+			if (i > 0 && collisionArray[i - 1] > collisionArray[i]) {
+				var value = collisionArray[i];
+				var j = i;
+				while (j > 0 && collisionArray[j - 1] > value) {
+					collisionArray[j] = collisionArray[j - 1];
+					--j;
+				}
+				collisionArray[j] = value;
+			}
+		}
+
+		// Remove duplicate collision records
+		var idx = -1;
+		for (var i = 0; i < unsortedCollisions; ++i) {
+			if (idx < 0 || collisionArray[idx] !== collisionArray[i]) {
+				collisionArray[++idx] = collisionArray[i];
+			}
+		}
+
+		return idx + 1;
+	};
+
+	/**
+	 * Like getCollisions, but also produces an index array. The index array
+	 * indicates where in the collision array you should look for collisions
+	 * pertaining a particular ball.
+	 * @param {Array} collisionArray This array will be modified to contain a
+	 * sorted list of all collisions detected.
+	 * @param {Array} indexArray This array will be modified to contain indices
+	 * where collisions for a particular ball start. The length should be at
+	 * least ball count + 1.
+	 * @returns {number} Total number of collisions detected.
+	 */
+	TiledCollisionContext.prototype.getCollisionsAndIndices = function (collisionArray, indexArray) {
+		const BALL_COUNT = this._ballCount;
+
+		var collisionCount = this.getCollisions(collisionArray);
+
+		var lastBallSeen = -1;
+
+		for (var i = 0; i < collisionCount; ++i) {
+			var ballIndex = collisionArray[i] >> INDEX_BIT_COUNT;
+			if (lastBallSeen !== ballIndex) {
+				for (var j = lastBallSeen + 1; j <= ballIndex; ++j) {
+					indexArray[j] = i;
+				}
+				lastBallSeen = ballIndex;
+			}
+		}
+
+		// We are intentionally going one past ball count
+		for (var j = lastBallSeen + 1; j <= BALL_COUNT; ++j) {
+			indexArray[j] = collisionCount;
+		}
+
+		return collisionCount;
 	};
 
 	return TiledCollisionContext;

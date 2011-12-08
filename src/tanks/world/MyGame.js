@@ -32,12 +32,12 @@ define(['engine/util', 'engine/world/Game'], function (util, Game) {
 				actor.fireAtPos(cmd[2], cmd[3]);
 				break;
 			case 'AC':
-				// Add actor to game (from parameters)
-				// [1]['$type'] is the type of the actor to add
-				// [1] is the parameters passed to the constructor
+				// Add unit to game (from parameters)
+				// [1]['$type'] is the type of the unit to add
+				// [1] is the parameter object passed to the constructor
 				// FIXME: This is totally for debugging only
-				var type = this.getUnitType(cmd[1]['$type']);
-				this.createActor(type, cmd[1]);
+				var unitType = this.getUnitType(cmd[1]['$type']);
+				this.createUnit(unitType, cmd[1]);
 				break;
 			default:
 				Game.prototype.handleCommand.call(this, player, cmd);

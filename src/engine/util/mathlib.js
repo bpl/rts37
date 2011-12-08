@@ -87,7 +87,16 @@ define(function () {
 
 	// Calculates the distance between two points
 	mathlib.distance = function (ax, ay, bx, by) {
-		return Math.sqrt(Math.pow(ax - bx, 2) + Math.pow(ay - by, 2));
+		var dx = ax - bx;
+		var dy = ay - by;
+		return Math.sqrt(dx * dx + dy * dy);
+	};
+
+	// Like distance, but takes two {x, y} objects instead
+	mathlib.distanceObj = function (a, b) {
+		var dx = a.x - b.x;
+		var dy = a.y - b.y;
+		return Math.sqrt(dx * dx + dy * dy);
 	};
 
 	// Calculates the approximate distance between two points
@@ -96,6 +105,18 @@ define(function () {
 	};
 
 	mathlib.manhattanDistance = mathlib.distanceApprox;
+
+	// Ensures that v lies within [min, max] by returning min if v < min, max if
+	// v > max, and v otherwise.
+	mathlib.constrain = function (v, min, max) {
+		if (v < min) {
+			return min;
+		}
+		if (v > max) {
+			return max;
+		}
+		return v;
+	};
 
 	/////////////////////////////
 	// Fixed point arithmetic //

@@ -10,8 +10,8 @@ define(['engine/util', 'tanks/world/Vehicle'], function (util, Vehicle) {
 			currentWaypoint: 0
 		});
 		if (this.currentWaypoint < this.waypoints.length) {
-			this.targetX = this.waypoints[this.currentWaypoint][0];
-			this.targetY = this.waypoints[this.currentWaypoint][1];
+			var wp = this.waypoints[this.currentWaypoint];
+			this.performMove(wp[0], wp[1]);
 		}
 	}
 
@@ -20,14 +20,14 @@ define(['engine/util', 'tanks/world/Vehicle'], function (util, Vehicle) {
 	AIVehicle.drawMultiple = Vehicle.drawMultiple;
 
 	AIVehicle.prototype.tick = function () {
-		if (!this.targetX && !this.targetY) {
+		if (this.orderCompleted) {
 			this.currentWaypoint++;
 			if (this.currentWaypoint >= this.waypoints.length) {
 				this.currentWaypoint = 0;
 			}
 			if (this.currentWaypoint < this.waypoints.length) {
-				this.targetX = this.waypoints[this.currentWaypoint][0];
-				this.targetY = this.waypoints[this.currentWaypoint][1];
+				var wp = this.waypoints[this.currentWaypoint];
+				this.performMove(wp[0], wp[1]);
 			}
 		}
 		Vehicle.prototype.tick.call(this);

@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world/Actor', 'engine/world/Player', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank3.json!Tank,Turret'], function (util, gllib, mathlib, Actor, Player, Projectile, vehicleMesh) {
+define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world/Unit', 'engine/world/MoveOrder', 'tanks/world/Projectile', 'engine/util/JointedMesh!tanks/models/tank3.json!Tank,Turret'], function (util, gllib, mathlib, Unit, MoveOrder, Projectile, vehicleMesh) {
 
 	var tempModelToWorld = gllib.Mat4.identity();
 	var tempJointMatrices = [
@@ -9,28 +9,17 @@ define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world
 	];
 	var tempVec3 = gllib.Vec3.create();
 
-	util.inherits(Vehicle, Actor);
-	function Vehicle(opt /* id, playerId, game, x, y */) {
-		Actor.call(this, opt);
+	util.inherits(Vehicle, Unit);
+	function Vehicle(opt /* id */) {
+		Unit.call(this, opt);
 		this.batchName = 'Vehicle';
-		this.player = opt['game'].playerWithPublicId(opt['playerId']);
-		util.assert(this.player, 'Vehicle: player is required');
 		util.defaults.call(this, opt, {
-			id: Number,
-			angle: 0,
 			turretAngle: 0,
-			rotationSpeed: 3,
-			speed: 30 * 1024,
-			targetX: null,
-			targetY: null,
-			firingRadius: 300 * 1024,
-			collisionRadius: 15 * 1024,
 			reloadMsecs: 4000,
 			projectileSpeed: 90 * 1024,
 			currentReloadMsecs: [0, 0, 0, 0],
 			reloadingCount: 0
 		});
-		this.dflAngle = 0;
 		this.dflTurretAngle = 0;
 	}
 
@@ -61,25 +50,12 @@ define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world
 		this.y = y;
 	};
 
-	Vehicle.prototype.tick = function () {
+	Vehicle.prototype.tick = function (collisionIndex) {
 
-		function rotateTowards(angle, angleProp, dflAngleProp) {
-			var angleDelta = mathlib.angleDelta(this[angleProp], angle);
-			var rotationPerTick = this.rotationSpeed / this.game.ticksPerSecond;
-			if (Math.abs(angleDelta) > rotationPerTick) {
-				var lastAngle = this[angleProp];
-				this[angleProp] = mathlib.normalizeAngle(this[angleProp] + angleDelta / Math.abs(angleDelta) * rotationPerTick);
-				this[dflAngleProp] = mathlib.angleDelta(lastAngle, this[angleProp]);
-			} else {
-				this[dflAngleProp] = mathlib.angleDelta(this[angleProp], angle);
-				this[angleProp] = angle;
-			}
-		}
+		Unit.prototype.tick.call(this, collisionIndex);
 
-		this.dflAngle = 0;
-		this.dflX = 0;
-		this.dflY = 0;
-		this.dflTurretAngle = 0;
+		// FIXME: Remove when the transition is done. The main thing missing is passability checks.
+		/*
 		if (this.targetX && this.targetY) {
 			// Orient towards a waypoint if we have not reached it yet
 			var angle = mathlib.angle(this.x, this.y, this.targetX, this.targetY);
@@ -94,7 +70,10 @@ define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world
 				this.targetY = null;
 			}
 		}
+		*/
+
 		// Continue reloading if not reloaded already
+
 		if (this.reloadingCount > 0) {
 			for (var i = 0; i < this.currentReloadMsecs.length; ++i) {
 				if (this.currentReloadMsecs[i] > 0) {
@@ -105,29 +84,47 @@ define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world
 				}
 			}
 		}
+
 		// Fire at any enemies in range
+
+		this.dflTurretAngle = 0;
+
 		var targetUnit = null;
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
 			if (actor.player !== this.player
-					&& 'firingRadius' in actor   // FIXME: Use something more role-specific
-					&& mathlib.distance(actor.x, actor.y, this.x, this.y) < this.firingRadius) {
+					&& 'unitType' in actor   // FIXME: Use something more role-specific
+					&& mathlib.distance(actor.x, actor.y, this.x, this.y) < this.unitType.firingRadius) {
 				targetUnit = actor;
 				break;
 			}
 		}
+
+		function rotateTurretTowards(angle) {
+			var angleDelta = mathlib.angleDelta(this.turretAngle, angle);
+			var rotationPerTick = this.unitType.rotationSpeed / this.game.ticksPerSecond;
+			if (Math.abs(angleDelta) > rotationPerTick) {
+				var lastAngle = this.turretAngle;
+				this.turretAngle = mathlib.normalizeAngle(this.turretAngle + angleDelta / Math.abs(angleDelta) * rotationPerTick);
+				this.dflTurretAngle = mathlib.angleDelta(lastAngle, this.turretAngle);
+			} else {
+				this.dflTurretAngle = mathlib.angleDelta(this.turretAngle, angle);
+				this.turretAngle = angle;
+			}
+		}
+
 		if (targetUnit) {
 			// If there is a target, rotate the turret towards the target and fire
 			var angleTowardsTarget = mathlib.angle(this.x, this.y, targetUnit.x, targetUnit.y);
 			var turretAngle = mathlib.normalizeAngle(angleTowardsTarget - this.angle);
-			rotateTowards.call(this, turretAngle, 'turretAngle', 'dflTurretAngle');
+			rotateTurretTowards.call(this, turretAngle);
 			if (this.turretAngle === turretAngle
 					&& this.reloadingCount < this.currentReloadMsecs.length) {
 				this.fireAtPos(targetUnit.x, targetUnit.y);
 			}
 		} else {
 			// Otherwise make sure the turrent points forward
-			rotateTowards.call(this, 0, 'turretAngle', 'dflTurretAngle');
+			rotateTurretTowards.call(this, 0);
 		}
 	};
 
@@ -195,14 +192,13 @@ define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world
 		}
 
 		// If there is a target, draw the target indicator
-		if (typeof this.targetX === 'number' && typeof this.targetY === 'number'
-				&& this.player === this.game.localPlayer) {
+		if (!this.orderCompleted && this.waypoint && this.player === this.game.localPlayer) {
 			client.uiRenderer.addLineWorld(
 				viewport.worldToClip,
 				(this.x - this.dflX * factor) / 1024,
 				(this.y - this.dflY * factor) / 1024,
-				this.targetX / 1024,
-				this.targetY / 1024,
+				this.waypoint.x / 1024,
+				this.waypoint.y / 1024,
 				0
 			);
 		}
@@ -250,8 +246,8 @@ define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world
 	};
 
 	Vehicle.prototype.performMove = function (x, y) {
-		this.targetX = x;
-		this.targetY = y;
+		var order = MoveOrder.createSimpleMoveOrder(x, y);
+		this.setOrder(order);
 	};
 
 	Vehicle.prototype.fireAtPos = function (x, y) {
@@ -261,7 +257,7 @@ define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world
 			}
 		}
 		if (gunIndex < this.currentReloadMsecs.length &&
-				mathlib.distance(x, y, this.x, this.y) < this.firingRadius) {
+				mathlib.distance(x, y, this.x, this.y) < this.unitType.firingRadius) {
 
 			// TODO: Placeholders should be tied to joints
 			// TODO: This probably can't use placeholders in the future due to consistency issues

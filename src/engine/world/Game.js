@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario'], function (util, Event, Channel, Scenario) {
+define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world/Scenario', 'engine/util/TiledCollisionContext'], function (util, Event, Channel, Scenario, TiledCollisionContext) {
 
 	function Game(isLocal) {
 		this.localPlayer = null;
@@ -40,6 +40,7 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 		this.fieldWidth = 0;
 		this.fieldHeight = 0;
 		this.unitTypes = new util.Map();
+		this.collisionData = null;
 		//
 		// Server communication
 		//
@@ -119,6 +120,14 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 		this.map = map;
 		this.fieldWidth = map.width * map.tileSize;
 		this.fieldHeight = map.height * map.tileSize;
+
+		var cc = new TiledCollisionContext(this.fieldWidth, this.fieldHeight, 64, 64, 1000);
+		this.collisionData = {
+			collisionUnits: this.actors,
+			collisionContext: cc,
+			collisionArray: cc.createCollisionArray(16),
+			indexArray: cc.createIndexArray()
+		};
 	};
 
 	/**
@@ -167,15 +176,38 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 	};
 
 	Game.prototype.tick = function () {
+		var actors = this.actors;
+
 		while (this.additionQueue.length > 0) {
-			this.actors.push(this.additionQueue.shift());
+			actors.push(this.additionQueue.shift());
 		}
-		for (var i = 0; i < this.actors.length; ++i) {
-			this.actors[i].tick();
+
+		//             ___________________
+		//            /  \       \        \
+		//           /    v       v        v
+		// Collisions    Unit -> Order -> Movement
+		//                   \           ^
+		//                    \_________/
+
+		// Collision detection
+
+		var cd = this.collisionData;
+		var cc = cd.collisionContext;
+
+		cc.sortIntoTiles(actors, actors.length);
+		cc.getCollisionsAndIndices(cd.collisionArray, cd.indexArray);
+
+		// Unit, command and movement handling
+
+		for (var i = 0; i < actors.length; ++i) {
+			actors[i].tick(i);
 		}
+
+		// Finish by cleaning up the actor array
+
 		while (this.deletionQueue.length > 0) {
 			var actor = this.deletionQueue.shift();
-			this.actors.splice(this.actors.indexOf(actor), 1);
+			actors.splice(actors.indexOf(actor), 1);
 			actor.afterRemove();
 		}
 		this.onTick.emit();
@@ -204,6 +236,16 @@ define(['engine/util', 'engine/util/Event', 'engine/util/Channel', 'engine/world
 		}
 		newOpt['game'] = this;
 		this.addActor(new type(newOpt));
+	};
+
+	Game.prototype.createUnit = function (unitType, opt) {
+		var newOpt = {};
+		for (var key in opt) {
+			newOpt[key] = opt[key];
+		}
+		newOpt['game'] = this;
+		newOpt['unitType'] = unitType;
+		this.addActor(new (unitType.unitClass)(newOpt));
 	};
 
 	Game.prototype.removeActor = function (actor) {

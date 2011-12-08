@@ -1,6 +1,6 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world/Map'], function (util, Event, Player, Map) {
+define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world/Map', 'engine/world/UnitType'], function (util, Event, Player, Map, UnitType) {
 
 	const STATE_WAITING = 0;
 	const STATE_LOADING_DOCUMENT = 1;
@@ -11,8 +11,8 @@ define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world
 	//
 	// - addPlayer(player:Player)
 	// - setMap(map:Map)
-	// - addUnitType(unitTypeName:string, unitType:class of Actor)
-	// - createActor(type:object, opt:object)
+	// - addUnitType(unitTypeName:string, unitType:UnitType)
+	// - createUnit(unitType:object, opt:object)
 	// - setLocalPlayerId(actorId:number)
 	//
 	// Scenario will also report asset loading progress by using these named
@@ -85,18 +85,19 @@ define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world
 		for (var key in unitTypeSpecs) {
 			if (util.hop(unitTypeSpecs, key)) {
 				var unitTypeSpec = unitTypeSpecs[key];
-				var unitClass = unitTypeSpec['class'];
 				// Here we are assuming that the scenario file is from a trusted source
 				// TODO: Maybe allow scenarios but not classes from an untrusted source
 				// TODO: Use let to fix the parameters when it is more widely supported
-				(function (key, unitClass) {
-					willLoadAsset.call(this, unitClass);
-					require([unitClass], function (unitType) {
+				(function (key, unitTypeSpec) {
+					var unitClassName = unitTypeSpec['class'];
+					willLoadAsset.call(this, unitClassName);
+					require([unitClassName], function (unitClass) {
+						var unitType = new UnitType(unitClass, unitTypeSpec);
 						this.delegate.addUnitType(key, unitType);
 						unitTypes.set(key, unitType);
-						didLoadAsset.call(this, unitClass);
+						didLoadAsset.call(this, unitClassName);
 					}.bind(this));
-				}.call(this, key, unitClass));
+				}.call(this, key, unitTypeSpec));
 			}
 		}
 
@@ -136,7 +137,7 @@ define(['engine/util', 'engine/util/Event', 'engine/world/Player', 'engine/world
 				var unitTypeName = unitSpec['$type'];
 				var unitType = unitTypes.get(unitTypeName);
 				util.assert(unitType, 'Scenario.loadAssets: Unknown unit type ' + unitTypeName);
-				this.delegate.createActor(unitType, unitSpec);
+				this.delegate.createUnit(unitType, unitSpec);
 			}
 
 			// Set the local player

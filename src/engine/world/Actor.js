@@ -7,8 +7,8 @@ define(['engine/util'], function (util) {
 		this.game = opt['game'];
 		this.id = null;
 		this.batchName = '';
-		this.x = opt.x || 0;
-		this.y = opt.y || 0;
+		this.x = util.required(opt.x);
+		this.y = util.required(opt.y);
 		// Delta from last. This should be positive if the value has increased since last tick and
 		// negative if the value has decreased since last tick. It will be multiplied with
 		// the interpolation factor and *substracted* from the current value (yes, the interpolation
