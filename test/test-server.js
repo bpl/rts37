@@ -2,7 +2,6 @@
 
 // Unit tests for the server module
 
-var sys = require('sys');
 var assert = require('assert');
 var server = require('../src/server/server');
 

@@ -2,7 +2,7 @@
 
 // Configuration for a simple test server
 
-var sys = require('sys');
+var sys = require('util');
 var net = require('net');
 var repl = require('repl');
 var Server = require('./Server');

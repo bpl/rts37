@@ -2,7 +2,7 @@
 
 // Generic lock-step execution multiplayer server core
 
-var sys = require('sys');
+var sys = require('util');
 var fs = require('fs');
 var path = require('path');
 var url = require('url');
