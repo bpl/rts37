@@ -54,24 +54,6 @@ define(['engine/util', 'engine/util/gllib', 'engine/util/mathlib', 'engine/world
 
 		Unit.prototype.tick.call(this, collisionIndex);
 
-		// FIXME: Remove when the transition is done. The main thing missing is passability checks.
-		/*
-		if (this.targetX && this.targetY) {
-			// Orient towards a waypoint if we have not reached it yet
-			var angle = mathlib.angle(this.x, this.y, this.targetX, this.targetY);
-			rotateTowards.call(this, angle, 'angle', 'dflAngle');
-			var delta = mathlib.anglePoint(this.angle, Math.round(this.speed / this.game.ticksPerSecond));
-			if (this.game.map.isPassable(this.x + delta[0], this.y + delta[1])
-					&& !this.wouldCollideWithSomeActor(this.x + delta[0], this.y + delta[1])) {
-				this.setPosition(this.x + delta[0], this.y + delta[1]);
-			}
-			if (mathlib.manhattanDistance(this.x, this.y, this.targetX, this.targetY) <= 5120) {
-				this.targetX = null;
-				this.targetY = null;
-			}
-		}
-		*/
-
 		// Continue reloading if not reloaded already
 
 		if (this.reloadingCount > 0) {

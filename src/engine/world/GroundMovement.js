@@ -60,15 +60,22 @@ define(['engine/util/mathlib'], function (mathlib) {
 			if (maxOverlap > 0) {
 				angleDelta = mathlib.constrain(angleDelta, -Math.PI / 2, Math.PI / 2);
 				waypointHeading = this.angle + angleDelta;
-				this.x += maxOverlap * Math.sin(waypointHeading);
-				this.y += maxOverlap * -Math.cos(waypointHeading);
+				dx = maxOverlap * Math.sin(waypointHeading);
+				dy = maxOverlap * -Math.cos(waypointHeading);
 			} else if (angleDelta != 0 && Math.abs(angleDelta) > ROTATION_SPEED) {
 				this.angle = mathlib.normalizeAngle(this.angle + angleDelta / Math.abs(angleDelta) * ROTATION_SPEED);
+				dx = 0;
+				dy = 0;
 			} else {
 				this.angle = waypointHeading;
-				this.x += ACTOR_MAX_SPEED * Math.sin(this.angle);
-				this.y += ACTOR_MAX_SPEED * -Math.cos(this.angle);
+				dx = ACTOR_MAX_SPEED * Math.sin(this.angle);
+				dy = ACTOR_MAX_SPEED * -Math.cos(this.angle);
 			}
+		}
+
+		if ((dx || dy) && this.game.map.isPassable(this.x + dx, this.y + dy)) {
+			this.x += dx;
+			this.y += dy;
 		}
 	};
 
