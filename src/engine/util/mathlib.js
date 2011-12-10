@@ -7,30 +7,13 @@ define(function () {
 	mathlib.HALF_PI = Math.PI / 2;
 
 	// Calculates the angle between two points. The result is in radians, as follows:
-	//        1/2 PI
-	//          |
-	//    PI  --a--  0
-	//          |
-	//       -1/2 PI
-	// FIXME: The diagram may be incorrect. The results are between -PI and +PI
-	mathlib.angleRaw = function (ax, ay, bx, by) {
-		return Math.atan2(by - ay, bx - ax);
-	};
-
-	// Calculates the angle between two points. The result is in radians, as follows:
 	//          0
 	//          |
 	// 3/2 PI --a-- 1/2 PI
 	//          |
 	//         PI
 	mathlib.angle = function (ax, ay, bx, by) {
-		return mathlib.normalizeAngle(Math.atan2(ay - by, ax - bx) - Math.PI / 2);
-	};
-
-	// Rotates a point
-	mathlib.rotate = function (px, py, rad, ox, oy) {
-		return [(px - ox) * Math.cos(rad) - (py - oy) * Math.sin(rad),
-			(px - ox) * Math.sin(rad) + (py - oy) * Math.cos(rad)];
+		return Math.atan2(-(ax - bx), ay - by);
 	};
 
 	// Calculates a point certain distance and angle from origo. The angle is specified
@@ -42,8 +25,7 @@ define(function () {
 	//         PI
 	// See http://www.cgafaq.info/wiki/2D_Point_Rotation
 	mathlib.anglePoint = function (rad, distance) {
-		rad += Math.PI / 2;
-		return [-1 * distance * Math.cos(rad), -1 * distance * Math.sin(rad)];
+		return [distance * Math.sin(rad), distance * -Math.cos(rad)];
 	};
 
 	// Converts an angle expressed in radians to range [ 0, 2 PI [
