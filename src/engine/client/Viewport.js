@@ -58,12 +58,22 @@ define(['engine/util', 'engine/util/Event', 'engine/client/Widget'], function (u
 		}
 	};
 
-	Viewport.prototype.handleClick = function (x, y) {
+	Viewport.prototype.handleClick = function (x, y, isDouble) {
 		var target = this.screenToWorld(x, y);
 		for (var idx in this.game.actors) {
 			var actor = this.game.actors[idx];
 			if (actor.isSelectable() && actor.clickTest(target[0], target[1], this.client)) {
-				this.client.setSelection([actor]);
+				// If the user double-clicked this actor and the actor was
+				// selected previously, do a screen selection (i.e. all actors
+				// of the same type of the same player currently on screen).
+				if (isDouble && 'unitType' in actor && this.client.selectedActors.length === 1 && this.client.selectedActors[0] === actor) {
+					var actorsOnScreen = this.getActorsInsideScreenRect(0, 0, this.width, this.height);
+					this.client.setSelection(actorsOnScreen.filter(function (actor2) {
+						return (actor2.player === actor.player && actor2.unitType === actor.unitType);
+					}));
+				} else {
+					this.client.setSelection([actor]);
+				}
 				return;
 			}
 		}

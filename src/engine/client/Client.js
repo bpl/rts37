@@ -7,6 +7,8 @@ define(['engine/util', 'engine/util/mathlib', 'engine/util/gllib', 'engine/clien
 	const MOUSE_DRAG = 2;
 
 	const MOUSE_DRAG_THRESHOLD = 5;
+	const MOUSE_DBLCLICK_THRESHOLD = MOUSE_DRAG_THRESHOLD;
+	const MOUSE_DBLCLICK_TIME = 250;
 
 	function Client(game, canvas) {
 		util.assert(game && typeof game === 'object', 'Client: game must be an object');
@@ -25,6 +27,9 @@ define(['engine/util', 'engine/util/mathlib', 'engine/util/gllib', 'engine/clien
 		this._mouseDownX = 0;
 		this._mouseDownY = 0;
 		this._mouseMode = MOUSE_IDLE;
+		this._lastClickX = 0;
+		this._lastClickY = 0;
+		this._lastClickNow = 0;
 		//
 		// User interface state
 		//
@@ -283,16 +288,32 @@ define(['engine/util', 'engine/util/mathlib', 'engine/util/gllib', 'engine/clien
 
 		switch (this._mouseMode) {
 			case MOUSE_CLICK_OR_DRAG:
+				// Detected as click
 				this._mouseMode = MOUSE_IDLE;
+
+				var dateNow = Date.now();
+
+				// First determine if this is a double-click
+				var isDouble = (this._lastClickNow > 0 &&
+					dateNow - this._lastClickNow < MOUSE_DBLCLICK_TIME &&
+					Math.abs(this._lastClickX - x) <= MOUSE_DBLCLICK_THRESHOLD &&
+					Math.abs(this._lastClickY - y) <= MOUSE_DBLCLICK_THRESHOLD
+				);
+
+				// Save these so that we can detect if next click is doubled
+				this._lastClickNow = dateNow;
+				this._lastClickX = x;
+				this._lastClickY = y;
+
 				if (this._mouseCaptureWidget) {
 					var widget = this._mouseCaptureWidget;
-					widget.handleClick(x - widget.x, y - widget.y);
+					widget.handleClick(x - widget.x, y - widget.y, isDouble);
 					this._mouseCaptureWidget = null;
 				} else {
 					for (var i = this.widgets.length - 1; i >= 0; --i) {
 						var widget = this.widgets[i];
 						if (widget.hitTest(x, y)) {
-							if (widget.handleClick(x - widget.x, y - widget.y) !== false) {
+							if (widget.handleClick(x - widget.x, y - widget.y, isDouble) !== false) {
 								break;
 							}
 						}
@@ -300,7 +321,9 @@ define(['engine/util', 'engine/util/mathlib', 'engine/util/gllib', 'engine/clien
 				}
 			break;
 			case MOUSE_DRAG:
+				// Detected as drag
 				this._mouseMode = MOUSE_IDLE;
+				this._lastClickNow = 0;
 				if (this._mouseCaptureWidget) {
 					var widget = this._mouseCaptureWidget;
 					widget.handleDragDone(x - widget.x, y - widget.y);

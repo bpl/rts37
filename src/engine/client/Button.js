@@ -12,7 +12,7 @@ define(['engine/util', 'engine/client/Widget', 'engine/util/Event'], function (u
 		}
 	}
 
-	Button.prototype.handleClick = function (x, y) {
+	Button.prototype.handleClick = function (x, y, isDouble) {
 		this.onClick.emit();
 	};
 

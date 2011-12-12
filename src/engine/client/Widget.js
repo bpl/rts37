@@ -78,7 +78,7 @@ define(['engine/util'], function (util) {
 	// Called by client when a click is registered on the area of the widget.
 	// Return false to indicate that this widget did not process the event and that
 	// the next event handler should be called instead.
-	Widget.prototype.handleClick = function (x, y) {
+	Widget.prototype.handleClick = function (x, y, isDouble) {
 		return false;
 	};
 
