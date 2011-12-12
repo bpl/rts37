@@ -1,8 +1,8 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
-define(['engine/util', 'engine/world/GroundMovement'], function (util, GroundMovement) {
+define(['engine/util', 'engine/world/TankMovement'], function (util, TankMovement) {
 
-	var DEFAULT_GROUND_MOVEMENT = new GroundMovement();
+	var DEFAULT_GROUND_MOVEMENT = new TankMovement();
 
 	function UnitType(unitClass, opt) {
 		this.unitClass = unitClass;

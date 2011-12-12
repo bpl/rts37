@@ -1,13 +1,16 @@
 // Copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi> unless otherwise noted
 
+// Movement implementation for units that are on ground and take time to turn
+// but can turn in place.
+
 define(['engine/util/mathlib'], function (mathlib) {
 
-	function GroundMovement() {
+	function TankMovement() {
 	}
 
-	// This is called in the context of the unit. Ground movement has no
+	// This is called in the context of the unit. Tank movement has no
 	// parameters, so it always uses the same tick function.
-	GroundMovement.prototype.tickFunction = function (collisionIndex) {
+	TankMovement.prototype.tickFunction = function (collisionIndex) {
 		const TICKS_PER_SECOND = this.game.ticksPerSecond;
 		const UNIT_TYPE = this.unitType;
 
@@ -85,6 +88,6 @@ define(['engine/util/mathlib'], function (mathlib) {
 		}
 	};
 
-	return GroundMovement;
+	return TankMovement;
 
 });
