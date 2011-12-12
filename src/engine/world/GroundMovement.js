@@ -50,8 +50,8 @@ define(['engine/util/mathlib'], function (mathlib) {
 				}
 			}
 		}
-		if (maxOverlap > 0 && maxOverlap < ACTOR_MAX_SPEED / 2) {
-			maxOverlap = ACTOR_MAX_SPEED / 2;
+		if (maxOverlap > 0) {
+			maxOverlap = mathlib.constrain(maxOverlap, ACTOR_MAX_SPEED / 2, ACTOR_MAX_SPEED);
 		}
 
 		if (dx || dy) {
@@ -62,6 +62,12 @@ define(['engine/util/mathlib'], function (mathlib) {
 				waypointHeading = this.angle + angleDelta;
 				dx = maxOverlap * Math.sin(waypointHeading);
 				dy = maxOverlap * -Math.cos(waypointHeading);
+				// Also turn the unit to face push direction
+				if (angleDelta != 0 && Math.abs(angleDelta) > ROTATION_SPEED) {
+					this.angle = mathlib.normalizeAngle(this.angle + angleDelta / Math.abs(angleDelta) * ROTATION_SPEED);
+				} else {
+					this.angle = waypointHeading;
+				}
 			} else if (angleDelta != 0 && Math.abs(angleDelta) > ROTATION_SPEED) {
 				this.angle = mathlib.normalizeAngle(this.angle + angleDelta / Math.abs(angleDelta) * ROTATION_SPEED);
 				dx = 0;
