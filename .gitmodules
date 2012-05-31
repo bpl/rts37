@@ -10,3 +10,6 @@
 [submodule "src/dep/jquery"]
 	path = src/dep/jquery
 	url = git://github.com/jquery/jquery.git
+[submodule "dep/gl-matrix"]
+	path = dep/gl-matrix
+	url = git://github.com/bpl/gl-matrix.git
