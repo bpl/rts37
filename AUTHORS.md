@@ -1,5 +1,7 @@
-Application source code is copyright © 2011 Aapo Laitinen <aapo.laitinen@iki.fi>
-unless otherwise noted.
+Application source code is copyright © 2012 Aapo Laitinen <aapo.laitinen@iki.fi>
+(unless otherwise noted). It is made available under the MIT license (unless
+otherwise noted). Please see the LICENSE file or any source file covered by the
+license for the full text of the license.
 
 # Dependencies #
 
