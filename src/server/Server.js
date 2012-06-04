@@ -26,7 +26,7 @@ var path = require('path');
 var url = require('url');
 var http = require('http');
 
-var WebSocketServer = require('../dep/WebSocket-Node').server;
+var WebSocketServer = require('websocket').server;
 
 var util = require('./serverutil');
 var assert = require('../engine/util').assert;
