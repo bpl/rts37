@@ -1,5 +1,5 @@
-[submodule "src/dep/DataViewJs"]
-	path = src/dep/DataViewJs
+[submodule "dep/DataViewJs"]
+	path = dep/DataViewJs
 	url = git://github.com/davidflanagan/DataView.js.git
 [submodule "src/dep/requirejs"]
 	path = src/dep/requirejs
