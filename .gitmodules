@@ -1,12 +1,12 @@
 [submodule "dep/DataViewJs"]
 	path = dep/DataViewJs
 	url = git://github.com/davidflanagan/DataView.js.git
-[submodule "src/dep/requirejs"]
-	path = src/dep/requirejs
-	url = git://github.com/jrburke/requirejs.git
 [submodule "src/dep/jquery"]
 	path = src/dep/jquery
 	url = git://github.com/jquery/jquery.git
 [submodule "dep/gl-matrix"]
 	path = dep/gl-matrix
 	url = git://github.com/bpl/gl-matrix.git
+[submodule "dep/requirejs"]
+	path = dep/requirejs
+	url = git://github.com/jrburke/requirejs.git
