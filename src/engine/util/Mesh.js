@@ -20,13 +20,6 @@
 
 define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engine/shaders/mesh.frag'], function (gllib, shaderProgram) {
 
-	var GET_PARAMETERS_REGEX = /^(\w+)[ \t]+(\w+)[ \t]+(\w+);$/gm;
-	var SPLIT_EXT_REGEX = /^(.+)(\.[^.\/]+)$/;
-
-	// Ugly hack to work around the fact that req.nameToUrl expects that non-JS
-	// files will give it an extension.
-	var TRUTHY_BLANK = {'toString': function () { return ''; }};
-
 	function Mesh(mesh) {
 		this._vertexArray = Mesh._generateVertexArray(mesh);
 		this._indexArray = Mesh._generateIndexArray(mesh);
@@ -40,15 +33,6 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engin
 	}
 
 	Mesh.load = function (name, req, load, config) {
-		var match = name.match(SPLIT_EXT_REGEX);
-		if (match) {
-			var modName = match[1];
-			var ext = match[2];
-		} else {
-			var modName = name;
-			var ext = TRUTHY_BLANK;
-		}
-
 		var xhr = new XMLHttpRequest();
 
 		xhr.onreadystatechange = function () {
@@ -57,12 +41,12 @@ define(['engine/util/gllib', 'engine/util/Program!engine/shaders/mesh.vert!engin
 					var scene = JSON.parse(xhr.responseText);
 					load(new Mesh(scene.objs[0].mesh));
 				} else {
-					req.onError(new Error('Could not load mesh with path ' + name));
+					throw new Error('Could not load mesh with path ' + name);
 				}
 			}
 		};
 
-		xhr.open('GET', req.nameToUrl(modName, ext), true);
+		xhr.open('GET', req.toUrl(name), true);
 		xhr.send(null);
 	};
 

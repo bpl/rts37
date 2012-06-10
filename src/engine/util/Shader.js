@@ -27,10 +27,6 @@ define(['engine/util/gllib'], function (gllib) {
 	var SPLIT_TYPE_REGEX = /^([^!]+)!([^!]+)$/;
 	var SPLIT_EXT_REGEX = /^(.+)(\.[^.\/]+)$/;
 
-	// Ugly hack to work around the fact that req.nameToUrl expects that non-JS
-	// files will give it an extension.
-	var TRUTHY_BLANK = {'toString': function () { return ''; }};
-
 	function Shader(type, shaderSource) {
 		this._shaderSource = shaderSource;
 		this.type = type;
@@ -101,14 +97,11 @@ define(['engine/util/gllib'], function (gllib) {
 
 			var match = path.match(SPLIT_EXT_REGEX);
 			if (match) {
-				var modName = match[1];
-				var ext = match[2];
 				if (!shaderType) {
-					shaderType = ext.substr(1);
+					shaderType = match[2].substr(1);
 				}
 			} else {
-				var modName = name;
-				var ext = TRUTHY_BLANK;
+				throw new Error('Shader module name must have an extension');
 			}
 
 			switch (shaderType) {
@@ -121,9 +114,9 @@ define(['engine/util/gllib'], function (gllib) {
 					var shaderType = Shader.VERTEX_SHADER;
 					break;
 				case '':
-					req.onError(new Error('Missing shader type for shader ' + path));
+					throw new Error('Missing shader type for shader ' + path);
 				default:
-					req.onError(new Error('Invalid shader type ' + shaderType));
+					throw new Error('Invalid shader type ' + shaderType);
 					return;
 			}
 
@@ -134,12 +127,12 @@ define(['engine/util/gllib'], function (gllib) {
 					if (xhr.status === 200) {
 						load(new Shader(shaderType, xhr.responseText));
 					} else {
-						req.onError(new Error('Could not load shader with path ' + path));
+						throw new Error('Could not load shader with path ' + path);
 					}
 				}
 			};
 
-			xhr.open('GET', req.nameToUrl(modName, ext), true);
+			xhr.open('GET', req.toUrl(path), true);
 			xhr.send(null);
 		}
 	};

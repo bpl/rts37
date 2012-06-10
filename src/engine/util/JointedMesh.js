@@ -24,11 +24,7 @@ define([
 	'engine/util/Program!engine/shaders/jointedmesh.vert!engine/shaders/shadowmap.frag'
 ], function (gllib, viewProgram, shadowProgram) {
 
-	var SPLIT_EXT_REGEX = /^([^!]+)(\.[^.\/!]+)(!.+)$/;
-
-	// Ugly hack to work around the fact that req.nameToUrl expects that non-JS
-	// files will give it an extension.
-	var TRUTHY_BLANK = {'toString': function () { return ''; }};
+	var SPLIT_NAMES_REGEX = /^([^!]+)(!.+)$/;
 
 	// Vertex array layout:
 	//
@@ -192,15 +188,13 @@ define([
 	};
 
 	JointedMesh.load = function (name, req, load, config) {
-		var match = name.match(SPLIT_EXT_REGEX);
-		if (match) {
-			var modName = match[1];
-			var ext = match[2];
-		} else {
-			var modName = name;
-			var ext = TRUTHY_BLANK;
+		var match = name.match(SPLIT_NAMES_REGEX);
+		if (!match) {
+			throw new Error('No object names in path ' + name);
 		}
-		var objectNames = match[3].substr(1).split(',');
+
+		var resourceName = match[1];
+		var objectNames = match[2].substr(1).split(',');
 
 		var xhr = new XMLHttpRequest();
 
@@ -210,12 +204,12 @@ define([
 					var scene = JSON.parse(xhr.responseText);
 					load(JointedMesh.fromJSONScene(scene, objectNames));
 				} else {
-					req.onError(new Error('Could not load jointed mesh with path ' + name));
+					throw new Error('Could not load jointed mesh with path ' + name);
 				}
 			}
 		};
 
-		xhr.open('GET', req.nameToUrl(modName, ext), true);
+		xhr.open('GET', req.toUrl(resourceName), true);
 		xhr.send(null);
 	};
 
