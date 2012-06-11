@@ -1,7 +1,4 @@
-Application source code is copyright © 2012 Aapo Laitinen <aapo.laitinen@iki.fi>
-(unless otherwise noted). It is made available under the MIT license (unless
-otherwise noted). Please see the LICENSE file or any source file covered by the
-license for the full text of the license.
+Application source code is copyright © 2012 Aapo Laitinen <aapo.laitinen@iki.fi> (unless otherwise noted). It is made available under the MIT license (unless otherwise noted). Please see the LICENSE file or any source file covered by the license for the full text of the license.
 
 # Dependencies #
 
@@ -21,8 +18,7 @@ license for the full text of the license.
 
 *   dim_grass2.jpg, dim_stone1.jpg
 
-    From Dim's enviromental and architectural textures. Released under
-    CC Attribution 3.0.
+    From Dim's enviromental and architectural textures. Released under CC Attribution 3.0.
 
     http://opengameart.org/content/dims-enviromental-and-architectural-textures
     http://blenderartists.org/forum/showthread.php?t=131009
